@@ -17,6 +17,17 @@ services:
     volumes:
       - ./screenshots/scripts/ollama-init.sh:/usr/local/bin/ollama-init.sh:ro
 
+  mcp-demo:
+    build: ./screenshots/mcp-server
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',8080),2); s.close()"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
   netclawd:
     image: ${NETCLAW_IMAGE:-ghcr.io/aaronontheweb/netclawd:dev}
     ports:
@@ -24,6 +35,8 @@ services:
     depends_on:
       ollama-init:
         condition: service_completed_successfully
+      mcp-demo:
+        condition: service_healthy
     environment:
       NETCLAW_Daemon__Host: "0.0.0.0"
       NETCLAW_Daemon__Port: "5199"
@@ -36,6 +49,9 @@ services:
       NETCLAW_Models__Fallback__ModelId: ${OLLAMA_MODEL:-qwen2:0.5b}
       NETCLAW_Models__Compaction__Provider: local-ollama
       NETCLAW_Models__Compaction__ModelId: ${OLLAMA_MODEL:-qwen2:0.5b}
+      NETCLAW_McpServers__demo-utilities__Transport: http
+      NETCLAW_McpServers__demo-utilities__Url: http://mcp-demo:8080/mcp
+      NETCLAW_McpServers__demo-utilities__Enabled: "true"
     volumes:
       - screenshot-netclaw-home:/root/.netclaw
     healthcheck:

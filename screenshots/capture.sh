@@ -14,12 +14,14 @@ export NETCLAW_SCREENSHOT_HOME="$SCRIPT_DIR/.netclaw-screenshot-home"
 
 mkdir -p "$OUTPUT_DIR"
 
-echo "==> Starting screenshot environment..."
-docker compose -f "$COMPOSE_FILE" up -d --wait
+NETCLAW_PORT="${NETCLAW_PORT:-5299}"
 
-echo "==> Waiting for netclawd health check..."
+echo "==> Starting screenshot environment (building images if needed)..."
+docker compose -f "$COMPOSE_FILE" up -d --build --wait
+
+echo "==> Waiting for netclawd health check on port $NETCLAW_PORT..."
 for i in $(seq 1 60); do
-  if curl -sf http://127.0.0.1:5199/api/health/ready >/dev/null 2>&1; then
+  if curl -sf "http://127.0.0.1:${NETCLAW_PORT}/api/health/ready" >/dev/null 2>&1; then
     echo "    netclawd is healthy."
     break
   fi

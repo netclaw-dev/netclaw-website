@@ -1,0 +1,1524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Netclaw — Run your own agent.</title>
+  <meta name="description" content="Netclaw is the open-source autonomous operations agent for .NET. Self-hosted. Always-on. Runs anywhere. Built by the creators of Akka.NET.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Netclaw — Run your own agent.">
+  <meta property="og:description" content="The open-source autonomous operations agent for .NET. Self-hosted. Always-on. Runs anywhere.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://netclaw.dev">
+  <meta property="og:image" content="https://netclaw.dev/assets/netclaw-icon-purple.svg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Netclaw — Run your own agent.">
+  <meta name="twitter:description" content="The open-source autonomous operations agent for .NET. Self-hosted. Always-on. Runs anywhere.">
+  <meta name="twitter:image" content="https://netclaw.dev/assets/netclaw-icon-purple.svg">
+
+  <!-- Favicons -->
+  <link rel="icon" href="assets/favicons/favicon.ico" sizes="any">
+  <link rel="icon" href="assets/favicons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="assets/favicons/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="assets/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+  <style>
+    /* ============================================================
+       Netclaw Variant B — "Terminal-Forward Hero"
+       Dark theme, terminal-centric, real product feel
+       ============================================================ */
+
+    :root {
+      --purple: #512BD4;
+      --purple-hover: #6d3fe8;
+      --purple-glow: rgba(81, 43, 212, 0.45);
+      --purple-soft: rgba(81, 43, 212, 0.15);
+      --dark: #1a1a2e;
+      --ink: #0f1117;
+      --paper: #ffffff;
+      --mute: #8a8fa3;
+      --mute-light: #c2c5cf;
+      --teal: #00d4aa;
+      --teal-dim: rgba(0, 212, 170, 0.15);
+      --max-width: 1120px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Space Grotesk', -apple-system, system-ui, sans-serif;
+      color: var(--paper);
+      background: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ---- ANIMATIONS ---- */
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 212, 170, 0.7); }
+      50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(0, 212, 170, 0); }
+    }
+
+    @keyframes glow-pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(81, 43, 212, 0.3), 0 0 60px rgba(81, 43, 212, 0.1); }
+      50% { box-shadow: 0 0 30px rgba(81, 43, 212, 0.5), 0 0 80px rgba(81, 43, 212, 0.2); }
+    }
+
+    @keyframes terminal-glow {
+      0%, 100% { box-shadow: 0 8px 60px rgba(0, 212, 170, 0.08), 0 2px 20px rgba(81, 43, 212, 0.15); }
+      50% { box-shadow: 0 8px 80px rgba(0, 212, 170, 0.12), 0 2px 30px rgba(81, 43, 212, 0.25); }
+    }
+
+    @keyframes type-line {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    /* Scroll reveal */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ---- NAV ---- */
+
+    .nav {
+      background: #0f1117;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 32px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo .nav-icon {
+      height: 42px;
+      width: 42px;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    .nav-logo span {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--mute-light);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 500;
+      transition: color 0.15s;
+    }
+
+    .nav-links a:hover {
+      color: var(--paper);
+    }
+
+    /* Hamburger */
+    .nav-hamburger {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .nav-hamburger span {
+      display: block;
+      width: 22px;
+      height: 2px;
+      background: var(--mute-light);
+      border-radius: 2px;
+      transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .nav-hamburger[aria-expanded="true"] span:nth-child(1) {
+      transform: translateY(7px) rotate(45deg);
+    }
+    .nav-hamburger[aria-expanded="true"] span:nth-child(2) {
+      opacity: 0;
+    }
+    .nav-hamburger[aria-expanded="true"] span:nth-child(3) {
+      transform: translateY(-7px) rotate(-45deg);
+    }
+
+    .nav-mobile {
+      display: none;
+      list-style: none;
+      background: rgba(15, 17, 23, 0.95);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      padding: 16px 32px 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .nav-mobile.open {
+      display: block;
+    }
+
+    .nav-mobile li {
+      padding: 8px 0;
+    }
+
+    .nav-mobile a {
+      color: var(--mute-light);
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .nav-mobile a:hover {
+      color: var(--paper);
+    }
+
+    /* ---- HERO ---- */
+
+    .hero {
+      background:
+        radial-gradient(ellipse 700px 500px at 50% 35%, rgba(81, 43, 212, 0.14) 0%, transparent 70%),
+        radial-gradient(ellipse 400px 300px at 50% 60%, rgba(0, 212, 170, 0.06) 0%, transparent 70%),
+        linear-gradient(175deg, var(--ink) 0%, var(--dark) 50%, var(--ink) 100%);
+      padding: 80px 32px 100px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1.15fr;
+      gap: 60px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .hero-inner > * {
+      min-width: 0;
+    }
+
+    .hero-text {
+      animation: fade-in-up 0.7s ease-out both;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--teal-dim);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+      border-radius: 100px;
+      padding: 6px 18px;
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--teal);
+      margin-bottom: 24px;
+    }
+
+    .hero-pill-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--teal);
+      border-radius: 50%;
+      flex-shrink: 0;
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+
+    .hero h1 {
+      font-size: 3.4rem;
+      font-weight: 700;
+      color: var(--paper);
+      line-height: 1.08;
+      margin-bottom: 16px;
+      letter-spacing: -0.03em;
+    }
+
+    .hero .sub-tagline {
+      font-size: 1.25rem;
+      color: var(--mute-light);
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      margin-bottom: 20px;
+    }
+
+    .hero .descriptor {
+      font-size: 1rem;
+      color: var(--mute-light);
+      margin-bottom: 36px;
+      max-width: 480px;
+      line-height: 1.65;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .social-proof {
+      font-size: 0.88rem;
+      color: var(--mute-light);
+      margin-top: 8px;
+    }
+
+    .social-proof a {
+      color: var(--teal);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .social-proof a:hover {
+      text-decoration: underline;
+    }
+
+    /* ---- TERMINAL (HERO) ---- */
+
+    .hero-terminal-wrapper {
+      animation: fade-in-up 0.7s ease-out 0.2s both;
+    }
+
+    .terminal {
+      background: #0d0d14;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      overflow: hidden;
+      animation: terminal-glow 4s ease-in-out infinite;
+    }
+
+    .terminal-chrome {
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .terminal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .terminal-dot.red { background: #ff5f57; }
+    .terminal-dot.yellow { background: #febc2e; }
+    .terminal-dot.green { background: #28c840; }
+
+    .terminal-title {
+      flex: 1;
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--mute);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .terminal-body {
+      padding: 24px 20px 28px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.9;
+    }
+
+    .terminal-line {
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .terminal-line .prompt {
+      color: var(--teal);
+      user-select: none;
+    }
+
+    .terminal-line .cmd {
+      color: var(--teal);
+    }
+
+    .terminal-line .flag {
+      color: var(--mute);
+    }
+
+    .terminal-line .url {
+      color: var(--purple-hover);
+    }
+
+    .terminal-line .pipe {
+      color: var(--mute);
+    }
+
+    .terminal-line .arg {
+      color: var(--mute-light);
+    }
+
+    /* Typing animation on first line */
+    .terminal-line.typing {
+      display: inline-block;
+      overflow: hidden;
+      white-space: nowrap;
+      animation: type-line 2.2s steps(55, end) 0.5s both;
+    }
+
+    /* Blinking cursor on last line */
+    .terminal-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background: var(--teal);
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blink 1s step-end infinite;
+    }
+
+    /* ---- BUTTONS ---- */
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s, box-shadow 0.3s;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--purple);
+      color: var(--paper);
+      border: 2px solid var(--purple);
+      animation: glow-pulse 3s ease-in-out infinite;
+    }
+
+    .btn-primary:hover {
+      background: var(--purple-hover);
+      border-color: var(--purple-hover);
+      box-shadow: 0 0 30px rgba(81, 43, 212, 0.5), 0 0 80px rgba(81, 43, 212, 0.25);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--mute-light);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.35);
+      color: var(--paper);
+    }
+
+    .btn-ghost svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .btn-lg {
+      padding: 16px 32px;
+      font-size: 1rem;
+    }
+
+    /* ---- SECTION HELPERS ---- */
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--teal);
+      margin-bottom: 12px;
+    }
+
+    .section-cta {
+      text-align: center;
+      margin-top: 48px;
+    }
+
+    /* ---- PROBLEM ---- */
+
+    .problem {
+      background: var(--dark);
+      padding: 100px 32px;
+      text-align: center;
+    }
+
+    .problem-inner {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .problem h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1.15;
+      margin-bottom: 20px;
+      letter-spacing: -0.02em;
+    }
+
+    .problem p {
+      font-size: 1.05rem;
+      color: var(--mute-light);
+      line-height: 1.7;
+    }
+
+    .problem-divider {
+      width: 48px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--purple), var(--teal));
+      border-radius: 4px;
+      margin: 32px auto;
+    }
+
+    .problem-turn {
+      color: var(--paper) !important;
+    }
+
+    .problem-turn em {
+      color: var(--teal);
+      font-style: normal;
+      font-weight: 600;
+    }
+
+    /* ---- FEATURES ---- */
+
+    .features {
+      background: var(--ink);
+      padding: 100px 32px;
+    }
+
+    .features-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .features-inner h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 56px;
+      letter-spacing: -0.02em;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      text-align: left;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 32px 28px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .feature-card:hover {
+      border-color: rgba(81, 43, 212, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--purple-soft);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      color: var(--teal);
+    }
+
+    .feature-card h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--paper);
+    }
+
+    .feature-card p {
+      font-size: 0.9rem;
+      color: var(--mute-light);
+      line-height: 1.6;
+    }
+
+    /* ---- GET STARTED ---- */
+
+    .get-started {
+      background: var(--dark);
+      padding: 100px 32px;
+    }
+
+    .get-started-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .get-started-inner h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 40px;
+      letter-spacing: -0.02em;
+    }
+
+    /* Install Tabs */
+    .install-tabs {
+      margin-bottom: 40px;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 10px;
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+
+    .tab {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--mute);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .tab:hover { color: var(--mute-light); }
+
+    .tab.active {
+      background: var(--purple-soft);
+      color: var(--paper);
+    }
+
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+
+    .tab-note {
+      font-size: 0.8rem;
+      color: var(--mute);
+      margin-top: 10px;
+    }
+
+    .tab-note code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    /* Code blocks */
+    .code-block {
+      background: #0d0d14;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      overflow-x: auto;
+    }
+
+    .code-block code {
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    .code-cmd { color: var(--teal); }
+    .code-flag { color: var(--mute); }
+    .code-url { color: var(--purple-hover); }
+    .code-pipe { color: var(--mute); }
+
+    .copy-btn {
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 6px 8px;
+      cursor: pointer;
+      color: var(--mute);
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .copy-btn:hover {
+      color: var(--paper);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .copy-btn.copied {
+      color: var(--teal);
+      border-color: rgba(0, 212, 170, 0.3);
+    }
+
+    /* Next steps */
+    .next-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .next-step {
+      text-align: left;
+    }
+
+    .next-step-label {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--teal);
+      margin-bottom: 8px;
+    }
+
+    .step-note {
+      font-size: 0.82rem;
+      color: var(--mute);
+      margin-top: 8px;
+    }
+
+    /* ---- WHY OPEN SOURCE ---- */
+
+    .why-oss {
+      background: var(--ink);
+      padding: 100px 32px;
+    }
+
+    .why-oss-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .why-oss-inner h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 56px;
+      letter-spacing: -0.02em;
+    }
+
+    .oss-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      text-align: left;
+    }
+
+    .oss-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 28px 24px;
+      transition: border-color 0.2s;
+    }
+
+    .oss-card:hover {
+      border-color: rgba(0, 212, 170, 0.25);
+    }
+
+    .oss-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--paper);
+    }
+
+    .oss-card p {
+      font-size: 0.85rem;
+      color: var(--mute-light);
+      line-height: 1.6;
+    }
+
+    /* ---- ECOSYSTEM ---- */
+
+    .ecosystem {
+      background: var(--dark);
+      padding: 100px 32px;
+    }
+
+    .ecosystem-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .ecosystem-inner h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 56px;
+      letter-spacing: -0.02em;
+    }
+
+    .eco-items {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      text-align: left;
+    }
+
+    .eco-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 32px 28px;
+      transition: border-color 0.2s;
+      text-decoration: none;
+      display: block;
+    }
+
+    .eco-item:hover {
+      border-color: rgba(81, 43, 212, 0.3);
+    }
+
+    .eco-item h3 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--teal);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .eco-item p {
+      font-size: 0.9rem;
+      color: var(--mute-light);
+      line-height: 1.6;
+    }
+
+    /* ---- COMMUNITY ---- */
+
+    .community {
+      background: var(--ink);
+      padding: 100px 32px;
+      text-align: center;
+    }
+
+    .community-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+    }
+
+    .community h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 48px;
+      letter-spacing: -0.02em;
+    }
+
+    .social-tiles {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .social-tile {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px 28px;
+      color: var(--mute-light);
+      text-decoration: none;
+      font-size: 0.92rem;
+      font-weight: 500;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+    }
+
+    .social-tile:hover {
+      border-color: rgba(81, 43, 212, 0.4);
+      color: var(--paper);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .social-tile svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    /* ---- FOOTER ---- */
+
+    .footer {
+      background: var(--ink);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 32px;
+    }
+
+    .footer-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .footer-left a {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--mute);
+      text-decoration: none;
+      font-size: 0.82rem;
+      transition: color 0.15s;
+    }
+
+    .footer-left a:hover {
+      color: var(--mute-light);
+    }
+
+    .footer-left img {
+      height: 20px;
+      opacity: 0.7;
+    }
+
+    .footer-right {
+      font-size: 0.78rem;
+      color: var(--mute);
+    }
+
+    .footer-right a {
+      color: var(--mute);
+      text-decoration: none;
+    }
+
+    .footer-right a:hover {
+      color: var(--mute-light);
+    }
+
+    /* ---- RESPONSIVE ---- */
+
+    @media (max-width: 720px) {
+      .nav-links { display: none; }
+      .nav-hamburger { display: flex; }
+
+      .hero {
+        padding: 48px 20px 64px;
+      }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        text-align: center;
+      }
+
+      .hero-text {
+        order: 1;
+      }
+
+      .hero-terminal-wrapper {
+        order: 2;
+      }
+
+      .hero h1 {
+        font-size: 2.4rem;
+      }
+
+      .hero .descriptor {
+        max-width: 100%;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero h1 br { display: none; }
+
+      .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .hero-buttons .btn {
+        width: 100%;
+        max-width: 280px;
+        justify-content: center;
+      }
+
+      .terminal-body {
+        font-size: 0.7rem;
+        padding: 16px 14px 20px;
+        overflow-x: auto;
+      }
+
+      .code-block {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .code-block code {
+        overflow-x: auto;
+        width: 100%;
+        padding-bottom: 4px;
+      }
+
+      .copy-btn {
+        align-self: flex-end;
+      }
+
+      .feature-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .oss-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .eco-items {
+        grid-template-columns: 1fr;
+      }
+
+      .problem h2,
+      .features-inner h2,
+      .get-started-inner h2,
+      .why-oss-inner h2,
+      .ecosystem-inner h2,
+      .community h2 {
+        font-size: 1.75rem;
+      }
+
+      .social-tiles {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .footer-inner {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .btn-lg {
+        padding: 14px 24px;
+        font-size: 0.92rem;
+      }
+    }
+
+    @media (min-width: 721px) and (max-width: 960px) {
+      .feature-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .oss-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero-inner {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero .descriptor {
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .hero-buttons {
+        justify-content: center;
+      }
+
+      .hero h1 {
+        font-size: 2.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <svg class="nav-icon" viewBox="0 0 2048 2048" width="30" height="30" xmlns="http://www.w3.org/2000/svg">
+          <path d="M 997.443 461.425 C 1054.31 457.446 1120.35 465.335 1176.35 475.757 C 1298.33 498.46 1401.84 539.635 1509.74 599.824 C 1511.04 666.793 1509.44 734.232 1510.14 801.23 C 1510.5 835.984 1510.11 869.774 1507.07 904.432 C 1495.63 1051.05 1444.31 1191.74 1358.66 1311.28 C 1310.81 1376.83 1243.77 1444.97 1181.38 1497.27 C 1187.33 1488.25 1191.94 1478.41 1195.07 1468.06 C 1199.81 1451.85 1201.27 1431.21 1192.79 1415.88 C 1184.21 1400.38 1167.63 1397.26 1151.92 1392.81 C 1177.75 1371.88 1195.03 1358.05 1219.23 1334.73 C 1336.84 1221.37 1402.96 1061.49 1414.87 899.793 C 1417.49 864.13 1417.08 831.267 1417.02 795.335 L 1417.03 660.828 C 1304.35 602.36 1180.03 563.384 1052.75 557.877 C 1026.64 556.383 1003.32 557.393 977.271 559.155 C 853.316 567.537 742.418 605.001 632.253 660.555 C 632.031 702.303 632.107 744.052 632.482 785.799 C 632.675 856.141 631.574 919.147 645.459 988.717 C 670.992 1116.64 722.619 1229.87 814.737 1323.3 C 830.743 1339.37 847.644 1354.53 865.358 1368.71 C 875.598 1376.8 886.299 1384.05 896.252 1392.5 C 877.268 1398.51 857.87 1402.71 852.116 1425 C 845.182 1451.87 854.096 1474.11 866.777 1497.49 C 824.238 1461.74 782.76 1419.57 745.517 1378.59 C 624.725 1245.68 558.281 1082.46 542.813 904.008 C 538.567 855.021 539.334 803.117 539.258 753.358 L 539.245 658.125 C 539.235 639.843 538.611 618.309 539.734 600.28 C 679.011 518.075 835.968 470.459 997.443 461.425 z" fill="#512BD4"/>
+          <path d="M 1012.03 1180.39 C 1016.43 1179.87 1025.36 1179.74 1030.05 1179.92 C 1063.54 1181.22 1100.18 1195.79 1123.97 1219.64 C 1128.65 1224.54 1131.91 1231.44 1131.3 1238.36 C 1130.13 1251.87 1109.72 1264.53 1099.52 1272.77 C 1108.05 1272.75 1129.25 1272.9 1133.62 1280.92 C 1144.15 1300.25 1103.21 1326.99 1091.33 1337.86 C 1166.47 1330.99 1112.7 1376.12 1087.81 1399.85 C 1135.58 1394.14 1197.81 1408.57 1174.64 1472.25 C 1161.15 1509.34 1124.93 1540.71 1089.65 1556.85 C 1092.23 1551.72 1095.6 1546.24 1098.32 1541.11 C 1117.15 1505.58 1110 1480.14 1080.96 1454.3 C 1097.7 1517.72 1079.7 1540.76 1034.35 1581.99 C 1030.64 1585.16 1027.81 1587.07 1023.82 1589.81 C 1010.01 1580.33 980.896 1550.62 972.037 1536.25 C 957.101 1512.01 961.457 1479.91 968.13 1453.71 C 929.684 1489.49 934.683 1516.26 959.876 1558.09 C 920.832 1538.96 870.514 1495.07 869.055 1447.5 C 868.717 1436.48 874.818 1424.36 882.816 1416.85 C 904.183 1396.77 933.415 1398.73 960.654 1399.21 C 950.546 1389.28 918.955 1361.9 920.087 1347.67 C 920.29 1344.95 921.625 1342.43 923.769 1340.74 C 931.493 1334.68 948.875 1337.41 958.729 1338.27 L 947.091 1329.08 C 916.702 1304.8 886.766 1273.56 950.257 1272.66 C 947.069 1269.95 941.638 1265.62 938.229 1263.44 C 898.014 1237.73 926.393 1213.97 955.643 1197.67 C 973.957 1187.46 990.14 1182.62 1012.03 1180.39 z" fill="#512BD4"/>
+          <path d="M 1072.65 821.188 C 1076.68 821.575 1079.63 821.978 1082.69 824.489 C 1084.72 830.968 1069.09 845.453 1067.02 860.855 C 1063.13 889.692 1130.97 898.465 1097.59 924.055 C 1140.74 977.703 1154.86 1058.74 1143.85 1126.07 C 1140.02 1149.45 1130.57 1171.51 1118.4 1191.75 C 1060.84 1155.14 1008.29 1151.81 947.573 1182.7 L 929.8 1192.54 C 891.045 1123.15 896.23 1029.81 930.603 959.742 C 936.897 946.911 944.111 935.672 951.949 923.82 C 947.983 920.743 943.673 917.281 942.674 911.976 C 939.451 894.86 972.8 886.767 979.188 874.204 C 991.155 850.669 967.008 836.872 964.802 827.509 C 970.557 813.918 988.065 824.204 993.569 832.887 C 1001.78 845.836 1000.71 853.675 998.555 867.623 C 1020.97 861.963 1026.27 860.14 1049.32 866.511 C 1047.7 846.325 1049.43 826.963 1072.65 821.188 z" fill="#512BD4"/>
+          <path d="M 1167.61 613.42 C 1191.3 610.844 1236.04 622.487 1257.67 632.102 C 1313.63 656.982 1361.78 702.54 1384.35 760.074 C 1401.63 803.581 1403.27 851.984 1385.41 895.437 C 1347.34 988.027 1236.61 1005.51 1197.61 902.142 C 1185.42 895.409 1179.72 890.285 1169.88 880.508 C 1110.84 820.989 1091.73 707.597 1167.5 653.13 C 1161.67 677.777 1156.93 695.132 1160.25 720.721 C 1164.75 755.314 1173.41 776.782 1200.26 798.467 C 1202.48 806.697 1203.49 811.92 1204.83 820.375 C 1220.32 804.627 1255.87 815.719 1235.61 776.985 C 1247.31 762.507 1249.96 741.748 1233.4 729.856 C 1238.88 708.551 1234.1 692.28 1216.6 678.709 C 1205.92 642.952 1183.49 631.235 1152.55 615 C 1157.18 614.188 1162.86 613.841 1167.61 613.42 z" fill="#512BD4"/>
+          <path d="M 869.856 613.42 C 877.381 612.657 888.114 613.215 895.64 613.897 C 874.032 625.937 842.979 643.04 835.475 668.74 C 831.065 683.842 823.531 683.968 817.162 697.755 C 812.63 707.567 812.678 718.732 816.095 728.846 C 801.144 742.962 799.092 761.395 813.31 776.865 C 810.342 782.996 806.885 790.927 807.947 797.865 C 809.899 810.627 825.159 810.318 834.692 813.337 C 838.167 814.437 842.143 817.287 845.18 819.388 C 846.038 812.363 846.862 806.263 848.139 799.311 C 856.134 790.946 864.813 786.697 871.274 775.626 C 896.01 733.24 891.952 697.594 882.25 653.315 C 885.779 655.987 889.24 658.747 892.631 661.594 C 915.65 681.302 928.915 713.789 930.869 743.521 C 934.172 793.796 916.088 837.887 883.812 875.512 C 872.768 887.566 863.261 894.167 849.819 902.863 C 847.019 915.624 841.335 927.575 833.201 937.8 C 817.961 956.646 793.927 970.126 769.776 972.426 C 733.385 975.893 702.155 953.458 681.047 925.783 C 648.332 882.891 644.259 825.752 659.241 775.227 C 668.146 745.194 682.343 721.53 702.568 697.834 C 744.783 648.437 805.042 618.03 869.856 613.42 z" fill="#512BD4"/>
+          <path d="M 845.662 950.569 C 860.538 956.893 849.249 970.598 858.925 980.672 C 864.493 986.215 872.191 978.983 878.448 979.117 C 890.093 979.367 894.688 993.035 893.504 1002.83 C 890.67 1026.26 885.402 1048.78 884.885 1072.55 C 859.22 1068.52 842.532 1064.79 818.629 1053.78 C 788.177 1039.59 762.698 1016.56 745.502 987.697 C 773.234 991.034 798.811 986.192 821.899 969.788 C 830.006 964.028 836.61 957.12 844.689 951.262 L 845.662 950.569 z" fill="#512BD4"/>
+          <path d="M 1202.78 951.427 C 1206.64 952.447 1221.92 967.365 1229.99 972.072 C 1252.55 985.215 1277.64 992.295 1303.4 986.342 C 1286.85 1016.57 1264.42 1036.08 1234.36 1052.42 C 1207.84 1065.12 1193.71 1068.26 1165.38 1071.48 C 1164.99 1060.77 1164 1050.09 1162.42 1039.49 C 1160.54 1027.1 1153.91 1004.46 1155.59 994.748 C 1157.99 980.906 1173.19 976.79 1183.51 982.799 C 1191.12 987.231 1197.64 969.539 1196.06 963.678 C 1194.99 959.72 1198.06 954.927 1202.78 951.427 z" fill="#512BD4"/>
+          <path d="M 721.127 1012.44 C 726.153 1016.5 737.477 1032.04 745.69 1039.03 C 788.638 1075.56 829.271 1090.33 883.809 1097.35 C 884.488 1110.94 886.393 1124.44 889.501 1137.69 C 860.401 1137.59 831.745 1130.54 805.917 1117.14 C 764.007 1095.07 735.159 1057.23 721.127 1012.44 z" fill="#512BD4"/>
+          <path d="M 1328.48 1012.03 C 1328.79 1023.51 1304.12 1064.81 1295.46 1074.63 C 1255.3 1120.17 1218.49 1132.49 1161.3 1138.13 C 1160.73 1135.1 1165.17 1104.75 1165.53 1096.43 C 1169.16 1096.26 1172.77 1096.02 1176.39 1095.69 C 1236.81 1090.24 1290.09 1058.01 1328.48 1012.03 z" fill="#512BD4"/>
+          <path d="M 732.882 1120.55 C 743.671 1127.6 754.041 1138.18 765.978 1145.3 C 794.85 1162.52 828.216 1174.81 862.302 1172.41 C 874.596 1171.54 885.337 1168.86 897.102 1166.16 L 913.013 1200.38 C 846.109 1227 764.43 1180.95 732.882 1120.55 z" fill="#512BD4"/>
+          <path d="M 1313.9 1122.98 L 1314.56 1124.34 C 1288.66 1165.72 1248.26 1197.9 1199.34 1205.5 C 1175.83 1209.15 1157.42 1206.61 1134.61 1201.51 C 1138.22 1192.14 1147.29 1175.47 1152.11 1165.54 C 1160.55 1168.85 1169.38 1171.08 1178.39 1172.17 C 1230.6 1178.77 1274.51 1153.47 1313.9 1122.98 z" fill="#512BD4"/>
+        </svg>
+        <span>netclaw</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#get-started">Get Started</a></li>
+        <li><a href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener">Discord</a></li>
+        <li><a href="https://github.com/netclaw-dev" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+      <button class="nav-hamburger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <ul class="nav-mobile">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#get-started">Get Started</a></li>
+      <li><a href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener">Discord</a></li>
+      <li><a href="https://github.com/netclaw-dev" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-inner">
+      <div class="hero-text">
+        <div class="hero-pill">
+          <span class="hero-pill-dot"></span>
+          Open source &mdash; Apache 2.0
+        </div>
+        <h1>Run your own<br> agent.</h1>
+        <p class="sub-tagline">Your always-on chief of staff.</p>
+        <p class="descriptor">
+          Netclaw is an autonomous operations agent for .NET. It connects to Slack and Discord,
+          watches your webhooks, and runs tasks on a schedule &mdash; a chief of staff for solopreneurs
+          who wear too many hats.
+        </p>
+        <div class="hero-buttons">
+          <a href="#get-started" class="btn btn-primary btn-lg">Get Started</a>
+          <a href="https://github.com/netclaw-dev" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+            View on GitHub
+          </a>
+        </div>
+        <p class="social-proof">Built by the team behind <a href="https://getakka.net" target="_blank" rel="noopener">Akka.NET</a></p>
+      </div>
+
+      <!-- Terminal -->
+      <div class="hero-terminal-wrapper">
+        <div class="terminal">
+          <div class="terminal-chrome">
+            <div class="terminal-dot red"></div>
+            <div class="terminal-dot yellow"></div>
+            <div class="terminal-dot green"></div>
+            <span class="terminal-title">netclaw &mdash; bash</span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-line typing"><span class="prompt">$ </span><span class="cmd">curl</span> <span class="flag">-sSL</span> <span class="url">https://releases.netclaw.dev/install.sh</span> <span class="pipe">|</span> <span class="cmd">bash</span></div>
+            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">init</span></div>
+            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">daemon start</span></div>
+            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">chat</span><span class="terminal-cursor"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Problem -->
+  <section class="problem">
+    <div class="problem-inner">
+      <h2>Every AI agent you use<br>works for someone else.</h2>
+      <p>
+        Your data trains their models.
+        Your access disappears when they change their pricing.
+      </p>
+      <div class="problem-divider"></div>
+      <p class="problem-turn">
+        Netclaw runs on <em>your</em> hardware, connects to <em>your</em> channels, and stays on &mdash;
+        24/7, no exceptions. Not a coding assistant. A chief of staff that handles
+        the things you keep forgetting to do.
+      </p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="features-inner">
+      <p class="section-label">Features</p>
+      <h2>What you get out of the box.</h2>
+      <div class="feature-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Secure by default</h3>
+          <p>
+            Three audience dispositions &mdash; Private, Team, Public &mdash; control
+            what each deployment can access. Default-deny ACL. Fails closed.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="mcpm" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="7" y="7" width="166" height="166"><path d="M173 7H7V173H173V7Z" fill="white"/></mask><g mask="url(#mcpm)"><path d="M23.6 85.25L86.2 22.65C94.85 14.01 108.86 14.01 117.5 22.65C126.15 31.29 126.15 45.31 117.5 53.95L70.23 101.23" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/><path d="M70.88 100.58L117.5 53.95C126.15 45.31 140.16 45.31 148.81 53.95L149.13 54.28C157.78 62.92 157.78 76.94 149.13 85.58L92.51 142.2C89.63 145.08 89.63 149.75 92.51 152.63L104.14 164.26" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/><path d="M101.85 38.3L55.55 84.6C46.91 93.24 46.91 107.26 55.55 115.9C64.2 124.55 78.21 124.55 86.85 115.9L133.15 69.6" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/></g></svg>
+          </div>
+          <h3>MCP-first</h3>
+          <p>
+            First-class MCP with OAuth. Per-audience permissions control which tools
+            are exposed and which require approval.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3>Automatic memory</h3>
+          <p>
+            Ask it to book a flight once. Next time, it already knows your airline,
+            your home airport, your seat preference. Memory segregated by audience &mdash; private stays private.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+          </div>
+          <h3>Small models welcome</h3>
+          <p>
+            Runs on models as small as Qwen 3.6 9B. Dynamic tool calling keeps
+            context tight &mdash; 10-20 tools at a time, even with dozens of MCP servers.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Webhooks &amp; schedules</h3>
+          <p>
+            Inbound webhooks trigger agentic workflows. Scheduled tasks run automatically.
+            Event-driven, not you-driven.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          </div>
+          <h3>Deploy a fleet</h3>
+          <p>
+            Lightweight enough to run dozens in Docker containers. Each agent scoped to a
+            specific domain with its own permissions and memory.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Get Started -->
+  <section class="get-started" id="get-started">
+    <div class="get-started-inner">
+      <p class="section-label">Get Started</p>
+      <h2>Up and running in two minutes.</h2>
+
+      <!-- Install tabs -->
+      <div class="install-tabs">
+        <div class="tab-bar" role="tablist">
+          <button class="tab active" role="tab" aria-selected="true" data-tab="linux">Linux</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="macos">macOS</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="windows">Windows</button>
+          <button class="tab" role="tab" aria-selected="false" data-tab="docker">Docker</button>
+        </div>
+        <div class="tab-panels">
+          <div class="tab-panel active" data-panel="linux">
+            <div class="code-block">
+              <code><span class="code-cmd">curl</span> <span class="code-flag">-sSL</span> <span class="code-url">https://releases.netclaw.dev/install.sh</span> <span class="code-pipe">|</span> <span class="code-cmd">bash</span></code>
+              <button class="copy-btn" aria-label="Copy to clipboard" data-copy="curl -sSL https://releases.netclaw.dev/install.sh | bash">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <p class="tab-note">Installs CLI + daemon to <code>~/.netclaw/bin</code>. Supports x64 and arm64.</p>
+          </div>
+          <div class="tab-panel" data-panel="macos">
+            <div class="code-block">
+              <code><span class="code-cmd">curl</span> <span class="code-flag">-sSL</span> <span class="code-url">https://releases.netclaw.dev/install.sh</span> <span class="code-pipe">|</span> <span class="code-cmd">bash</span></code>
+              <button class="copy-btn" aria-label="Copy to clipboard" data-copy="curl -sSL https://releases.netclaw.dev/install.sh | bash">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <p class="tab-note">Same install script. Supports Apple Silicon and Intel Macs.</p>
+          </div>
+          <div class="tab-panel" data-panel="windows">
+            <div class="code-block">
+              <code><span class="code-cmd">iwr</span> <span class="code-flag">-useb</span> <span class="code-url">https://releases.netclaw.dev/install.ps1</span> <span class="code-pipe">|</span> <span class="code-cmd">iex</span></code>
+              <button class="copy-btn" aria-label="Copy to clipboard" data-copy="iwr -useb https://releases.netclaw.dev/install.ps1 | iex">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <p class="tab-note">PowerShell. Installs to <code>%LOCALAPPDATA%\Programs\netclaw</code>.</p>
+          </div>
+          <div class="tab-panel" data-panel="docker">
+            <div class="code-block">
+              <code><span class="code-cmd">docker</span> <span class="code-flag">run -d --name</span> netclaw <span class="code-flag">-v</span> ~/.netclaw:/root/.netclaw <span class="code-url">ghcr.io/netclaw-dev/netclaw</span></code>
+              <button class="copy-btn" aria-label="Copy to clipboard" data-copy="docker run -d --name netclaw -v ~/.netclaw:/root/.netclaw ghcr.io/netclaw-dev/netclaw">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </button>
+            </div>
+            <p class="tab-note">Mount your config at <code>/root/.netclaw</code>. Configure with <code>NETCLAW_</code> env vars.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next steps -->
+      <div class="next-steps">
+        <div class="next-step">
+          <span class="next-step-label">Then</span>
+          <div class="code-block">
+            <code><span class="code-cmd">netclaw</span> init</code>
+            <button class="copy-btn" aria-label="Copy to clipboard" data-copy="netclaw init">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+          <p class="step-note">Pick your LLM provider, connect Slack or Discord, set your audience.</p>
+        </div>
+        <div class="next-step">
+          <span class="next-step-label">Then</span>
+          <div class="code-block">
+            <code><span class="code-cmd">netclaw</span> daemon start <span class="code-flag">&&</span> <span class="code-cmd">netclaw</span> chat</code>
+            <button class="copy-btn" aria-label="Copy to clipboard" data-copy="netclaw daemon start && netclaw chat">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+          <p class="step-note">Daemon stays on in the background. Chat from CLI, Slack, or Discord.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Why Open Source -->
+  <section class="why-oss">
+    <div class="why-oss-inner">
+      <p class="section-label">Why Open Source</p>
+      <h2>Why open source matters here.</h2>
+      <div class="oss-grid">
+        <div class="oss-card">
+          <h3>Your data stays yours</h3>
+          <p>
+            Run on local models via Ollama. Nothing becomes training data for someone else.
+          </p>
+        </div>
+        <div class="oss-card">
+          <h3>Freedom of choice</h3>
+          <p>
+            Switch from Ollama to OpenRouter in one config change. Add a channel, remove a tool, change the model &mdash; no vendor to ask.
+          </p>
+        </div>
+        <div class="oss-card">
+          <h3>Security through transparency</h3>
+          <p>
+            Every line of Netclaw's security model is on GitHub. Read it. Break it. Harden it.
+          </p>
+        </div>
+        <div class="oss-card">
+          <h3>Learn how it works</h3>
+          <p>
+            See tool calling, compaction, MCP, and OAuth delivered in production .NET.
+          </p>
+        </div>
+      </div>
+      <div class="section-cta">
+        <a href="#get-started" class="btn btn-primary">Get Started</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Ecosystem -->
+  <section class="ecosystem">
+    <div class="ecosystem-inner">
+      <p class="section-label">Ecosystem</p>
+      <h2>Not just an agent &mdash; an ecosystem.</h2>
+      <div class="eco-items">
+        <div class="eco-item">
+          <h3>netclawd</h3>
+          <p>Always-on daemon. LLM sessions, tool execution, persistence. Built on Akka.NET actors.</p>
+        </div>
+        <div class="eco-item">
+          <h3>netclaw</h3>
+          <p>Thin CLI client. Config, management, interactive chat over SignalR.</p>
+        </div>
+        <a href="https://github.com/netclaw-dev/skill-server" class="eco-item" target="_blank" rel="noopener">
+          <h3>SkillServer</h3>
+          <p>Self-hosted skill registry. Discover and share agent skills across your fleet.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Community -->
+  <section class="community">
+    <div class="community-inner">
+      <h2>Join the community.</h2>
+      <div class="social-tiles">
+        <a href="https://discord.gg/ayqrChDtNs" class="social-tile" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+          Discord
+        </a>
+        <a href="https://github.com/netclaw-dev" class="social-tile" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          GitHub
+        </a>
+        <a href="https://x.com/petabridge" class="social-tile" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          @petabridge
+        </a>
+        <a href="https://www.linkedin.com/company/petabridge" class="social-tile" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          LinkedIn
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <a href="https://petabridge.com" target="_blank" rel="noopener">
+          <img src="assets/petabridge-logo.png" alt="Petabridge" height="24">
+          Made with love by Petabridge
+        </a>
+      </div>
+      <div class="footer-right">
+        &copy; 2026 <a href="https://petabridge.com" target="_blank" rel="noopener">Petabridge, LLC</a> &middot; <a href="https://github.com/netclaw-dev/netclaw/blob/main/LICENSE" target="_blank" rel="noopener">Apache 2.0</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Mobile nav toggle
+    const hamburger = document.querySelector('.nav-hamburger');
+    const mobileNav = document.querySelector('.nav-mobile');
+    hamburger.addEventListener('click', () => {
+      const open = hamburger.getAttribute('aria-expanded') === 'true';
+      hamburger.setAttribute('aria-expanded', !open);
+      mobileNav.classList.toggle('open');
+    });
+    mobileNav.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        hamburger.setAttribute('aria-expanded', 'false');
+        mobileNav.classList.remove('open');
+      });
+    });
+
+    // Install tabs
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        tab.closest('.install-tabs').querySelectorAll('.tab').forEach(t => {
+          t.classList.remove('active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        tab.classList.add('active');
+        tab.setAttribute('aria-selected', 'true');
+        tab.closest('.install-tabs').querySelectorAll('.tab-panel').forEach(p => {
+          p.classList.toggle('active', p.dataset.panel === target);
+        });
+      });
+    });
+
+    // Copy buttons
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const text = btn.dataset.copy;
+        navigator.clipboard.writeText(text).then(() => {
+          btn.classList.add('copied');
+          btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+          setTimeout(() => {
+            btn.classList.remove('copied');
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+          }, 2000);
+        });
+      });
+    });
+
+    // Scroll fade-in
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.feature-card, .oss-card, .eco-item, .problem-inner, .next-step').forEach(el => {
+      el.classList.add('fade-in');
+      observer.observe(el);
+    });
+  </script>
+
+</body>
+</html>

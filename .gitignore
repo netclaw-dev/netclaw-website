@@ -5,7 +5,7 @@ _site/
 .bundle/
 vendor/
 node_modules/
-screenshots/
+screenshots/.netclaw-screenshot-home/
 *.mjs
 variant-*.html
 styles.css

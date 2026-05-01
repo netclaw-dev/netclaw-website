@@ -8,7 +8,7 @@ Set Height 600
 Set FontSize 16
 Set Padding 20
 
-Type "/home/petabridge/.netclaw/bin/netclaw --help"
+Type "netclaw --help"
 Enter
 Sleep 2s
 

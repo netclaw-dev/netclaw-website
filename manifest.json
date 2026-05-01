@@ -1,7 +1,7 @@
 {
   "name": "Netclaw",
   "short_name": "Netclaw",
-  "description": "The open-source autonomous operations agent for .NET.",
+  "description": "The open-source autonomous operations agent. Self-hosted. Always-on. Runs anywhere.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",

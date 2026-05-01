@@ -4,11 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Netclaw — Run your own agent.</title>
-  <meta name="description" content="Netclaw is the open-source autonomous operations agent for .NET. Self-hosted. Always-on. Runs anywhere. Built by the creators of Akka.NET.">
+  <meta name="description" content="Netclaw is the open-source autonomous operations agent built with .NET. Self-hosted. Always-on. Runs anywhere. Built by the creators of Akka.NET.">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Netclaw — Run your own agent.">
-  <meta property="og:description" content="The open-source autonomous operations agent for .NET. Self-hosted. Always-on. Runs anywhere.">
+  <meta property="og:description" content="The open-source autonomous operations agent built with .NET. Self-hosted. Always-on. Runs anywhere.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://netclaw.dev">
   <meta property="og:image" content="https://netclaw.dev/assets/netclaw-icon-purple.svg">
@@ -16,7 +16,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Netclaw — Run your own agent.">
-  <meta name="twitter:description" content="The open-source autonomous operations agent for .NET. Self-hosted. Always-on. Runs anywhere.">
+  <meta name="twitter:description" content="The open-source autonomous operations agent built with .NET. Self-hosted. Always-on. Runs anywhere.">
   <meta name="twitter:image" content="https://netclaw.dev/assets/netclaw-icon-purple.svg">
 
   <!-- Favicons -->
@@ -53,7 +53,7 @@
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
 
     body {
       font-family: 'Space Grotesk', -apple-system, system-ui, sans-serif;
@@ -62,6 +62,30 @@
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+    }
+
+    .skip-link {
+      position: absolute;
+      top: -100px;
+      left: 16px;
+      background: var(--purple);
+      color: var(--paper);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 200;
+      transition: top 0.15s;
+    }
+
+    .skip-link:focus {
+      top: 8px;
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--teal);
+      outline-offset: 2px;
     }
 
     /* ---- ANIMATIONS ---- */
@@ -81,12 +105,7 @@
       50% { opacity: 0.7; box-shadow: 0 0 0 6px rgba(0, 212, 170, 0); }
     }
 
-    @keyframes glow-pulse {
-      0%, 100% { box-shadow: 0 0 20px rgba(81, 43, 212, 0.3), 0 0 60px rgba(81, 43, 212, 0.1); }
-      50% { box-shadow: 0 0 30px rgba(81, 43, 212, 0.5), 0 0 80px rgba(81, 43, 212, 0.2); }
-    }
-
-    @keyframes terminal-glow {
+@keyframes terminal-glow {
       0%, 100% { box-shadow: 0 8px 60px rgba(0, 212, 170, 0.08), 0 2px 20px rgba(81, 43, 212, 0.15); }
       50% { box-shadow: 0 8px 80px rgba(0, 212, 170, 0.12), 0 2px 30px rgba(81, 43, 212, 0.25); }
     }
@@ -96,13 +115,13 @@
       to { width: 100%; }
     }
 
-    /* Scroll reveal */
-    .fade-in {
+    /* Scroll reveal — only applied to elements well below the fold */
+    .reveal {
       opacity: 0;
-      transform: translateY(24px);
-      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease-out, transform 0.5s ease-out;
     }
-    .fade-in.visible {
+    .reveal.visible {
       opacity: 1;
       transform: translateY(0);
     }
@@ -135,15 +154,16 @@
     }
 
     .nav-logo .nav-icon {
-      height: 42px;
-      width: 42px;
+      height: 36px;
+      width: 36px;
       display: block;
       flex-shrink: 0;
+      filter: brightness(1.4) saturate(0.9);
     }
 
     .nav-logo span {
       font-family: 'Space Grotesk', sans-serif;
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
       color: #ffffff;
       letter-spacing: -0.02em;
@@ -159,7 +179,7 @@
     .nav-links a {
       color: var(--mute-light);
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 0.95rem;
       font-weight: 500;
       transition: color 0.15s;
     }
@@ -298,7 +318,7 @@
     }
 
     .hero .descriptor {
-      font-size: 1rem;
+      font-size: 1.08rem;
       color: var(--mute-light);
       margin-bottom: 36px;
       max-width: 480px;
@@ -445,7 +465,7 @@
       background: var(--purple);
       color: var(--paper);
       border: 2px solid var(--purple);
-      animation: glow-pulse 3s ease-in-out infinite;
+      box-shadow: 0 0 20px rgba(81, 43, 212, 0.3), 0 0 60px rgba(81, 43, 212, 0.1);
     }
 
     .btn-primary:hover {
@@ -496,17 +516,24 @@
 
     .problem {
       background: var(--dark);
-      padding: 100px 32px;
-      text-align: center;
+      padding: 100px 32px 80px;
     }
 
     .problem-inner {
-      max-width: 680px;
+      max-width: var(--max-width);
       margin: 0 auto;
+      display: grid;
+      grid-template-columns: 0.8fr 1.4fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .problem-text {
+      text-align: left;
     }
 
     .problem h2 {
-      font-size: 2.2rem;
+      font-size: 2.4rem;
       font-weight: 700;
       line-height: 1.15;
       margin-bottom: 20px;
@@ -514,7 +541,7 @@
     }
 
     .problem p {
-      font-size: 1.05rem;
+      font-size: 1.1rem;
       color: var(--mute-light);
       line-height: 1.7;
     }
@@ -524,7 +551,7 @@
       height: 3px;
       background: linear-gradient(90deg, var(--purple), var(--teal));
       border-radius: 4px;
-      margin: 32px auto;
+      margin: 32px 0;
     }
 
     .problem-turn {
@@ -537,11 +564,338 @@
       font-weight: 600;
     }
 
+    .approval-showcase {
+      position: relative;
+      margin-right: -80px;
+    }
+
+    .approval-showcase img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .approval-showcase img:hover {
+      transform: scale(1.02);
+      box-shadow: 0 8px 40px rgba(81, 43, 212, 0.25);
+    }
+
+    .approval-showcase .expand-hint {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      color: var(--mute-light);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .approval-showcase:hover .expand-hint {
+      opacity: 1;
+    }
+
+    .approval-caption {
+      font-size: 0.88rem;
+      color: var(--mute-light);
+      margin-top: 16px;
+      text-align: center;
+    }
+
+    /* Lightbox */
+    .lightbox {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      z-index: 1000;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      padding: 40px;
+    }
+
+    .lightbox.open {
+      display: flex;
+    }
+
+    .lightbox img {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 12px;
+      box-shadow: 0 16px 80px rgba(81, 43, 212, 0.3);
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      background: none;
+      border: none;
+      color: var(--mute-light);
+      font-size: 2rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 8px;
+    }
+
+    .lightbox-close:hover {
+      color: var(--paper);
+    }
+
+    /* ---- HOW IT WORKS (Flow Diagram) ---- */
+
+    .how-it-works {
+      background:
+        radial-gradient(ellipse 500px 300px at 50% 60%, rgba(0, 212, 170, 0.04) 0%, transparent 70%),
+        var(--ink);
+      padding: 80px 32px 100px;
+    }
+
+    .how-it-works-inner {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .how-it-works-inner h2 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      letter-spacing: -0.02em;
+    }
+
+    .how-it-works-inner > p {
+      font-size: 1rem;
+      color: var(--mute-light);
+      margin-bottom: 40px;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .flow-diagram {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: nowrap;
+    }
+
+    .flow-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+    }
+
+    .flow-stage-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--mute);
+    }
+
+    .flow-node {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 18px 24px;
+      text-align: center;
+      min-width: 150px;
+    }
+
+    .flow-node-agent {
+      background: rgba(81, 43, 212, 0.1);
+      border-color: var(--purple);
+    }
+
+    .flow-node-result {
+      background: rgba(0, 212, 170, 0.08);
+      border-color: var(--teal);
+    }
+
+    .flow-node h4 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.05rem;
+      font-weight: 500;
+      color: var(--paper);
+      margin-bottom: 4px;
+    }
+
+    .flow-node p {
+      font-size: 0.85rem;
+      color: var(--mute);
+      line-height: 1.4;
+    }
+
+    .flow-triggers {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .flow-trigger-pill {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 12px 22px;
+      font-size: 0.92rem;
+      color: var(--mute-light);
+    }
+
+    .flow-arrow {
+      display: flex;
+      align-items: center;
+      padding-top: 28px;
+      color: var(--teal);
+      flex-shrink: 0;
+    }
+
+    .flow-arrow svg {
+      width: 32px;
+      height: 12px;
+    }
+
+    .flow-branch {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .flow-branch-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .flow-branch-label.yes { color: var(--teal); }
+    .flow-branch-label.no { color: var(--mute); }
+
+    .flow-branch-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .flow-diamond {
+      width: 100px;
+      height: 100px;
+      position: relative;
+      margin: 0 auto;
+    }
+
+    .flow-diamond-shape {
+      width: 72px;
+      height: 72px;
+      transform: rotate(45deg);
+      background: rgba(81, 43, 212, 0.07);
+      border: 1px solid var(--purple);
+      border-radius: 6px;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-left: -36px;
+      margin-top: -36px;
+    }
+
+    .flow-diamond-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 0.78rem;
+      font-weight: 500;
+      color: var(--paper);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 1080px) {
+      .flow-diagram {
+        display: none;
+      }
+
+      .flow-mobile {
+        display: block;
+      }
+    }
+
+    @media (min-width: 1081px) {
+      .flow-mobile {
+        display: none;
+      }
+    }
+
+    .flow-mobile-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 360px;
+      margin: 0 auto;
+      text-align: left;
+    }
+
+    .flow-mobile-step {
+      display: flex;
+      gap: 16px;
+      padding: 16px 0;
+    }
+
+    .flow-mobile-num {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--purple-soft);
+      color: var(--teal);
+      font-size: 0.82rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .flow-mobile-text h4 {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--paper);
+      margin-bottom: 2px;
+    }
+
+    .flow-mobile-text p {
+      font-size: 0.82rem;
+      color: var(--mute);
+      line-height: 1.5;
+    }
+
+    .flow-mobile-connector {
+      width: 2px;
+      height: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      margin-left: 15px;
+    }
+
     /* ---- FEATURES ---- */
 
     .features {
       background: var(--ink);
-      padding: 100px 32px;
+      padding: 80px 32px 100px;
     }
 
     .features-inner {
@@ -551,9 +905,9 @@
     }
 
     .features-inner h2 {
-      font-size: 2.2rem;
+      font-size: 2.4rem;
       font-weight: 700;
-      margin-bottom: 56px;
+      margin-bottom: 40px;
       letter-spacing: -0.02em;
     }
 
@@ -562,6 +916,7 @@
       grid-template-columns: repeat(3, 1fr);
       gap: 24px;
       text-align: left;
+      align-items: stretch;
     }
 
     .feature-card {
@@ -570,6 +925,8 @@
       border-radius: 12px;
       padding: 32px 28px;
       transition: border-color 0.2s, transform 0.2s;
+      display: flex;
+      flex-direction: column;
     }
 
     .feature-card:hover {
@@ -590,14 +947,14 @@
     }
 
     .feature-card h3 {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
       font-weight: 600;
       margin-bottom: 10px;
       color: var(--paper);
     }
 
     .feature-card p {
-      font-size: 0.9rem;
+      font-size: 0.95rem;
       color: var(--mute-light);
       line-height: 1.6;
     }
@@ -605,8 +962,8 @@
     /* ---- GET STARTED ---- */
 
     .get-started {
-      background: var(--dark);
-      padding: 100px 32px;
+      background: var(--ink);
+      padding: 80px 32px 100px;
     }
 
     .get-started-inner {
@@ -619,7 +976,7 @@
       font-size: 2.2rem;
       font-weight: 700;
       margin-bottom: 40px;
-      letter-spacing: -0.02em;
+      letter-spacing: -0.03em;
     }
 
     /* Install Tabs */
@@ -665,8 +1022,8 @@
     }
 
     .tab-note {
-      font-size: 0.8rem;
-      color: var(--mute);
+      font-size: 0.85rem;
+      color: var(--mute-light);
       margin-top: 10px;
     }
 
@@ -751,68 +1108,16 @@
     }
 
     .step-note {
-      font-size: 0.82rem;
-      color: var(--mute);
+      font-size: 0.88rem;
+      color: var(--mute-light);
       margin-top: 8px;
     }
 
-    /* ---- WHY OPEN SOURCE ---- */
-
-    .why-oss {
-      background: var(--ink);
-      padding: 100px 32px;
-    }
-
-    .why-oss-inner {
-      max-width: var(--max-width);
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .why-oss-inner h2 {
-      font-size: 2.2rem;
-      font-weight: 700;
-      margin-bottom: 56px;
-      letter-spacing: -0.02em;
-    }
-
-    .oss-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 20px;
-      text-align: left;
-    }
-
-    .oss-card {
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 12px;
-      padding: 28px 24px;
-      transition: border-color 0.2s;
-    }
-
-    .oss-card:hover {
-      border-color: rgba(0, 212, 170, 0.25);
-    }
-
-    .oss-card h3 {
-      font-size: 1rem;
-      font-weight: 600;
-      margin-bottom: 10px;
-      color: var(--paper);
-    }
-
-    .oss-card p {
-      font-size: 0.85rem;
-      color: var(--mute-light);
-      line-height: 1.6;
-    }
-
-    /* ---- ECOSYSTEM ---- */
+    /* ---- ECOSYSTEM / ARCHITECTURE ---- */
 
     .ecosystem {
       background: var(--dark);
-      padding: 100px 32px;
+      padding: 80px 32px 100px;
     }
 
     .ecosystem-inner {
@@ -866,8 +1171,10 @@
     /* ---- COMMUNITY ---- */
 
     .community {
-      background: var(--ink);
-      padding: 100px 32px;
+      background:
+        radial-gradient(ellipse 600px 400px at 50% 50%, rgba(81, 43, 212, 0.1) 0%, transparent 70%),
+        var(--dark);
+      padding: 100px 32px 80px;
       text-align: center;
     }
 
@@ -877,7 +1184,7 @@
     }
 
     .community h2 {
-      font-size: 2.2rem;
+      font-size: 2rem;
       font-weight: 700;
       margin-bottom: 48px;
       letter-spacing: -0.02em;
@@ -1040,21 +1347,30 @@
         grid-template-columns: 1fr;
       }
 
-      .oss-grid {
+      .eco-items {
         grid-template-columns: 1fr;
       }
 
-      .eco-items {
+      .problem-inner {
         grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .problem-text {
+        text-align: center;
+      }
+
+      .problem-divider {
+        margin-left: auto;
+        margin-right: auto;
       }
 
       .problem h2,
       .features-inner h2,
       .get-started-inner h2,
-      .why-oss-inner h2,
       .ecosystem-inner h2,
       .community h2 {
-        font-size: 1.75rem;
+        font-size: 1.6rem;
       }
 
       .social-tiles {
@@ -1075,10 +1391,6 @@
 
     @media (min-width: 721px) and (max-width: 960px) {
       .feature-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .oss-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
@@ -1103,6 +1415,7 @@
   </style>
 </head>
 <body>
+  <a href="#main-content" class="skip-link">Skip to content</a>
 
   <!-- Nav -->
   <nav class="nav">
@@ -1141,20 +1454,22 @@
     </ul>
   </nav>
 
+  <main id="main-content">
+
   <!-- Hero -->
   <section class="hero">
     <div class="hero-inner">
       <div class="hero-text">
         <div class="hero-pill">
           <span class="hero-pill-dot"></span>
-          Open source &mdash; Apache 2.0
+          Open source · Apache 2.0
         </div>
         <h1>Run your own<br> agent.</h1>
         <p class="sub-tagline">Your always-on chief of staff.</p>
         <p class="descriptor">
-          Netclaw is an autonomous operations agent for .NET. It connects to Slack and Discord,
-          watches your webhooks, and runs tasks on a schedule &mdash; a chief of staff for solopreneurs
-          who wear too many hats.
+          An AI agent that runs on your hardware, connects to Slack and Discord,
+          and does whatever you delegate to it &mdash; research, triage, reporting, the stuff
+          you never get to. Not a coding assistant. Built with .NET. Open source.
         </p>
         <div class="hero-buttons">
           <a href="#get-started" class="btn btn-primary btn-lg">Get Started</a>
@@ -1186,116 +1501,22 @@
     </div>
   </section>
 
-  <!-- Problem -->
-  <section class="problem">
-    <div class="problem-inner">
-      <h2>Every AI agent you use<br>works for someone else.</h2>
-      <p>
-        Your data trains their models.
-        Your access disappears when they change their pricing.
-      </p>
-      <div class="problem-divider"></div>
-      <p class="problem-turn">
-        Netclaw runs on <em>your</em> hardware, connects to <em>your</em> channels, and stays on &mdash;
-        24/7, no exceptions. Not a coding assistant. A chief of staff that handles
-        the things you keep forgetting to do.
-      </p>
-    </div>
-  </section>
-
-  <!-- Features -->
-  <section class="features" id="features">
-    <div class="features-inner">
-      <p class="section-label">Features</p>
-      <h2>What you get out of the box.</h2>
-      <div class="feature-grid">
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <h3>Secure by default</h3>
-          <p>
-            Three audience dispositions &mdash; Private, Team, Public &mdash; control
-            what each deployment can access. Default-deny ACL. Fails closed.
-          </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg width="28" height="28" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="mcpm" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="7" y="7" width="166" height="166"><path d="M173 7H7V173H173V7Z" fill="white"/></mask><g mask="url(#mcpm)"><path d="M23.6 85.25L86.2 22.65C94.85 14.01 108.86 14.01 117.5 22.65C126.15 31.29 126.15 45.31 117.5 53.95L70.23 101.23" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/><path d="M70.88 100.58L117.5 53.95C126.15 45.31 140.16 45.31 148.81 53.95L149.13 54.28C157.78 62.92 157.78 76.94 149.13 85.58L92.51 142.2C89.63 145.08 89.63 149.75 92.51 152.63L104.14 164.26" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/><path d="M101.85 38.3L55.55 84.6C46.91 93.24 46.91 107.26 55.55 115.9C64.2 124.55 78.21 124.55 86.85 115.9L133.15 69.6" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/></g></svg>
-          </div>
-          <h3>MCP-first</h3>
-          <p>
-            First-class MCP with OAuth. Per-audience permissions control which tools
-            are exposed and which require approval.
-          </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          </div>
-          <h3>Automatic memory</h3>
-          <p>
-            Ask it to book a flight once. Next time, it already knows your airline,
-            your home airport, your seat preference. Memory segregated by audience &mdash; private stays private.
-          </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
-          </div>
-          <h3>Small models welcome</h3>
-          <p>
-            Runs on models as small as Qwen 3.6 9B. Dynamic tool calling keeps
-            context tight &mdash; 10-20 tools at a time, even with dozens of MCP servers.
-          </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          </div>
-          <h3>Webhooks &amp; schedules</h3>
-          <p>
-            Inbound webhooks trigger agentic workflows. Scheduled tasks run automatically.
-            Event-driven, not you-driven.
-          </p>
-        </div>
-
-        <div class="feature-card">
-          <div class="feature-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-          </div>
-          <h3>Deploy a fleet</h3>
-          <p>
-            Lightweight enough to run dozens in Docker containers. Each agent scoped to a
-            specific domain with its own permissions and memory.
-          </p>
-        </div>
-
-      </div>
-    </div>
-  </section>
-
   <!-- Get Started -->
   <section class="get-started" id="get-started">
     <div class="get-started-inner">
       <p class="section-label">Get Started</p>
-      <h2>Up and running in two minutes.</h2>
+      <h2>Up and running in two minutes</h2>
 
       <!-- Install tabs -->
       <div class="install-tabs">
-        <div class="tab-bar" role="tablist">
-          <button class="tab active" role="tab" aria-selected="true" data-tab="linux">Linux</button>
-          <button class="tab" role="tab" aria-selected="false" data-tab="macos">macOS</button>
-          <button class="tab" role="tab" aria-selected="false" data-tab="windows">Windows</button>
-          <button class="tab" role="tab" aria-selected="false" data-tab="docker">Docker</button>
+        <div class="tab-bar" role="tablist" aria-label="Installation method">
+          <button class="tab active" role="tab" id="tab-linux" aria-selected="true" aria-controls="panel-linux" data-tab="linux">Linux</button>
+          <button class="tab" role="tab" id="tab-macos" aria-selected="false" aria-controls="panel-macos" data-tab="macos" tabindex="-1">macOS</button>
+          <button class="tab" role="tab" id="tab-windows" aria-selected="false" aria-controls="panel-windows" data-tab="windows" tabindex="-1">Windows</button>
+          <button class="tab" role="tab" id="tab-docker" aria-selected="false" aria-controls="panel-docker" data-tab="docker" tabindex="-1">Docker</button>
         </div>
         <div class="tab-panels">
-          <div class="tab-panel active" data-panel="linux">
+          <div class="tab-panel active" id="panel-linux" role="tabpanel" aria-labelledby="tab-linux" data-panel="linux">
             <div class="code-block">
               <code><span class="code-cmd">curl</span> <span class="code-flag">-sSL</span> <span class="code-url">https://releases.netclaw.dev/install.sh</span> <span class="code-pipe">|</span> <span class="code-cmd">bash</span></code>
               <button class="copy-btn" aria-label="Copy to clipboard" data-copy="curl -sSL https://releases.netclaw.dev/install.sh | bash">
@@ -1304,7 +1525,7 @@
             </div>
             <p class="tab-note">Installs CLI + daemon to <code>~/.netclaw/bin</code>. Supports x64 and arm64.</p>
           </div>
-          <div class="tab-panel" data-panel="macos">
+          <div class="tab-panel" id="panel-macos" role="tabpanel" aria-labelledby="tab-macos" data-panel="macos">
             <div class="code-block">
               <code><span class="code-cmd">curl</span> <span class="code-flag">-sSL</span> <span class="code-url">https://releases.netclaw.dev/install.sh</span> <span class="code-pipe">|</span> <span class="code-cmd">bash</span></code>
               <button class="copy-btn" aria-label="Copy to clipboard" data-copy="curl -sSL https://releases.netclaw.dev/install.sh | bash">
@@ -1313,7 +1534,7 @@
             </div>
             <p class="tab-note">Same install script. Supports Apple Silicon and Intel Macs.</p>
           </div>
-          <div class="tab-panel" data-panel="windows">
+          <div class="tab-panel" id="panel-windows" role="tabpanel" aria-labelledby="tab-windows" data-panel="windows">
             <div class="code-block">
               <code><span class="code-cmd">iwr</span> <span class="code-flag">-useb</span> <span class="code-url">https://releases.netclaw.dev/install.ps1</span> <span class="code-pipe">|</span> <span class="code-cmd">iex</span></code>
               <button class="copy-btn" aria-label="Copy to clipboard" data-copy="iwr -useb https://releases.netclaw.dev/install.ps1 | iex">
@@ -1322,14 +1543,14 @@
             </div>
             <p class="tab-note">PowerShell. Installs to <code>%LOCALAPPDATA%\Programs\netclaw</code>.</p>
           </div>
-          <div class="tab-panel" data-panel="docker">
+          <div class="tab-panel" id="panel-docker" role="tabpanel" aria-labelledby="tab-docker" data-panel="docker">
             <div class="code-block">
-              <code><span class="code-cmd">docker</span> <span class="code-flag">run -d --name</span> netclaw <span class="code-flag">-v</span> ~/.netclaw:/root/.netclaw <span class="code-url">ghcr.io/netclaw-dev/netclaw</span></code>
-              <button class="copy-btn" aria-label="Copy to clipboard" data-copy="docker run -d --name netclaw -v ~/.netclaw:/root/.netclaw ghcr.io/netclaw-dev/netclaw">
+              <code><span class="code-cmd">docker</span> <span class="code-flag">run -d --name</span> netclaw <span class="code-flag">-v</span> <span class="code-flag">{your-config-dir}</span>:/root/.netclaw <span class="code-url">ghcr.io/netclaw-dev/netclaw</span></code>
+              <button class="copy-btn" aria-label="Copy to clipboard" data-copy="docker run -d --name netclaw -v {your-config-dir}:/root/.netclaw ghcr.io/netclaw-dev/netclaw">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
             </div>
-            <p class="tab-note">Mount your config at <code>/root/.netclaw</code>. Configure with <code>NETCLAW_</code> env vars.</p>
+            <p class="tab-note">Mount your local <code>~/.netclaw</code> config directory. Configure with <code>NETCLAW_</code> env vars.</p>
           </div>
         </div>
       </div>
@@ -1360,48 +1581,238 @@
     </div>
   </section>
 
-  <!-- Why Open Source -->
-  <section class="why-oss">
-    <div class="why-oss-inner">
-      <p class="section-label">Why Open Source</p>
-      <h2>Why open source matters here.</h2>
-      <div class="oss-grid">
-        <div class="oss-card">
-          <h3>Your data stays yours</h3>
-          <p>
-            Run on local models via Ollama. Nothing becomes training data for someone else.
-          </p>
-        </div>
-        <div class="oss-card">
-          <h3>Freedom of choice</h3>
-          <p>
-            Switch from Ollama to OpenRouter in one config change. Add a channel, remove a tool, change the model &mdash; no vendor to ask.
-          </p>
-        </div>
-        <div class="oss-card">
-          <h3>Security through transparency</h3>
-          <p>
-            Every line of Netclaw's security model is on GitHub. Read it. Break it. Harden it.
-          </p>
-        </div>
-        <div class="oss-card">
-          <h3>Learn how it works</h3>
-          <p>
-            See tool calling, compaction, MCP, and OAuth delivered in production .NET.
-          </p>
-        </div>
+  <!-- Problem -->
+  <section class="problem">
+    <div class="problem-inner">
+      <div class="problem-text">
+        <h2>Every AI agent you use works for someone else.</h2>
+        <p>
+          Your data trains their models.
+          Your access disappears when they change their pricing.
+        </p>
+        <div class="problem-divider"></div>
+        <p class="problem-turn">
+          Netclaw runs on <em>your</em> hardware, connects to <em>your</em> channels, and stays on &mdash;
+          24/7, no exceptions. It handles the stuff you keep putting off: triaging alerts,
+          posting updates, running the checks nobody remembers to run.
+        </p>
       </div>
-      <div class="section-cta">
-        <a href="#get-started" class="btn btn-primary">Get Started</a>
+      <div class="approval-showcase">
+        <img src="assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — showing Approve once, Approve for this chat, Approve always, and Deny buttons" width="1000" height="400" loading="lazy" onclick="document.getElementById('lightbox').classList.add('open')">
+        <span class="expand-hint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          Click to enlarge
+        </span>
+        <p class="approval-caption">You control what requires approval and what doesn't.</p>
       </div>
     </div>
   </section>
 
-  <!-- Ecosystem -->
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+    <button class="lightbox-close" aria-label="Close">&times;</button>
+    <img src="assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — full size">
+  </div>
+
+  <!-- How It Works -->
+  <section class="how-it-works">
+    <div class="how-it-works-inner">
+      <p class="section-label">How It Works</p>
+      <h2>How Netclaw handles a request</h2>
+      <p>Something triggers Netclaw. It figures out what to do, checks whether it needs your OK, then does it and tells you what happened.</p>
+
+      <!-- Desktop flow diagram -->
+      <div class="flow-diagram">
+        <!-- Triggers -->
+        <div class="flow-stage">
+          <span class="flow-stage-label">Triggers</span>
+          <div class="flow-triggers">
+            <div class="flow-trigger-pill">Webhook</div>
+            <div class="flow-trigger-pill">Slack message</div>
+            <div class="flow-trigger-pill">Schedule fires</div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">
+          <svg viewBox="0 0 32 12" fill="none"><line x1="0" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/><polygon points="26,2 32,6 26,10" fill="currentColor"/></svg>
+        </div>
+
+        <!-- Agent -->
+        <div class="flow-stage">
+          <span class="flow-stage-label">Agent</span>
+          <div class="flow-node flow-node-agent">
+            <h4>netclawd</h4>
+            <p>Evaluates context,<br>picks tools</p>
+          </div>
+        </div>
+
+        <div class="flow-arrow">
+          <svg viewBox="0 0 32 12" fill="none"><line x1="0" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/><polygon points="26,2 32,6 26,10" fill="currentColor"/></svg>
+        </div>
+
+        <!-- Decision -->
+        <div class="flow-stage">
+          <span class="flow-stage-label">Decision</span>
+          <div class="flow-diamond">
+            <div class="flow-diamond-shape"></div>
+            <span class="flow-diamond-text">Needs<br>approval?</span>
+          </div>
+        </div>
+
+        <div class="flow-arrow">
+          <svg viewBox="0 0 32 12" fill="none"><line x1="0" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/><polygon points="26,2 32,6 26,10" fill="currentColor"/></svg>
+        </div>
+
+        <!-- Branch -->
+        <div class="flow-stage">
+          <span class="flow-stage-label">Action</span>
+          <div class="flow-branch-row">
+            <div class="flow-node" style="border-color: rgba(0, 212, 170, 0.3);">
+              <span class="flow-branch-label yes">Yes &rarr;</span>
+              <p>Asks in Slack</p>
+            </div>
+            <div class="flow-node">
+              <span class="flow-branch-label no">No &rarr;</span>
+              <p>Runs automatically</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flow-arrow">
+          <svg viewBox="0 0 32 12" fill="none"><line x1="0" y1="6" x2="26" y2="6" stroke="currentColor" stroke-width="1.5"/><polygon points="26,2 32,6 26,10" fill="currentColor"/></svg>
+        </div>
+
+        <!-- Result -->
+        <div class="flow-stage">
+          <span class="flow-stage-label">Result</span>
+          <div class="flow-node flow-node-result">
+            <h4>Reports back</h4>
+            <p>Full audit trail<br>in your channel</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile flow (vertical steps) -->
+      <div class="flow-mobile">
+        <div class="flow-mobile-steps">
+          <div class="flow-mobile-step">
+            <div class="flow-mobile-num">1</div>
+            <div class="flow-mobile-text">
+              <h4>Event arrives</h4>
+              <p>Webhook, Slack message, or scheduled task</p>
+            </div>
+          </div>
+          <div class="flow-mobile-connector"></div>
+          <div class="flow-mobile-step">
+            <div class="flow-mobile-num">2</div>
+            <div class="flow-mobile-text">
+              <h4>netclawd evaluates</h4>
+              <p>Picks the right tools for the job</p>
+            </div>
+          </div>
+          <div class="flow-mobile-connector"></div>
+          <div class="flow-mobile-step">
+            <div class="flow-mobile-num">3</div>
+            <div class="flow-mobile-text">
+              <h4>Approval check</h4>
+              <p>Asks in Slack if needed, runs automatically if safe</p>
+            </div>
+          </div>
+          <div class="flow-mobile-connector"></div>
+          <div class="flow-mobile-step">
+            <div class="flow-mobile-num">4</div>
+            <div class="flow-mobile-text">
+              <h4>Reports back</h4>
+              <p>Full audit trail in your channel</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <div class="features-inner">
+      <p class="section-label">Features</p>
+      <h2>What's included</h2>
+      <div class="feature-grid">
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3>Secure by default</h3>
+          <p>
+            Three permission levels &mdash; Private, Team, Public &mdash; control
+            what each agent can see and do. Default-deny. If a rule is missing, the answer is no.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="28" height="28" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg"><mask id="mcpm" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="7" y="7" width="166" height="166"><path d="M173 7H7V173H173V7Z" fill="white"/></mask><g mask="url(#mcpm)"><path d="M23.6 85.25L86.2 22.65C94.85 14.01 108.86 14.01 117.5 22.65C126.15 31.29 126.15 45.31 117.5 53.95L70.23 101.23" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/><path d="M70.88 100.58L117.5 53.95C126.15 45.31 140.16 45.31 148.81 53.95L149.13 54.28C157.78 62.92 157.78 76.94 149.13 85.58L92.51 142.2C89.63 145.08 89.63 149.75 92.51 152.63L104.14 164.26" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/><path d="M101.85 38.3L55.55 84.6C46.91 93.24 46.91 107.26 55.55 115.9C64.2 124.55 78.21 124.55 86.85 115.9L133.15 69.6" stroke="currentColor" stroke-width="11.07" stroke-linecap="round"/></g></svg>
+          </div>
+          <h3>MCP-first</h3>
+          <p>
+            Native <a href="https://modelcontextprotocol.io" target="_blank" rel="noopener" style="color:var(--teal);text-decoration:none">Model Context Protocol</a> support with OAuth.
+            You decide which tools each audience can use and which ones need your approval first.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3>Automatic memory</h3>
+          <p>
+            Ask it to book a flight once. Next time, it already knows your airline,
+            your home airport, your seat preference. Memory segregated by audience &mdash; private stays private.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>
+          </div>
+          <h3>Small models welcome</h3>
+          <p>
+            Works with models as small as 9B parameters. Netclaw only loads
+            10-20 tools per call, so small models don't choke even when you have dozens of MCP servers connected.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Webhooks &amp; schedules</h3>
+          <p>
+            Point a webhook at Netclaw and it handles the rest. Cron-style schedules
+            run tasks on their own. You stop being the bottleneck.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          </div>
+          <h3>Deploy a fleet</h3>
+          <p>
+            Each instance uses ~80MB of RAM. Run one per project, one per client, one per domain &mdash;
+            each with its own permissions and memory.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture -->
   <section class="ecosystem">
     <div class="ecosystem-inner">
-      <p class="section-label">Ecosystem</p>
-      <h2>Not just an agent &mdash; an ecosystem.</h2>
+      <p class="section-label">Architecture</p>
+      <h2>Three pieces, one agent</h2>
       <div class="eco-items">
         <div class="eco-item">
           <h3>netclawd</h3>
@@ -1413,7 +1824,7 @@
         </div>
         <a href="https://github.com/netclaw-dev/skill-server" class="eco-item" target="_blank" rel="noopener">
           <h3>SkillServer</h3>
-          <p>Self-hosted skill registry. Discover and share agent skills across your fleet.</p>
+          <p>Self-hosted skill registry. Publish reusable skills and share them between agents.</p>
         </a>
       </div>
     </div>
@@ -1422,7 +1833,7 @@
   <!-- Community -->
   <section class="community">
     <div class="community-inner">
-      <h2>Join the community.</h2>
+      <h2>Join the community</h2>
       <div class="social-tiles">
         <a href="https://discord.gg/ayqrChDtNs" class="social-tile" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
@@ -1444,13 +1855,15 @@
     </div>
   </section>
 
+  </main>
+
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-left">
         <a href="https://petabridge.com" target="_blank" rel="noopener">
           <img src="assets/petabridge-logo.png" alt="Petabridge" height="24">
-          Made with love by Petabridge
+          Built by Petabridge
         </a>
       </div>
       <div class="footer-right">
@@ -1476,18 +1889,36 @@
     });
 
     // Install tabs
+    function activateTab(tab) {
+      const target = tab.dataset.tab;
+      const tabs = tab.closest('.install-tabs');
+      tabs.querySelectorAll('.tab').forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+        t.setAttribute('tabindex', '-1');
+      });
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      tab.removeAttribute('tabindex');
+      tab.focus();
+      tabs.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.toggle('active', p.dataset.panel === target);
+      });
+    }
     document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        const target = tab.dataset.tab;
-        tab.closest('.install-tabs').querySelectorAll('.tab').forEach(t => {
-          t.classList.remove('active');
-          t.setAttribute('aria-selected', 'false');
-        });
-        tab.classList.add('active');
-        tab.setAttribute('aria-selected', 'true');
-        tab.closest('.install-tabs').querySelectorAll('.tab-panel').forEach(p => {
-          p.classList.toggle('active', p.dataset.panel === target);
-        });
+      tab.addEventListener('click', () => activateTab(tab));
+    });
+    document.querySelectorAll('.tab-bar').forEach(bar => {
+      bar.addEventListener('keydown', e => {
+        const tabs = Array.from(bar.querySelectorAll('.tab'));
+        const idx = tabs.indexOf(e.target);
+        if (idx < 0) return;
+        let next;
+        if (e.key === 'ArrowRight') next = tabs[(idx + 1) % tabs.length];
+        else if (e.key === 'ArrowLeft') next = tabs[(idx - 1 + tabs.length) % tabs.length];
+        else if (e.key === 'Home') next = tabs[0];
+        else if (e.key === 'End') next = tabs[tabs.length - 1];
+        if (next) { e.preventDefault(); activateTab(next); }
       });
     });
 
@@ -1506,7 +1937,12 @@
       });
     });
 
-    // Scroll fade-in
+    // Lightbox close on ESC
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('open');
+    });
+
+    // Scroll reveal — only on elements far below the fold
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
@@ -1514,8 +1950,8 @@
         }
       });
     }, { threshold: 0.1 });
-    document.querySelectorAll('.feature-card, .oss-card, .eco-item, .problem-inner, .next-step').forEach(el => {
-      el.classList.add('fade-in');
+    document.querySelectorAll('.eco-item, .social-tile').forEach(el => {
+      el.classList.add('reveal');
       observer.observe(el);
     });
   </script>

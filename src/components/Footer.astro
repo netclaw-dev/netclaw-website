@@ -1,0 +1,84 @@
+---
+import Pagination from 'virtual:starlight/components/Pagination';
+---
+
+<footer class="sl-flex">
+  <Pagination />
+</footer>
+
+<div class="docs-footer">
+  <div class="docs-footer-inner">
+    <div class="docs-footer-left">
+      <a href="https://petabridge.com" target="_blank" rel="noopener">
+        <img src="/assets/petabridge-logo.png" alt="Petabridge" height="24">
+        Built by Petabridge
+      </a>
+    </div>
+    <div class="docs-footer-right">
+      &copy; 2026 <a href="https://petabridge.com" target="_blank" rel="noopener">Petabridge, LLC</a> &middot; <a href="https://github.com/netclaw-dev/netclaw/blob/main/LICENSE" target="_blank" rel="noopener">Apache 2.0</a>
+    </div>
+  </div>
+</div>
+
+<style>
+  @layer starlight.core {
+    footer {
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+  }
+
+  .docs-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 32px 0;
+    margin-top: 2rem;
+  }
+
+  .docs-footer-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .docs-footer-left a {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #8a8fa3;
+    text-decoration: none;
+    font-size: 0.82rem;
+    transition: color 0.15s;
+  }
+
+  .docs-footer-left a:hover {
+    color: #c2c5cf;
+  }
+
+  .docs-footer-left img {
+    height: 20px;
+    opacity: 0.7;
+  }
+
+  .docs-footer-right {
+    font-size: 0.78rem;
+    color: #8a8fa3;
+  }
+
+  .docs-footer-right a {
+    color: #8a8fa3;
+    text-decoration: none;
+  }
+
+  .docs-footer-right a:hover {
+    color: #c2c5cf;
+  }
+
+  @media (max-width: 720px) {
+    .docs-footer-inner {
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+</style>

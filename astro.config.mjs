@@ -3,17 +3,23 @@ import starlight from '@astrojs/starlight';
 
 export default defineConfig({
   site: 'https://netclaw.dev',
+  vite: {
+    server: {
+      allowedHosts: ['.ts.net'],
+    },
+  },
   integrations: [
     starlight({
-      title: 'Netclaw',
+      title: 'netclaw',
       logo: {
         src: './src/assets/netclaw-icon-purple.svg',
       },
-      social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/netclaw-dev' },
-        { icon: 'discord', label: 'Discord', href: 'https://discord.gg/ayqrChDtNs' },
-      ],
       favicon: '/assets/favicons/favicon.ico',
+      components: {
+        ThemeSelect: './src/components/ThemeSelect.astro',
+        Header: './src/components/Header.astro',
+        Footer: './src/components/Footer.astro',
+      },
       head: [
         { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
         { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true } },

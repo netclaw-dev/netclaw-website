@@ -1,4 +1,6 @@
-:root {
+:root,
+:root[data-theme='light'],
+:root[data-theme='dark'] {
   --sl-color-accent-low: rgba(81, 43, 212, 0.15);
   --sl-color-accent: #512BD4;
   --sl-color-accent-high: #6d3fe8;
@@ -10,7 +12,36 @@
   --sl-color-gray-5: #1a1a2e;
   --sl-color-gray-6: #0f1117;
   --sl-color-black: #0f1117;
+  --sl-color-bg-nav: #0f1117;
+  --sl-color-bg-sidebar: #0f1117;
+  --sl-color-hairline-light: rgba(255, 255, 255, 0.06);
+  --sl-color-hairline: rgba(255, 255, 255, 0.1);
+  --sl-color-text: #c2c5cf;
+  --sl-color-text-accent: #6d3fe8;
+  --sl-color-text-invert: #ffffff;
+  --sl-color-bg-accent: var(--sl-color-accent-high);
 
   --sl-font: 'Space Grotesk', -apple-system, system-ui, sans-serif;
   --sl-font-mono: 'JetBrains Mono', monospace;
+}
+
+.site-title {
+  color: var(--sl-color-white) !important;
+  font-weight: 700;
+  font-size: 28px !important;
+  letter-spacing: -0.02em;
+}
+
+.site-title img {
+  width: 36px;
+  height: 36px;
+  filter: brightness(1.4) saturate(0.9);
+}
+
+header {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+starlight-menu-button button {
+  color: var(--sl-color-gray-1) !important;
 }

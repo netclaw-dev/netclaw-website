@@ -14,6 +14,11 @@ export default defineConfig({
         { icon: 'discord', label: 'Discord', href: 'https://discord.gg/ayqrChDtNs' },
       ],
       favicon: '/assets/favicons/favicon.ico',
+      head: [
+        { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.googleapis.com' } },
+        { tag: 'link', attrs: { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: true } },
+        { tag: 'link', attrs: { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap' } },
+      ],
       customCss: [
         './src/styles/custom.css',
       ],

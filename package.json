@@ -7,7 +7,7 @@
     "build": "npm run copy-screenshots && astro build",
     "preview": "astro preview",
     "astro": "astro",
-    "copy-screenshots": "mkdir -p public/screenshots/output && cp -r screenshots/output/* public/screenshots/output/"
+    "copy-screenshots": "mkdir -p public/screenshots/output && rsync -a --delete screenshots/output/ public/screenshots/output/"
   },
   "dependencies": {
     "astro": "^6.2.0",

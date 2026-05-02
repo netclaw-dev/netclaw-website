@@ -1,3 +1,5 @@
+---
+---
 <!doctype html>
 <html lang="en">
 <head>
@@ -26,18 +28,18 @@
   <meta name="twitter:image" content="https://netclaw.dev/assets/social-card.png">
 
   <!-- Favicons -->
-  <link rel="icon" href="assets/favicons/favicon.ico" sizes="any">
-  <link rel="icon" href="assets/favicons/favicon-32.png" type="image/png" sizes="32x32">
-  <link rel="icon" href="assets/favicons/favicon-64.png" type="image/png" sizes="64x64">
-  <link rel="apple-touch-icon" href="assets/favicons/apple-touch-icon.png">
-  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="/assets/favicons/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="icon" href="/assets/favicons/favicon-64.png" type="image/png" sizes="64x64">
+  <link rel="apple-touch-icon" href="/assets/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
 
-  <style>
+  <style is:inline>
     /* ============================================================
        Netclaw Variant B — "Terminal-Forward Hero"
        Dark theme, terminal-centric, real product feel
@@ -1447,6 +1449,7 @@
         <li><a href="#get-started">Get Started</a></li>
         <li><a href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener">Discord</a></li>
         <li><a href="https://github.com/netclaw-dev" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="/getting-started/installation/">Docs</a></li>
       </ul>
       <button class="nav-hamburger" aria-label="Menu" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -1457,6 +1460,7 @@
       <li><a href="#get-started">Get Started</a></li>
       <li><a href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener">Discord</a></li>
       <li><a href="https://github.com/netclaw-dev" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="/getting-started/installation/">Docs</a></li>
     </ul>
   </nav>
 
@@ -1551,8 +1555,8 @@
           </div>
           <div class="tab-panel" id="panel-docker" role="tabpanel" aria-labelledby="tab-docker" data-panel="docker">
             <div class="code-block">
-              <code><span class="code-cmd">docker</span> <span class="code-flag">run -d --name</span> netclaw <span class="code-flag">-v</span> <span class="code-flag">{your-config-dir}</span>:/root/.netclaw <span class="code-url">ghcr.io/netclaw-dev/netclaw</span></code>
-              <button class="copy-btn" aria-label="Copy to clipboard" data-copy="docker run -d --name netclaw -v {your-config-dir}:/root/.netclaw ghcr.io/netclaw-dev/netclaw">
+              <code><span class="code-cmd">docker</span> <span class="code-flag">run -d --name</span> netclaw <span class="code-flag">-v</span> <span class="code-flag">{'{your-config-dir}'}</span>:/root/.netclaw <span class="code-url">ghcr.io/netclaw-dev/netclaw</span></code>
+              <button class="copy-btn" aria-label="Copy to clipboard" data-copy={"docker run -d --name netclaw -v {your-config-dir}:/root/.netclaw ghcr.io/netclaw-dev/netclaw"}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
             </div>
@@ -1604,7 +1608,7 @@
         </p>
       </div>
       <div class="approval-showcase">
-        <img src="assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — showing Approve once, Approve for this chat, Approve always, and Deny buttons" width="1000" height="400" loading="lazy" onclick="document.getElementById('lightbox').classList.add('open')">
+        <img src="/assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — showing Approve once, Approve for this chat, Approve always, and Deny buttons" width="1000" height="400" loading="lazy" onclick="document.getElementById('lightbox').classList.add('open')">
         <span class="expand-hint">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
           Click to enlarge
@@ -1617,7 +1621,7 @@
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
     <button class="lightbox-close" aria-label="Close">&times;</button>
-    <img src="assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — full size">
+    <img src="/assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — full size">
   </div>
 
   <!-- How It Works -->
@@ -1868,7 +1872,7 @@
     <div class="footer-inner">
       <div class="footer-left">
         <a href="https://petabridge.com" target="_blank" rel="noopener">
-          <img src="assets/petabridge-logo.png" alt="Petabridge" height="24">
+          <img src="/assets/petabridge-logo.png" alt="Petabridge" height="24">
           Built by Petabridge
         </a>
       </div>
@@ -1878,7 +1882,7 @@
     </div>
   </footer>
 
-  <script>
+  <script is:inline>
     // Mobile nav toggle
     const hamburger = document.querySelector('.nav-hamburger');
     const mobileNav = document.querySelector('.nav-mobile');

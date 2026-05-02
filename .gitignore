@@ -1,11 +1,15 @@
-_site/
-.sass-cache/
-.jekyll-cache/
-.jekyll-metadata
-.bundle/
-vendor/
+# Dependencies
 node_modules/
+
+# Astro build output
+dist/
+.astro/
+
+# Screenshot build artifacts (copied from screenshots/output/ at build time)
+public/screenshots/output/
+
+# Screenshot pipeline temp
 screenshots/.netclaw-screenshot-home/
-*.mjs
-variant-*.html
-styles.css
+
+# OS files
+.DS_Store

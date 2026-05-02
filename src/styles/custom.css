@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  --sl-color-accent-low: rgba(81, 43, 212, 0.15);
+  --sl-color-accent: #512BD4;
+  --sl-color-accent-high: #6d3fe8;
+  --sl-color-white: #ffffff;
+  --sl-color-gray-1: #c2c5cf;
+  --sl-color-gray-2: #8a8fa3;
+  --sl-color-gray-3: #5a5e6e;
+  --sl-color-gray-4: #2a2a3e;
+  --sl-color-gray-5: #1a1a2e;
+  --sl-color-gray-6: #0f1117;
+  --sl-color-black: #0f1117;
+
+  --sl-font: 'Space Grotesk', -apple-system, system-ui, sans-serif;
+  --sl-font-mono: 'JetBrains Mono', monospace;
+}

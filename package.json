@@ -1,0 +1,20 @@
+{
+  "name": "netclaw-website",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "npm run copy-screenshots && astro dev",
+    "build": "npm run copy-screenshots && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "copy-screenshots": "mkdir -p public/screenshots/output && cp -r screenshots/output/* public/screenshots/output/"
+  },
+  "dependencies": {
+    "astro": "^6.2.0",
+    "@astrojs/starlight": "^0.38.4",
+    "sharp": "^0.34.0"
+  },
+  "devDependencies": {
+    "playwright": "^1.59.1"
+  }
+}

@@ -36,7 +36,7 @@ Pages marked `[x]` are complete. Autonomous pages can be written without user in
 
 ## Batch 4: Observability (autonomous)
 
-- [ ] `observability/operational-alerts`
+- [x] `observability/operational-alerts`
 - [ ] `observability/opentelemetry`
 
 ## Batch 5: Channels & Troubleshooting (autonomous)

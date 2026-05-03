@@ -18,5 +18,8 @@ docs-logs/
 .prose/runs/
 .prose/agents/
 
+# Local Claude settings and skills
+.claude/
+
 # OS files
 .DS_Store

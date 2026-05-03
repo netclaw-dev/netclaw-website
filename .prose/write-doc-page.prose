@@ -1,0 +1,210 @@
+# Write Documentation Page
+# Full pipeline: research → draft → parallel critique → humanizer → revise → visual verify → commit
+#
+# Usage:
+#   prose run .prose/write-doc-page.prose PAGE=cli/status
+#   prose run .prose/write-doc-page.prose PAGE=observability/opentelemetry
+
+input PAGE: "Documentation page slug (e.g. cli/status, observability/opentelemetry)"
+
+# --- Agents ---
+
+agent researcher:
+  model: sonnet
+  prompt: "You are a source code researcher. You read code, specs, and docs to extract facts. Be thorough — report file paths, line numbers, and exact values. No speculation."
+
+agent writer:
+  model: opus
+  prompt: """
+    You are a technical documentation writer for netclaw.dev.
+    Writing principles — less is more:
+    - Be minimal. Only include what people actually need.
+    - One sentence that teaches something beats three that elaborate.
+    - Code examples are worth more than prose. Show, don't tell.
+    - Tables over prose for reference material.
+    - Visuals over text — if a screenshot explains it better, use it.
+    - No filler paragraphs. No padding. No hedging.
+    - Every sentence should teach something or help the reader do something. Delete the rest.
+    - Tone: confident, casual-technical, like explaining to a coworker.
+  """
+
+agent critic:
+  model: sonnet
+  prompt: "You are a documentation reviewer. Be specific and actionable. Report findings as bullet lists with exact text to change."
+
+agent visual-reviewer:
+  model: sonnet
+  prompt: "You are a visual design reviewer for documentation pages. Check rendered screenshots for layout issues, broken elements, missing content, and readability problems."
+
+# --- Stage 1: Gather Source Material ---
+
+let source = session: researcher
+  prompt: """
+    Gather all source material for the netclaw documentation page: **{PAGE}**
+
+    Read CLAUDE.md for the full authoring workflow, page type classification, and templates.
+
+    Then collect from the netclaw source repo (expected at ~/repositories/stannardlabs/netclaw/):
+    1. Source code relevant to this page topic (CLI commands, config schemas, services, handlers)
+    2. Specs in docs/spec/ that cover this topic
+    3. ADRs in docs/adr/ if relevant
+    4. Runbooks in docs/runbooks/ if relevant
+    5. PROJECT_CONTEXT.md and CONTRIBUTING.md for overall context
+
+    Also collect from this repo:
+    6. The page stub in src/content/docs/{PAGE}.md (title, description)
+    7. Screenshots in screenshots/output/ matching this topic
+    8. Landing page src/pages/index.astro for product positioning
+    9. Any already-written docs that should be cross-referenced
+
+    Report:
+    - What you found (with file paths and key details)
+    - What screenshots are available
+    - What gaps remain that can't be filled from source material
+  """
+
+# --- Stage 2: Write Draft ---
+
+session: writer
+  prompt: """
+    Write the documentation page for **{PAGE}** on the netclaw.dev site.
+
+    Follow the Documentation Authoring Workflow in CLAUDE.md exactly:
+    - Identify the page type (Step 1)
+    - Use the correct template for that page type (Step 4)
+    - Integrate screenshots where they exist (Step 5)
+    - Write to the file: src/content/docs/{PAGE}.md
+
+    Source material from the research phase is in your context. Use it.
+
+    Skip the interview step — this is autonomous. If critical info is missing,
+    leave a <!-- TODO: needs user input — [specific question] --> comment.
+
+    Remember: less is more. Minimal. Show don't tell. Visuals over text. No filler.
+  """
+  context: source
+
+# --- Stage 3: Parallel Critique ---
+
+parallel:
+  technical = session: critic
+    prompt: """
+      **Technical Accuracy Review** for src/content/docs/{PAGE}.md
+
+      Read the drafted page and compare every claim against the netclaw source code
+      at ~/repositories/stannardlabs/netclaw/.
+
+      Check:
+      - Are flag names, default values, and behavior descriptions correct?
+      - Do code examples actually work?
+      - Do command output descriptions match what screenshots show?
+      - Are there any claims not supported by the source?
+      - Is anything technically wrong or misleading?
+
+      Report findings as a bullet list. Be specific — include what's wrong and what's correct.
+    """
+    context: source
+
+  empathy = session: critic
+    prompt: """
+      **Reader Empathy Review** for src/content/docs/{PAGE}.md
+
+      Read the drafted page as a sysadmin or developer who just installed netclaw.
+
+      Check:
+      - What would a reader find missing or confusing?
+      - Are there unstated prerequisites?
+      - Would a reader know what to do next?
+      - Identify 2-4 external links that would genuinely help (official docs for third-party tools, relevant guides)
+      - Flag any jargon not defined or linked
+      - Are there unanswered questions a reader would have?
+
+      Report findings as a bullet list with specific, actionable suggestions.
+    """
+    context: source
+
+  humanizer = session: critic
+    prompt: """
+      **Humanizer Review** for src/content/docs/{PAGE}.md
+
+      Read the drafted page and flag AI writing patterns:
+      - Robotic phrasing: "It is important to note...", "This section describes..."
+      - Unnecessary hedging: "you may want to", "it is recommended that"
+      - Passive voice where active is better
+      - Over-explaining the obvious
+      - Repetitive sentence structure
+      - Generic filler that teaches nothing
+      - AI vocabulary: ensure, leverage, utilize, comprehensive, robust, seamless
+      - Rule of three overuse, em dash overuse
+      - Inline-header vertical lists (bold word + colon pattern)
+
+      The tone should be confident and casual-technical, like explaining to a coworker.
+
+      For each finding, include the exact text and a suggested rewrite.
+    """
+
+# --- Stage 4: Revise ---
+
+let revised = session: writer
+  prompt: """
+    Revise src/content/docs/{PAGE}.md incorporating ALL feedback from the three reviewers.
+
+    In a single pass:
+    1. Fix every technical inaccuracy flagged
+    2. Add missing context, prerequisites, and external links the empathy reviewer identified
+    3. Rewrite every robotic or hedging phrase the humanizer flagged
+    4. Ensure cross-links to other netclaw docs use correct slugs
+    5. Verify the page still follows its template from CLAUDE.md
+
+    Then do a final anti-AI pass: read the page aloud in your head. Does it sound like
+    a person wrote it? If not, fix what's off.
+
+    Write the final version to src/content/docs/{PAGE}.md.
+  """
+  context: [technical, empathy, humanizer, source]
+
+# --- Stage 5: Visual Verification ---
+
+let visual = session: visual-reviewer
+  prompt: """
+    Verify the rendered documentation page for **{PAGE}** looks correct.
+
+    Steps:
+    1. Run: npm run build
+    2. If build fails, fix the issue in src/content/docs/{PAGE}.md and rebuild.
+    3. Run: node scripts/screenshot-page.mjs {PAGE}
+       This captures a screenshot of the rendered page to docs-logs/screenshots/{PAGE}.png
+    4. Read the screenshot image and check:
+       - Does the page render correctly? No broken layout, missing sections, or garbled text?
+       - Do tables render properly?
+       - Are screenshots/images displaying?
+       - Is the content readable against the dark background?
+       - Does the sidebar show the correct section highlighted?
+    5. If there are visual issues, fix them and re-capture.
+
+    Report what you see. If everything looks good, say so.
+  """
+  context: revised
+
+# --- Stage 6: Commit ---
+
+session: writer
+  prompt: """
+    Final steps for **{PAGE}**:
+
+    1. Run npm run build one final time to confirm no errors.
+    2. Run through the quality checklist from CLAUDE.md Step 9:
+       - Frontmatter title and description set
+       - Correct template for page type
+       - All referenced screenshots exist
+       - No placeholder text (Content coming soon, TODO, TBD)
+       - Cross-links use correct slugs
+       - Code examples are complete and copy-pasteable
+       - At least 2 external links
+       - No robotic phrasing or hedging
+    3. Stage ONLY the documentation page: git add src/content/docs/{PAGE}.md
+    4. Commit: git commit -m "docs: write {PAGE}"
+
+    If any checklist item fails, fix it before committing.
+  """
+  context: visual

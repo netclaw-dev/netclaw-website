@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Write documentation pages autonomously using Claude Code.
-# Each page gets its own context window (fresh session).
+# Write documentation pages autonomously using Claude Code + OpenProse.
+# Each page gets its own context window (fresh session) running the
+# write-doc-page.prose workflow.
 #
 # Usage:
 #   ./scripts/write-docs.sh                    # Run all autonomous batches (1-7)
@@ -14,6 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 QUEUE_FILE="$PROJECT_DIR/docs-queue.md"
 LOG_DIR="$PROJECT_DIR/docs-logs"
+PROSE_FILE="$PROJECT_DIR/.prose/write-doc-page.prose"
 
 mkdir -p "$LOG_DIR"
 
@@ -93,23 +95,6 @@ mark_done() {
   sed -i "s/^- \[ \] \`${page//\//\\/}\`/- [x] \`${page//\//\\/}\`/" "$QUEUE_FILE"
 }
 
-PROMPT_TEMPLATE='Write the documentation page for "%s" following the Documentation Authoring Workflow in CLAUDE.md.
-
-This is an autonomous run — do not ask questions. Use only source material from the netclaw source repo (expected at ~/repositories/stannardlabs/netclaw/) and the screenshots in this repo.
-
-Steps:
-1. Read CLAUDE.md for the full workflow
-2. Identify the page type and gather source material (Step 1-2)
-3. Skip interview (Step 3) — work with what you find in source code, specs, runbooks, and screenshots
-4. Write the page following the writing principles and appropriate template (Step 4-5)
-5. Run the three critique agents in parallel (Step 6)
-6. Run /humanizer on the page (Step 7)
-7. Revise based on all feedback (Step 8)
-8. Run npm run build to verify (Step 9)
-9. Stage and commit: docs: write %s
-
-Remember: less is more. Be minimal. Show dont tell. Visuals over text. No filler.'
-
 echo "=== netclaw.dev doc writer ==="
 echo "Pages to process: ${#PAGES[@]}"
 echo ""
@@ -132,9 +117,8 @@ for page in "${PAGES[@]}"; do
 
   echo "[RUN ] $page"
   log_file="$LOG_DIR/$(echo "$page" | tr '/' '-').log"
-  prompt=$(printf "$PROMPT_TEMPLATE" "$page" "$page")
 
-  if claude --print --dangerously-skip-permissions -p "$prompt" > "$log_file" 2>&1; then
+  if claude --print --dangerously-skip-permissions -p "prose run .prose/write-doc-page.prose PAGE=$page" > "$log_file" 2>&1; then
     # Check if the page was actually written (no longer "Content coming soon")
     page_file="$PROJECT_DIR/src/content/docs/${page}.md"
     if [[ -f "$page_file" ]] && ! grep -q "Content coming soon" "$page_file"; then

@@ -95,7 +95,18 @@ Ask the user **targeted, specific questions** to fill the gaps from Step 2. Rule
 
 ### Step 4: Write the Page
 
-Use the appropriate template structure below. Write for a technical audience that's new to netclaw but experienced with their platform (Linux, Docker, Slack, etc.).
+**Writing principles — less is more:**
+- Be minimal. Only include what people actually need. If it's obvious, don't explain it.
+- Prefer a short page that covers the essentials over a long page that covers everything.
+- One sentence that teaches something beats three sentences that elaborate.
+- Code examples are worth more than prose. Show, don't tell.
+- If the CLI help text already explains a flag well, don't rewrite it — just show the help output.
+- No filler paragraphs. No "In this section we will discuss..." No padding.
+- Tables over prose for reference material (flags, config fields, alert types).
+- Every sentence should either teach something or help the reader do something. Delete the rest.
+- **Visuals over text** — If a screenshot, diagram, or image explains something better than prose, use it. A screenshot of the TUI output is worth more than three paragraphs describing it. Architecture pages should have diagrams. CLI pages should have screenshots. Don't describe what you can show.
+
+Write for a technical audience that's new to netclaw but experienced with their platform (Linux, Docker, Slack, etc.).
 
 #### CLI Reference Template
 
@@ -240,7 +251,45 @@ Available screenshot sets:
 - `webhooks.*` / `webhooks-list.png` — Webhook configuration
 - `reminder.*` / `reminder-list.png` — Reminder management
 
-### Step 6: Quality Check
+### Step 6: Critique (3 parallel agents)
+
+After writing the draft, spawn three review agents in parallel. Pass each the full draft content.
+
+**Agent 1 — Technical Accuracy:**
+- Compare every claim against the source code and specs
+- Flag any incorrect flag names, default values, or behavior descriptions
+- Verify all code examples would actually work
+- Check that command output descriptions match what the screenshots show
+
+**Agent 2 — Reader Empathy:**
+- What would a human reader find missing or confusing?
+- Are there prerequisites the page assumes but doesn't state?
+- Would a reader know what to do next after finishing this page?
+- Identify 2-4 external links that would be useful (official docs for third-party tools, relevant RFCs, related tutorials)
+- Flag any jargon that isn't defined on this page or linked to a page that defines it
+
+**Agent 3 — Humanizer:**
+- Does this read like a person wrote it or like a manual was generated?
+- Flag robotic phrasing: "It is important to note that...", "This section describes...", "The following table shows..."
+- Flag unnecessary hedging: "you may want to", "it is recommended that"
+- Prefer direct voice: "Run `netclaw status`" not "You can run `netclaw status`"
+- Check for variety in sentence structure — not every paragraph should start the same way
+- The tone should be confident and casual-technical, like explaining to a coworker
+
+### Step 7: Humanizer Pass
+
+Run `/humanizer` on the drafted page. This is mandatory — no page ships without it. The humanizer catches AI writing patterns that slip through manual review: over-explaining, passive voice, hedge words, repetitive structure, and generic filler that makes documentation feel soulless.
+
+### Step 8: Revise
+
+Incorporate all critique feedback and humanizer output in a single pass:
+- Fix technical inaccuracies
+- Add missing context, prerequisites, and "what's next" links
+- Insert external resource links where the reader empathy agent identified gaps
+- Rewrite robotic or hedging language
+- Ensure cross-links to other netclaw docs use correct slugs
+
+### Step 9: Quality Check
 
 Before declaring the page done:
 
@@ -250,7 +299,21 @@ Before declaring the page done:
 - [ ] No placeholder text ("Content coming soon", "TODO", "TBD")
 - [ ] Cross-links to related pages use correct slugs
 - [ ] Code examples are complete and copy-pasteable
+- [ ] At least 2 external links to relevant resources
+- [ ] No robotic phrasing or unnecessary hedging
 - [ ] `npm run build` passes with no errors
+
+## Autonomous Doc Writing Mode
+
+When invoked with a page slug (e.g., `cli/status`), run the full pipeline without user interaction:
+
+1. Skip Step 3 (Interview) — use only source material from Step 2
+2. If critical information is missing, write the best page you can and leave a `<!-- TODO: needs user input — [specific question] -->` comment
+3. Run all critique agents (Step 6) and revise (Step 7)
+4. Run `npm run build` to verify
+5. Stage and commit the single page with message: `docs: write <section>/<page>`
+
+The netclaw source repo is expected at `~/repositories/stannardlabs/netclaw/`. If not found, check common locations or skip source-dependent content.
 
 ## Build & Preview
 

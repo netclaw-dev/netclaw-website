@@ -65,11 +65,19 @@ export default defineConfig({
         {
           label: 'Configuration',
           items: [
-            { label: 'Providers', slug: 'configuration/providers' },
+            { label: 'Managed Providers', slug: 'configuration/managed-providers' },
+            { label: 'Self-Hosted Providers', slug: 'configuration/self-hosted-providers' },
             { label: 'Models', slug: 'configuration/models' },
             { label: 'MCP Servers', slug: 'configuration/mcp-servers' },
             { label: 'Webhooks', slug: 'configuration/webhooks' },
             { label: 'Reminders', slug: 'configuration/reminders' },
+          ],
+        },
+        {
+          label: 'Notifications & Observability',
+          items: [
+            { label: 'Operational Alerts', slug: 'observability/operational-alerts' },
+            { label: 'OpenTelemetry', slug: 'observability/opentelemetry' },
           ],
         },
         {
@@ -96,7 +104,7 @@ export default defineConfig({
           items: [
             { label: 'Docker', slug: 'deployment/docker' },
             { label: 'systemd', slug: 'deployment/systemd' },
-            { label: 'Reverse Proxy', slug: 'deployment/reverse-proxy' },
+            { label: 'Exposure Modes', slug: 'deployment/exposure-modes' },
           ],
         },
         {
@@ -109,7 +117,6 @@ export default defineConfig({
         {
           label: 'Guides',
           items: [
-            { label: 'Setting Up Ollama', slug: 'guides/setting-up-ollama' },
             { label: 'Connecting Slack', slug: 'guides/connecting-slack' },
             { label: 'MCP Tool Permissions', slug: 'guides/mcp-tool-permissions' },
             { label: 'Pairing Remote Devices', slug: 'guides/pairing-remote-devices' },

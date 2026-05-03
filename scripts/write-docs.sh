@@ -106,7 +106,7 @@ failed=0
 for page in "${PAGES[@]}"; do
   if is_done "$page"; then
     echo "[SKIP] $page (already done)"
-    ((skipped++))
+    skipped=$((skipped + 1))
     continue
   fi
 
@@ -124,14 +124,14 @@ for page in "${PAGES[@]}"; do
     if [[ -f "$page_file" ]] && ! grep -q "Content coming soon" "$page_file"; then
       mark_done "$page"
       echo "[DONE] $page"
-      ((completed++))
+      completed=$((completed + 1))
     else
       echo "[FAIL] $page (page not written or still has placeholder)"
-      ((failed++))
+      failed=$((failed + 1))
     fi
   else
     echo "[FAIL] $page (claude exited non-zero)"
-    ((failed++))
+    failed=$((failed + 1))
   fi
 done
 

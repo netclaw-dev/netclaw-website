@@ -4,32 +4,32 @@ Pages marked `[x]` are complete. Autonomous pages can be written without user in
 
 ## Batch 1: CLI Reference (autonomous)
 
-- [ ] `cli/overview`
-- [ ] `cli/init`
-- [ ] `cli/chat`
-- [ ] `cli/sessions`
-- [ ] `cli/status`
-- [ ] `cli/doctor`
-- [ ] `cli/stats`
-- [ ] `cli/provider`
-- [ ] `cli/model`
-- [ ] `cli/mcp-tools`
-- [ ] `cli/webhooks`
-- [ ] `cli/reminder`
-- [ ] `cli/skill`
-- [ ] `cli/secrets`
+- [x] `cli/overview`
+- [x] `cli/init`
+- [x] `cli/chat`
+- [x] `cli/sessions`
+- [x] `cli/status`
+- [x] `cli/doctor`
+- [x] `cli/stats`
+- [x] `cli/provider`
+- [x] `cli/model`
+- [x] `cli/mcp-tools`
+- [x] `cli/webhooks`
+- [x] `cli/reminder`
+- [x] `cli/skill`
+- [x] `cli/secrets`
 
 ## Batch 2: Security (autonomous)
 
-- [ ] `security/security-model`
-- [ ] `security/hardening`
-- [ ] `security/secrets`
+- [x] `security/security-model`
+- [x] `security/hardening`
+- [x] `security/secrets`
 
 ## Batch 3: Configuration (autonomous)
 
-- [ ] `configuration/managed-providers`
-- [ ] `configuration/self-hosted-providers`
-- [ ] `configuration/models`
+- [x] `configuration/managed-providers`
+- [x] `configuration/self-hosted-providers`
+- [x] `configuration/models`
 - [ ] `configuration/mcp-servers`
 - [ ] `configuration/webhooks`
 - [ ] `configuration/reminders`

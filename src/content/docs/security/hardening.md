@@ -3,9 +3,11 @@ title: "Hardening"
 description: "Lock down MCP permissions and network exposure."
 ---
 
-The [security model](/security/security-model/) covers what netclaw enforces by default: default-deny, audience scoping, a four-layer invocation stack. This page covers what *you* should do on top of that — especially if you're exposing netclaw to a team, the internet, or running it unattended.
+The [security model](/security/security-model/) covers what netclaw enforces by default: default-deny, [audience](/security/security-model/#trust-audiences) scoping, a four-layer invocation stack. This page covers what *you* should do on top of that, especially if you're running it for a team, exposing it to the internet, or leaving it unattended.
 
 Sections are independent. Work through the ones that apply to your deployment.
+
+All configuration lives in `~/.netclaw/config/netclaw.json` unless noted otherwise. Values merge with built-in defaults, so you only need to specify what you're changing.
 
 ## File Permissions
 
@@ -18,7 +20,7 @@ chmod 600 ~/.netclaw/config/secrets.json
 # Webhook route files contain HMAC secrets
 chmod 700 ~/.netclaw/config/webhooks/
 
-# Key material — encryption keys for Data Protection
+# Encryption keys for secrets at rest
 chmod 700 ~/.netclaw/keys/
 ```
 
@@ -40,13 +42,13 @@ Set the mode explicitly:
 
 ```json
 {
-  "SecurityPolicy": {
+  "Security": {
     "ShellExecutionMode": "Off"
   }
 }
 ```
 
-**For Team and Public postures, shell is off by default.** Only Personal posture enables it, and only with approval gates on `shell_execute`. If you're running Personal posture but don't need shell, turn it off.
+**For Team and Public [postures](/security/security-model/#deployment-postures), shell is off by default.** Only Personal posture enables it, and only with approval gates on `shell_execute`. If you're running Personal posture but don't need shell, turn it off.
 
 ### Custom Hard-Deny Patterns
 
@@ -64,11 +66,11 @@ The built-in hard-deny list blocks `sudo`, `rm -rf ~/`, `kill`, fork bombs, and 
 }
 ```
 
-Custom patterns augment the defaults — they don't replace them. Netclaw tokenizes compound commands (`&&`, `||`, `;`, `|`) and checks each segment independently, so `echo hello && docker rm foo` still triggers the deny.
+Custom patterns augment the defaults, they don't replace them. Netclaw tokenizes compound commands (`&&`, `||`, `;`, `|`) and checks each segment independently, so `echo hello && docker rm foo` still triggers the deny.
 
 ## MCP Tool Permissions
 
-New MCP servers start with zero tool grants for all audiences — safe by default. The risk comes from granting too much.
+New MCP servers start with zero tool grants for all audiences, safe by default. The risk comes from granting too much.
 
 Audit your grants per audience:
 
@@ -82,9 +84,9 @@ Personal audience with all tools granted. Compare against the locked-down Team a
 
 ![Team audience with server disabled](/screenshots/output/mcp-tools-team.png)
 
-Team audience — server disabled, no tools granted.
+Team audience: server disabled, no tools granted.
 
-Grant the minimum tools each audience actually needs — don't enable everything for Team because it's faster to configure. For destructive MCP tools (`delete`, `drop`, `write`), set approval mode to `Approval` or `Deny`. Per-tool overrides let you keep the server default on `Auto` while gating the dangerous ones:
+Grant the minimum tools each audience actually needs. Don't enable everything for Team because it's faster to configure. For destructive MCP tools (`delete`, `drop`, `write`), set approval mode to `Approval` or `Deny`. Per-tool overrides let you keep the server default on `Auto` while gating the dangerous ones:
 
 ```json
 {
@@ -95,7 +97,7 @@ Grant the minimum tools each audience actually needs — don't enable everything
           "DefaultMode": "Auto",
           "ToolOverrides": {
             "shell_execute": "Approval",
-            "mcp:notion:notion-delete-page": "Approval"
+            "notion/notion-delete-page": "Approval"
           }
         }
       }
@@ -104,7 +106,9 @@ Grant the minimum tools each audience actually needs — don't enable everything
 }
 ```
 
-Review `~/.netclaw/config/tool-approvals.json` periodically — persistent "approve always" decisions accumulate there. Remove patterns you no longer need.
+Tool override keys use the format `{serverName}/{toolName}`.
+
+Review `~/.netclaw/config/tool-approvals.json` periodically and prune stale "approve always" decisions.
 
 See [`netclaw mcp`](/cli/mcp-tools/) for full details on the permissions TUI and CLI.
 
@@ -115,8 +119,8 @@ The daemon binds to `127.0.0.1:5199` by default. Keep it that way unless you hav
 | Mode | Scope | Risk |
 |------|-------|------|
 | `local` | Loopback only | Minimal — only local processes can connect |
-| `tailscale-serve` | Your tailnet | Low — [Tailscale identity](https://tailscale.com/kb/) gates access |
-| `tailscale-funnel` | Public internet | High — anyone on the internet can reach it |
+| `tailscale-serve` | Your tailnet | Low — [Tailscale identity](https://tailscale.com/kb/1312/serve) gates access |
+| `tailscale-funnel` | Public internet | High — anyone on the internet can reach it via [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) |
 | `cloudflare-tunnel` | Public internet | High — requires a [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy |
 
 ![Exposure mode selection during netclaw init](/screenshots/output/init-09-exposure.png)
@@ -131,19 +135,23 @@ For Docker deployments, bind to loopback explicitly:
 docker run -p 127.0.0.1:5199:5199 ...
 ```
 
-Omitting `127.0.0.1` binds to all interfaces — any machine on your network can reach the daemon.
+Omitting `127.0.0.1` binds to all interfaces. Any machine on your network can reach the daemon.
 
 Changing exposure mode requires a daemon restart. It's excluded from hot-reload on purpose.
 
+```bash
+netclaw daemon stop && netclaw daemon start
+```
+
 <!-- TODO: needs user input — What Cloudflare Access policy configuration is needed from the netclaw side? Is there a config field or is it purely Cloudflare-side? -->
 
-## Slack and Discord Channel Restrictions
+## Slack Channel Restrictions
 
-Out of the box, Slack uses `MentionOnly: true` (netclaw only responds when @mentioned) and `AllowDirectMessages: false`. Good defaults, but there's more you can lock down.
+Out of the box, Slack uses `MentionOnly: true` (netclaw only responds when @mentioned) and `AllowDirectMessages: false`. Lock down channel and user access on top of that.
 
-### Allowlist Channels
+### Channel Allowlist
 
-Restrict which channels netclaw listens on. Without an allowlist, netclaw can be @mentioned in *any* channel it's been invited to:
+With no channel allowlist and no default channel set, netclaw denies all channel traffic. Explicitly list the channels it should respond in:
 
 ```json
 {
@@ -154,9 +162,11 @@ Restrict which channels netclaw listens on. Without an allowlist, netclaw can be
 }
 ```
 
-### Allowlist Users
+To find a Slack channel ID: right-click the channel name in Slack, select "View channel details," and look at the bottom of the panel. Or see [Slack's guide to finding IDs](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID).
 
-Without a user allowlist, any workspace member can @mention netclaw and get a response:
+### User Allowlist
+
+Restrict which users can invoke netclaw:
 
 ```json
 {
@@ -165,6 +175,8 @@ Without a user allowlist, any workspace member can @mention netclaw and get a re
   }
 }
 ```
+
+User IDs follow the same pattern — click a user's profile in Slack and find the ID under "More."
 
 ### DMs and Per-Channel Audiences
 
@@ -179,7 +191,7 @@ Keep DMs off unless you need them. If you enable DMs, restrict which users can D
 }
 ```
 
-You can also override the audience per channel — useful if you want a specific Slack channel to get Personal-level tool access while everything else stays at Team:
+You can also override the [audience](/security/security-model/#trust-audiences) per channel. Useful if you want a specific Slack channel to get Personal-level tool access while everything else stays at Team:
 
 ```json
 {
@@ -191,6 +203,8 @@ You can also override the audience per channel — useful if you want a specific
   }
 }
 ```
+
+The `"dm"` key is reserved. It maps all direct messages to the specified audience.
 
 Invalid audience values in `ChannelAudiences` result in a deny (fail-closed).
 
@@ -227,8 +241,6 @@ The last layer before a tool actually runs. Configure per audience:
 }
 ```
 
-Things to know:
-
 - Headless sessions (reminders, webhooks, `netclaw chat -p "prompt"`) auto-deny all gated tools. There's no human to ask.
 - No response within 5 minutes means deny.
 - "Approve always" persists to `~/.netclaw/config/tool-approvals.json`. Revoke by editing the file directly.
@@ -256,13 +268,13 @@ Each webhook route has its own HMAC secret, audience, body size limit, and rate 
 
 Set the audience to the minimum the webhook actually needs. Most should run as `Public` (fewest tools, session-scoped filesystem, wiped on end). Only use `Team` or `Personal` if the webhook prompt genuinely requires those tools.
 
-Lower `RateLimitPerMinute` from the default 30 if the source won't fire that often — GitHub sends roughly one webhook per event, so 10/min is plenty. Keep `MaxBodyBytes` at 1 MB or lower unless you know the payloads are larger.
+`RateLimitPerMinute` applies per webhook route, not globally across all routes. Lower it from the default 30 if the source won't fire that often — GitHub sends roughly one webhook per event, so 10/min is plenty. Keep `MaxBodyBytes` at 1 MB or lower unless you know the payloads are larger.
 
 Route files contain secrets in plaintext. Keep `~/.netclaw/config/webhooks/` at mode `700` (see [File Permissions](#file-permissions)).
 
 See [`netclaw webhooks`](/cli/webhooks/) for route setup and HMAC verification details.
 
-## Run Doctor
+## Doctor Checks
 
 After making changes, validate everything:
 
@@ -291,9 +303,9 @@ netclaw doctor --format json | jq -e '.exitCode == 0'
 
 ## Limitations
 
-- Prompt injection detection is regex-based — it catches known patterns (role resets, exfiltration attempts, invisible Unicode) but novel phrasings, Base64 encoding, synonym substitution, and non-English attacks can evade it. Treat it as a tripwire, not a firewall.
-- Tool grants are per-audience, not per-channel. `ChannelAudiences` overrides which audience a channel maps to, but you can't give one Slack channel different tools than another Slack channel with the same audience.
-- Secret redaction catches `sk-*`, `xoxb-*`, `ghp_*`, JWTs, PEM blocks, and common JSON key names. Custom secret formats won't be redacted — use hard-deny path rules to block file access instead.
+- Prompt injection detection is regex-based. It catches known patterns (role resets, exfiltration attempts, invisible Unicode) but novel phrasings, Base64 encoding, synonym substitution, and non-English attacks can evade it. Treat it as a tripwire, not a firewall.
+- Tool grants are per-audience, not per-channel. `ChannelAudiences` overrides which audience a channel maps to, but you can't give one Slack channel different tools than another channel with the same audience.
+- Secret redaction catches `sk-*`, Slack tokens (`xox[baprs]-*`), `ghp_*`, AWS access keys (`AKIA*`), JWTs, PEM blocks, and common JSON key names. Custom secret formats won't be redacted. Use hard-deny path rules to block file access instead.
 - Approval gates only work on interactive channels. Headless mode, reminders, and webhooks auto-deny all gated tools. Design automation workflows with that in mind.
 <!-- TODO: needs user input — Are there plans for netclaw acl commands (validate, test, explain)? The CLI contract mentions them but they don't appear to be documented yet. -->
 
@@ -312,3 +324,4 @@ netclaw doctor --format json | jq -e '.exitCode == 0'
 - [Tailscale ACLs](https://tailscale.com/kb/1018/acls/) -- network-level access control for `tailscale-serve` deployments
 - [Cloudflare Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) -- IdP-based access control for `cloudflare-tunnel` deployments
 - [GitHub webhook security](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks) -- best practices for HMAC verification and secret rotation
+- [Slack: Locate your URL or ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID) -- finding channel and user IDs for allowlist configuration

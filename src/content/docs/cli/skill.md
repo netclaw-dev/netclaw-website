@@ -5,7 +5,7 @@ description: "Manage skills and external skill sources."
 
 Manage skills from the CLI — list what's installed, validate new ones, wire up external sources. None of these commands need a running daemon.
 
-Skills are markdown files following the [AgentSkills.io](https://agentskills.io) format: a `SKILL.md` with YAML frontmatter describing what the skill does, what tools it needs, and how to invoke it.
+Skills are markdown files following the [AgentSkills.io](https://agentskills.io) format: a `SKILL.md` with YAML frontmatter describing what the skill does, what tools it needs, and how to invoke it. At runtime, the agent sees a compressed skill index on every session and reads full skill content on demand — skills inject procedural knowledge into context without bloating the base prompt.
 
 ## Usage
 
@@ -42,6 +42,8 @@ Three categories:
 | `native` | `~/.netclaw/skills/` | Yes — user-created |
 | `external` | Configured source directories | Manage at source |
 
+For a deeper look at how skills fit into netclaw's architecture, see [Skills Overview](/skills/overview/).
+
 ## Listing skills
 
 ```bash
@@ -77,7 +79,7 @@ Category:    git
 License:     MIT
 Path:        /home/user/.netclaw/skills/commit/SKILL.md
 Flat file:   False
-Tools:       bash, git
+Tools:       bash git
 Description: Create well-structured git commits with conventional commit messages.
 
 --- content ---
@@ -99,6 +101,8 @@ netclaw skill validate ./my-skill/SKILL.md
   Version:     1.0.0
   License:     MIT
 ```
+
+Once validated, drop the skill into `~/.netclaw/skills/` (directory-based or flat file) and it'll appear on the next `netclaw skill list`.
 
 A failing file tells you exactly what's wrong:
 
@@ -124,19 +128,19 @@ integration-tests         external    -           Testcontainers patterns for .N
 2 match(es)
 ```
 
-Matches against name, display name, and description.
-
 ## Removing a skill
 
 ```bash
 netclaw skill remove my-old-skill
 ```
 
-Only native skills can be removed. System skills are managed by the daemon, and external skills should be managed in their source directory.
+Only native skills can be removed — system and external skills are read-only here.
 
 ## Managing external sources
 
 Point netclaw at skill directories from other tools (Claude Code, Open Code) or shared team paths.
+
+Note: [Skill feeds](/skills/skill-feeds/) are a separate concept — server-based skill repositories synced by the daemon. This section covers local directory sources only.
 
 ### List sources
 
@@ -173,6 +177,12 @@ The aliases map to these paths:
 | `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, plus installed plugin marketplaces |
 | `open-code` | `~/.open-code/skills/` |
 
+During `netclaw init`, you're prompted to configure external skill sources:
+
+![External skills configuration during init](/screenshots/output/init-07-external-skills.png)
+
+The init wizard detects well-known directories automatically.
+
 ### Add a custom path source
 
 ```bash
@@ -202,7 +212,7 @@ Removes the config entry only — skill files in the directory are untouched.
 
 Two layouts work:
 
-**Directory-based** (use when you have scripts or reference files):
+**Directory-based:**
 
 ```
 my-skill/
@@ -215,7 +225,7 @@ my-skill/
     diagram.png
 ```
 
-**Flat file** (just the instructions, no extras):
+**Flat file:**
 
 ```
 my-skill.md
@@ -226,12 +236,12 @@ The SKILL.md frontmatter:
 ```yaml
 ---
 name: my-skill
-display-name: My Skill
 description: One-line description of what this skill does.
-version: 1.0.0
+metadata:
+  version: 1.0.0
 license: MIT
 compatibility: ["netclaw", "claude-code"]
-allowed-tools: ["bash", "git"]
+allowed-tools: "bash git"
 disable-model-invocation: false
 user-invocable: true
 argument-hint: "<branch-name>"
@@ -242,17 +252,18 @@ argument-hint: "<branch-name>"
 Skill instructions go here...
 ```
 
+The display name is derived from the first `#` heading in the markdown body, falling back to title-casing the skill name.
+
 | Field | Required | Description |
 |-------|----------|-------------|
 | `name` | Yes | Identifier (must match directory/file name) |
 | `description` | Yes | One-line summary |
-| `display-name` | No | Human-friendly name |
-| `version` | No | Semver version |
+| `metadata.version` | No | Semver version (nested under `metadata:`) |
 | `license` | No | SPDX license identifier |
 | `compatibility` | No | Which agents can use this skill |
-| `allowed-tools` | No | Tools the skill needs access to |
-| `disable-model-invocation` | No | Prevent the model from auto-invoking |
-| `user-invocable` | No | Whether users can invoke directly |
+| `allowed-tools` | No | Space-delimited list of tools the skill needs |
+| `disable-model-invocation` | No | When `true`, prevents the model from auto-invoking this skill |
+| `user-invocable` | No | When `true`, users can invoke the skill directly (e.g. `/commit`) |
 | `argument-hint` | No | Hint text shown in command completion |
 
 ## Related commands
@@ -266,3 +277,5 @@ Skill instructions go here...
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
 - [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) — discovery protocol for skill feeds
 - [netclaw skill-server](https://github.com/netclaw-dev/skill-server) — self-hosted skill registry for organizations
+- [Skills Overview](/skills/overview/) — how skills work at runtime
+- [Skill Feeds](/skills/skill-feeds/) — server-synced skill repositories

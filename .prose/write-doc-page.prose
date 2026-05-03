@@ -172,15 +172,19 @@ let visual = session: visual-reviewer
     Steps:
     1. Run: npm run build
     2. If build fails, fix the issue in src/content/docs/{PAGE}.md and rebuild.
-    3. Run: node scripts/screenshot-page.mjs {PAGE}
-       This captures a screenshot of the rendered page to docs-logs/screenshots/{PAGE}.png
-    4. Read the screenshot image and check:
-       - Does the page render correctly? No broken layout, missing sections, or garbled text?
-       - Do tables render properly?
-       - Are screenshots/images displaying?
-       - Is the content readable against the dark background?
-       - Does the sidebar show the correct section highlighted?
-    5. If there are visual issues, fix them and re-capture.
+    3. Use Playwright MCP tools (browser_navigate, browser_screenshot) to verify the page:
+       a. Navigate to http://localhost:4321/{PAGE}/
+       b. Take a screenshot
+       c. Check the rendered page:
+          - Does it render correctly? No broken layout, missing sections, or garbled text?
+          - Do tables render properly?
+          - Are screenshots/images displaying?
+          - Is the content readable against the dark background?
+          - Does the sidebar show the correct section highlighted?
+    4. If there are visual issues, fix them and re-check.
+
+    If the dev server isn't running or Playwright MCP isn't available, skip visual
+    verification — the build check is sufficient. Do not hang or wait.
 
     Report what you see. If everything looks good, say so.
   """

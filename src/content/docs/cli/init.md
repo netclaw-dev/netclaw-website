@@ -37,7 +37,7 @@ Pick a provider, enter credentials, select a model.
 
 ![Provider selection list](/screenshots/output/init-01-provider-list.png)
 
-[OpenRouter](https://openrouter.ai/docs) is the default — one API key, many models. Self-hosted providers like Ollama need an endpoint URL:
+Netclaw supports many providers out of the box — pick one to start with here, and use [`netclaw provider`](/cli/provider/) to add more later. Self-hosted providers like Ollama need an endpoint URL:
 
 ![Endpoint configuration](/screenshots/output/init-01-endpoint.png)
 

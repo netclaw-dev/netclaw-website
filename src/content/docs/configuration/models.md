@@ -3,11 +3,13 @@ title: "Models"
 description: "Configure Main, Fallback, and Compaction model slots."
 ---
 
-Netclaw assigns LLMs to three named roles — Main, Fallback, and Compaction — in the `Models` section of `~/.netclaw/config/netclaw.json`. Only Main is required. Fallback and Compaction default to using Main when unset.
+Netclaw assigns LLMs to three roles in the `Models` section of `~/.netclaw/config/netclaw.json`: **Main**, **Fallback**, and **Compaction**. Only Main is required. The other two route to Main when unset.
+
+Before assigning models, you need at least one provider configured. See [Managed Providers](/configuration/managed-providers/) or [Self-Hosted Providers](/configuration/self-hosted-providers/).
 
 For CLI commands that manage models interactively, see [`netclaw model`](/cli/model/).
 
-## Model Roles
+## Model roles
 
 | Role | Purpose | Required? |
 |------|---------|-----------|
@@ -17,9 +19,7 @@ For CLI commands that manage models interactively, see [`netclaw model`](/cli/mo
 
 ![Model Manager TUI showing role assignments](/screenshots/output/model-manager.png)
 
-The Model Manager TUI (`netclaw model`) shows current role assignments and lets you reassign them interactively.
-
-## Configuration Schema
+## Configuration schema
 
 Each role is an object under `Models` with these fields:
 
@@ -28,15 +28,15 @@ Each role is an object under `Models` with these fields:
 | `Provider` | string | `"local-ollama"` | Key into the `Providers` dictionary |
 | `ModelId` | string | `"qwen3:30b"` | Model identifier as used by the provider API |
 | `ContextWindow` | int? | `null` | Clamps the runtime context window in tokens; takes precedence over provider-reported value |
-| `Provenance` | string? | `null` | How the model ID was resolved: `"Live"`, `"Defaults"`, or `"Manual"` |
-| `InputModalities` | string[]? | `null` | Override input modalities: `"Text"`, `"Image"`, `"Audio"`, `"Video"` |
-| `OutputModalities` | string[]? | `null` | Override output modalities (same values) |
+| `Provenance` | enum? | `null` | Read-only. Set by the CLI: `"Live"` (discovered from provider), `"Defaults"` (curated defaults), or `"Manual"` (`model set`) |
+| `InputModalities` | flags enum? | `null` | Override input modalities, e.g. `"Text, Image"`. Values: `Text`, `Image`, `Audio`, `Video` |
+| `OutputModalities` | flags enum? | `null` | Override output modalities (same values, e.g. `"Text"`) |
 
-The schema uses `additionalProperties: false` — only `Main`, `Fallback`, and `Compaction` are valid role names.
+The schema enforces `additionalProperties: false`, so only `Main`, `Fallback`, and `Compaction` are valid role names.
 
-## Minimal Config
+## Minimal config
 
-With Ollama running locally and `qwen3:30b` pulled, this is all you need:
+With Ollama running locally and `qwen3:30b` pulled, this is all you need. The `Provider` value must match a key you've defined under `Providers` in the same config file.
 
 ```json
 {
@@ -49,11 +49,11 @@ With Ollama running locally and `qwen3:30b` pulled, this is all you need:
 }
 ```
 
-Fallback and Compaction silently route to Main. Context window is auto-detected from Ollama.
+Context window is auto-detected from Ollama.
 
-## Production Config
+## Production config
 
-A production setup might use a 30B Main, an 8B Fallback for resilience, and the same 8B for Compaction since summarization doesn't need a big model:
+Here's a more realistic setup: 30B for Main, 8B for Fallback (resilience if the big model goes down), same 8B for Compaction (summarization doesn't need a big model):
 
 ```json
 {
@@ -78,38 +78,36 @@ A production setup might use a 30B Main, an 8B Fallback for resilience, and the 
 
 <!-- TODO: needs user input — recommended model combinations for cloud provider scenarios (e.g., OpenRouter Main + local Ollama Fallback) -->
 
-## Context Window Resolution
+## Context window resolution
 
-The runtime resolves context window size in this order:
+Config takes precedence over anything the provider reports:
 
 1. `ContextWindow` value in config (highest priority)
 2. Provider-detected value (via `/api/show`, `/v1/models`, etc.)
 3. Default: 32,768 tokens
 
-When `ContextWindow` is set, it must be >= 4,096 tokens. If it exceeds what the provider reports, the daemon refuses to start and tells you why.
+Any role with an explicit `ContextWindow` must set it to at least 4,096 tokens. If Main's `ContextWindow` exceeds what the provider reports, the daemon refuses to start and tells you why.
 
-## Capability Detection
+## Capability detection
 
-Netclaw tries several sources to figure out what a model supports (context window, vision, etc.). It walks this list and stops at the first match:
+Netclaw auto-detects what a model supports (context window, modalities) by walking this list until something answers:
 
-1. OpenAI Codex static catalog
-2. Ollama `/api/show`
-3. OpenAI-compatible `/v1/models` metadata
-4. OpenRouter oracle
-5. HuggingFace capability resolver
+1. Built-in static catalog (covers well-known models with zero network cost)
+2. Ollama `/api/show` — only when the provider type is `ollama`
+3. OpenAI-compatible `/v1/models` metadata — only when the provider type is `openai-compatible`
+4. [OpenRouter](https://openrouter.ai/models) public catalog
+5. [HuggingFace](https://huggingface.co/models) capability resolver
 6. Text-only defaults (32,768 token context window)
 
-Setting `InputModalities` or `OutputModalities` in config skips detection entirely. Use this when a provider misreports what a model can do.
+If your provider misreports capabilities (say, an Ollama model supports vision but detection shows text-only), set `InputModalities` or `OutputModalities` in config to override detection.
 
 ## Failover
 
-When Fallback is configured, netclaw wraps both models in a FailoverChatClient. If Main throws after exhausting retries, Fallback gets the request automatically.
+When Fallback is configured, netclaw wraps both models in a failover layer. If Main throws after exhausting retries, the request goes to Fallback automatically.
 
-Retries happen first: 3 attempts with exponential backoff (1s base, 30s max, ±25% jitter). Retried errors include network failures, HTTP 408/429/5xx, `TaskCanceledException`, and `TimeoutException`. Only after all retries fail does failover kick in.
+Retries happen first: 3 attempts with exponential backoff (1s base, 30s max, ±25% jitter). Retried errors: network failures, HTTP 408/429/5xx, `TaskCanceledException`, `TimeoutException`. Only after all retries fail does failover kick in.
 
-One catch: failover only works before streaming starts. Once the first chunk comes back from Main, mid-stream failures propagate directly rather than switching models. Splicing two different model responses together would produce garbage.
-
-**Alerts:**
+There's a catch with streaming. Failover only applies if Main fails before the first chunk reaches the caller. Once a chunk has been emitted, failures propagate directly. Splicing two model responses together mid-stream would produce garbage, so netclaw doesn't try.
 
 | Event | Alert Level |
 |-------|-------------|
@@ -120,13 +118,13 @@ If Fallback is not configured, failed retries on Main surface the error directly
 
 ## Compaction
 
-Compaction handles background summarization: context compaction, session title generation, observer summaries, and memory extraction. It fires when a session's context reaches 75% of the model's context window.
+Compaction is for background LLM work: summarizing conversation context when it grows too long, generating session titles, extracting memories. These don't need your best model. An 8B handles them fine and saves compute for actual conversations.
 
-These tasks don't need a big model. An 8B parameter model handles them fine and saves compute for actual conversations.
+Compaction fires when context reaches 75% of the context window. You can tune this with `Session.CompactionThreshold`.
 
-## Environment Variable Overrides
+## Environment variable overrides
 
-Override any model field with `NETCLAW_` environment variables. Double underscores separate path segments per the [.NET configuration convention](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider):
+You can override any model field with `NETCLAW_` environment variables. Double underscores separate path segments, following the [.NET configuration convention](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider):
 
 ```bash
 export NETCLAW_Models__Main__Provider="openrouter"
@@ -134,19 +132,19 @@ export NETCLAW_Models__Main__ModelId="anthropic/claude-sonnet-4"
 export NETCLAW_Models__Main__ContextWindow="200000"
 ```
 
-Environment variables take highest priority, overriding `netclaw.json`. On Linux, variable names are case-sensitive.
+These take highest priority, overriding anything in `netclaw.json`. On Linux, variable names are case-sensitive.
 
-## Validation and Errors
+## Validation errors
 
 | Condition | Result |
 |-----------|--------|
 | Main `Provider` or `ModelId` is empty | Startup fails |
-| `ContextWindow` < 4,096 | Startup fails |
-| `ContextWindow` exceeds provider-reported value | Startup fails with descriptive error |
-| Unknown role name in `Models` | Rejected by JSON schema (`additionalProperties: false`) |
+| `ContextWindow` < 4,096 on any role | Startup fails |
+| Main `ContextWindow` exceeds provider-reported value | Startup fails with descriptive error |
+| Unknown role name in `Models` | Config schema rejects it |
 | Provider key doesn't exist in `Providers` | `netclaw model set` rejects it; lists configured providers |
 
-## Applying Changes
+## Applying changes
 
 All model config changes require a daemon restart:
 
@@ -163,7 +161,14 @@ netclaw model list     # reads from config
 netclaw status         # shows what the running daemon is using
 ```
 
-## Related Pages
+## Typical setup sequence
+
+1. Configure a provider ([Managed Providers](/configuration/managed-providers/) or [Self-Hosted Providers](/configuration/self-hosted-providers/))
+2. Assign models to roles (this page, or [`netclaw model set`](/cli/model/))
+3. Restart the daemon
+4. Verify with `netclaw status`
+
+## Related pages
 
 - [`netclaw model`](/cli/model/) — CLI reference for model management (TUI, `set`, `discover`, `list`, `clear`)
 - [Managed Providers](/configuration/managed-providers/) — configure cloud providers (OpenRouter, Anthropic, OpenAI)
@@ -173,5 +178,6 @@ netclaw status         # shows what the running daemon is using
 ## Resources
 
 - [Ollama model library](https://ollama.com/library) — browse models for local inference
+- [Ollama modelfile parameters](https://github.com/ollama/ollama/blob/main/docs/modelfile.md#parameter) — context window and other model-level settings
 - [OpenRouter model catalog](https://openrouter.ai/models) — compare models across providers with pricing
 - [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention

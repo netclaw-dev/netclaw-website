@@ -59,7 +59,7 @@ Pages marked `[x]` are complete. Autonomous pages can be written without user in
 - [x] `skills/external-skills`
 - [x] `guides/connecting-slack`
 - [x] `guides/mcp-tool-permissions`
-- [ ] `guides/pairing-remote-devices`
+- [x] `guides/pairing-remote-devices`
 
 ## Batch 8: Needs Interview
 

@@ -3,24 +3,26 @@ title: "MCP Tool Permissions"
 description: "Configure tool audience grants for Personal, Team, and Public."
 ---
 
-You've added MCP servers to netclaw but the tools aren't showing up in Team or Public sessions. That's by design -- new servers start fully locked down. This page covers enabling servers per audience, granting specific tools, and setting approval policies so destructive operations get a human check before running.
+You've added MCP servers to netclaw but the tools aren't showing up in Team or Public sessions. That's by design -- new servers start fully locked down.
 
 For the full TUI and CLI reference, see [`netclaw mcp`](/cli/mcp-tools/). For the config schema, see [MCP Servers](/configuration/mcp-servers/).
 
 ## Before You Begin
 
-- At least one MCP server added (`netclaw mcp add`) and the daemon running
-- Familiarity with netclaw's three [audiences](/security/security-model/#trust-audiences): Personal (TUI, SignalR), Team (Slack, Discord), Public (unknown channels)
+- At least one MCP server added (`netclaw mcp add`) and the daemon running -- run `netclaw mcp list` to confirm your servers are connected
+- Familiarity with netclaw's three [audiences](/security/security-model/#trust-audiences): Personal (TUI, SignalR web client), Team (Slack), Public (unknown channels)
 
 ## How Audience Defaults Work
 
 Each audience starts with different MCP access:
 
-| Audience | Servers allowed | Tools granted | Approval default |
-|----------|----------------|---------------|------------------|
-| **Personal** | All | All | Auto |
-| **Team** | None (allowlist, empty) | None | Approval |
-| **Public** | None (allowlist, empty) | None | Deny |
+| Audience | Servers allowed | Tools granted |
+|----------|----------------|---------------|
+| **Personal** | All | All |
+| **Team** | None (allowlist, empty) | None |
+| **Public** | None (allowlist, empty) | None |
+
+No audience has approval gates configured by default -- all granted tools run automatically. `netclaw init` recommends adding `shell_execute: Approval` for the Personal audience, but that's an opt-in step during setup.
 
 Personal gets everything out of the box. Team and Public get nothing -- you opt in server by server, tool by tool.
 
@@ -29,6 +31,8 @@ Personal gets everything out of the box. Team and Public get nothing -- you opt 
 ```bash
 netclaw mcp permissions
 ```
+
+Use the TUI for interactive setup when you want to explore what's available.
 
 ### Pick a server
 
@@ -44,7 +48,7 @@ Personal audience -- all tools granted, Auto approval mode. Use `←`/`→` on t
 
 ![Team audience with server disabled and no tools granted](/screenshots/output/mcp-tools-team.png)
 
-Team audience -- server not enabled, nothing granted. This is what every new server looks like for Team and Public.
+Team audience -- server not enabled, nothing granted. Same defaults apply to Public.
 
 To open up a server for Team:
 
@@ -54,11 +58,11 @@ To open up a server for Team:
 4. Press `P` on any row to set a per-tool approval override
 5. Press `Enter` to save
 
-Changes write to `~/.netclaw/config/netclaw.json`. Restart the daemon to apply.
+Changes write to `~/.netclaw/config/netclaw.json`. Run `netclaw daemon restart` to apply.
 
 ## Grant Permissions via JSON
 
-For scripting or version-controlled config, edit `netclaw.json` directly.
+For automation or version-controlled config, edit `netclaw.json` directly.
 
 ### Enable a server for an audience
 
@@ -99,9 +103,9 @@ Use `McpServerToolGrants` to control which of a server's tools are visible. Omit
 
 Team users see only `notion-search`, `notion-fetch`, and `notion-create-pages`. Everything else on the Notion server is invisible to the model.
 
-### Grant tools via CLI
+## Grant Permissions via CLI
 
-Skip the TUI for quick changes:
+Skip the TUI for quick one-off changes:
 
 ```bash
 # Grant specific tools for team
@@ -130,7 +134,7 @@ Netclaw resolves the effective mode in order:
 2. **Server default** -- `McpServerDefaults["notion"]`
 3. **Audience default** -- `DefaultMode`
 
-First match wins. This lets you keep the server on `Auto` while gating destructive tools.
+First match wins.
 
 ### Example: Auto for reads, Approval for writes
 
@@ -160,7 +164,7 @@ MCP tool override keys use the format `"{serverName}/{toolName}"` -- e.g., `"not
 
 ### Server defaults for new tools
 
-`McpServerDefaults` handles MCP servers that add tools over time. Set a server default, and newly discovered tools on that server inherit it automatically:
+Newly discovered tools on a server inherit its `McpServerDefaults` entry automatically:
 
 ```json
 "McpServerDefaults": {
@@ -169,6 +173,17 @@ MCP tool override keys use the format `"{serverName}/{toolName}"` -- e.g., `"not
 ```
 
 Every tool on `browser_playwright` now requires approval unless you add an explicit `ToolOverrides` entry for it.
+
+## Verify It Works
+
+After changing permissions, restart the daemon and confirm:
+
+```bash
+netclaw daemon restart
+netclaw mcp tools notion --audience team
+```
+
+The output lists every tool the Team audience can see on the `notion` server, along with the effective approval mode for each.
 
 ## Persistent Approvals
 
@@ -198,7 +213,6 @@ Approval gates only work on interactive channels. Non-interactive sessions auto-
 |---------|-------------------|
 | TUI (`netclaw chat`) | Yes |
 | Slack | Yes |
-| Discord | Yes |
 | SignalR (web client) | Yes |
 | Headless (`netclaw chat -p`) | No -- auto-deny |
 | Reminders | No -- auto-deny |
@@ -206,7 +220,7 @@ Approval gates only work on interactive channels. Non-interactive sessions auto-
 
 If your reminders, webhooks, or headless sessions need a tool, that tool must be set to `Auto` approval mode or it won't execute.
 
-Interactive channels that don't respond within 5 minutes also auto-deny. The LLM gets an error but has no idea the approval gate rejected it.
+Interactive channels that don't respond within 5 minutes also auto-deny. The model receives a generic tool-execution error with no indication that approval was the cause.
 
 ## Troubleshooting
 
@@ -214,11 +228,15 @@ Interactive channels that don't respond within 5 minutes also auto-deny. The LLM
 
 Check three things in order:
 
-1. **Server enabled?** The server must be in `AllowedMcpServers` for the audience (or `McpServersMode` set to `"All"`)
-2. **Tools granted?** `McpServerToolGrants` must list the specific tools, or be omitted entirely to pass all tools through
-3. **Approval mode?** A tool set to `Deny` in `ToolOverrides` is blocked even if granted
+1. Is the server in `AllowedMcpServers` for the audience (or `McpServersMode` set to `"All"`)?
+2. Does `McpServerToolGrants` list the tool, or is the server omitted entirely (which passes all tools through)?
+3. Is the tool set to `Deny` in `ToolOverrides`? A denied tool is blocked even if granted.
 
 Run `netclaw mcp tools <server> --audience team` to see exactly what's granted.
+
+### `netclaw mcp list` shows `awaiting auth`
+
+The server needs authentication before you can grant tools. Run `netclaw mcp auth <name>` to complete the OAuth or token flow, then retry your grants.
 
 ### Approval prompts never appear in automation
 
@@ -243,3 +261,4 @@ You have persistent approvals for an audience or server that's been disabled. Cl
 
 - [Model Context Protocol specification](https://spec.modelcontextprotocol.io/) -- the wire protocol behind MCP tool servers
 - [MCP server registry](https://github.com/modelcontextprotocol/servers) -- community-maintained list of available MCP servers
+- [Notion MCP server](https://github.com/makenotion/notion-mcp-server) -- official Notion MCP server for search, fetch, and page management

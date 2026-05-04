@@ -3,11 +3,12 @@ title: "systemd Service"
 description: "Run Netclaw as a systemd service on Linux."
 ---
 
-The netclaw daemon (`netclawd`) runs as a systemd user service on Linux. User-level, so no `sudo`, no root — it runs under your own account. One CLI command creates the unit file, enables the service, and sets up lingering so it survives logout.
+The netclaw daemon (`netclawd`) runs as a systemd user service — no `sudo`, no root, just your own account. One CLI command sets everything up.
 
 ## Before you begin
 
-- Linux with systemd (Ubuntu 20.04+, Debian 11+, Fedora 36+, RHEL 8+, etc.)
+- Linux with systemd **236+** (Ubuntu 20.04+, Debian 11+, Fedora 36+, RHEL 8+, etc.) — check with `systemctl --version`
+- `dbus-user-session` installed — required for `systemctl --user` on headless/minimal servers (e.g., `sudo apt install dbus-user-session` on Debian/Ubuntu, then re-login)
 - Netclaw installed — see [Installation](/getting-started/installation/) if you don't have it yet
 - An initialized `~/.netclaw` directory — run `netclaw init` first
 - A configured provider and model — see [Models](/configuration/models/)
@@ -18,11 +19,7 @@ The netclaw daemon (`netclawd`) runs as a systemd user service on Linux. User-le
 netclaw daemon install
 ```
 
-This does three things:
-
-1. Writes a unit file to `~/.config/systemd/user/netclaw.service`
-2. Runs `systemctl --user enable netclaw.service`
-3. Runs `loginctl enable-linger $USER` so the service survives logout
+This writes a unit file to `~/.config/systemd/user/netclaw.service`, enables it, and runs `loginctl enable-linger $USER` so the service survives logout.
 
 Start it:
 
@@ -37,8 +34,6 @@ netclaw status
 ```
 
 ![Netclaw status output showing a running daemon](/screenshots/output/status.png)
-
-If the daemon is listening and reporting uptime, you're good.
 
 ## The unit file
 
@@ -61,11 +56,11 @@ Environment=DOTNET_ENVIRONMENT=Production
 WantedBy=default.target
 ```
 
-Paths get resolved from wherever the CLI is installed. `ExecStop` uses the CLI's `daemon stop` command instead of a raw signal, which lets the daemon fire shutdown webhooks and drain cleanly before exiting.
+The `/path/to/` placeholders are resolved to actual binary locations by `netclaw daemon install` — the literal string never gets written. `ExecStop` uses the CLI's `daemon stop` command instead of a raw signal, which lets the daemon fire shutdown webhooks and drain active sessions before exiting. After `ExecStop` completes, systemd sends SIGTERM with a 10-second grace period. If the process is still alive after that, SIGKILL finishes it. In practice the daemon shuts down well within that window.
 
 ### Manual installation
 
-If you prefer to create the service file yourself:
+If you prefer to create the service file yourself, adjust the `ExecStart` and `ExecStop` paths to wherever your binaries actually live:
 
 ```bash
 mkdir -p ~/.config/systemd/user
@@ -77,8 +72,8 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=%h/.netclaw/bin/netclawd
-ExecStop=%h/.netclaw/bin/netclaw daemon stop
+ExecStart=/path/to/netclawd
+ExecStop=/path/to/netclaw daemon stop
 Restart=always
 RestartSec=5
 Environment=DOTNET_ENVIRONMENT=Production
@@ -93,7 +88,7 @@ loginctl enable-linger $USER
 systemctl --user start netclaw
 ```
 
-Adjust `ExecStart` and `ExecStop` to wherever your binaries live. The `%h` specifier expands to your home directory.
+The `%h` specifier (expands to your home directory) also works in ExecStart/ExecStop paths if you prefer relative-to-home references.
 
 ## Service management
 
@@ -125,7 +120,12 @@ If your daemon stops every time you disconnect SSH, lingering isn't enabled.
 
 ## Configuration
 
-Config lives at `~/.netclaw/config/netclaw.json`. Override the base directory with the `NETCLAW_HOME` environment variable.
+Config lives at `~/.netclaw/config/netclaw.json`. To relocate the base directory, set `NETCLAW_HOME` — useful when you want data on a separate volume or need to run multiple instances with isolated state. Add it to the `[Service]` section of the unit file:
+
+```ini
+[Service]
+Environment=NETCLAW_HOME=/data/netclaw
+```
 
 ### Key paths
 
@@ -151,7 +151,7 @@ Default binding is `127.0.0.1:5199`, loopback only.
 }
 ```
 
-Override with environment variables by adding them to the unit file:
+To bind a different address or port via environment variables, add them to the unit file:
 
 ```ini
 [Service]
@@ -159,7 +159,7 @@ Environment=NETCLAW_Daemon__Host=127.0.0.1
 Environment=NETCLAW_Daemon__Port=5200
 ```
 
-After editing the unit file, reload and restart:
+Then reload and restart:
 
 ```bash
 systemctl --user daemon-reload
@@ -170,7 +170,7 @@ For remote access via Tailscale or Cloudflare Tunnel, see [Exposure Modes](/depl
 
 ### Config reload
 
-A file watcher on `netclaw.json` picks up changes and triggers a graceful restart automatically. No manual restart needed for config changes.
+A file watcher on `netclaw.json` picks up changes and triggers a graceful drain-and-restart automatically. One exception: `Daemon.Host`, `Daemon.Port`, and `Daemon.ExposureMode` require a manual `systemctl --user restart netclaw` — the file watcher ignores these fields because changing the listener binding mid-flight isn't safe.
 
 ## Health checks
 
@@ -187,7 +187,7 @@ Smoke test:
 curl -sf http://127.0.0.1:5199/api/health/ready && echo "OK"
 ```
 
-To block systemd from reporting the service as "started" until the daemon is actually ready, add this to your `[Service]` section:
+To block systemd from reporting the service as "started" until the daemon is actually ready, add an `ExecStartPost` readiness gate to your `[Service]` section. This delays dependent services until netclaw is genuinely accepting connections:
 
 ```ini
 ExecStartPost=/bin/sh -c 'until curl -sf http://127.0.0.1:5199/api/health/ready; do sleep 2; done'
@@ -197,7 +197,7 @@ For richer metrics and log export, see [OpenTelemetry](/observability/openteleme
 
 ## Logging
 
-Logs go to `~/.netclaw/logs/daemon.log` as a rolling file. There's no systemd journal integration. Change the log level via `Logging:LogLevel:Default` in `netclaw.json`:
+Logs go to `~/.netclaw/logs/daemon.log` as a rolling file — `journalctl --user -u netclaw` captures stdout/stderr from the process, but the structured application logs live in the file. Change the log level via `Logging:LogLevel:Default` in `netclaw.json`:
 
 ```json
 {
@@ -211,17 +211,17 @@ Logs go to `~/.netclaw/logs/daemon.log` as a rolling file. There's no systemd jo
 
 Valid levels: `Trace`, `Debug`, `Information`, `Warning`, `Error`, `Critical`.
 
-To follow the log in real time:
+Follow the log in real time:
 
 ```bash
 tail -f ~/.netclaw/logs/daemon.log
 ```
 
-While `journalctl --user -u netclaw` will show stdout/stderr from the process, the structured application logs live in the file.
-
 ## Upgrading
 
-Schema migrations are forward-only — there's no automatic rollback. Back up before upgrading.
+Schema migrations are forward-only with no automatic rollback, so back up before upgrading.
+
+Unlike the Docker deployment, bare-metal installs can self-update — the daemon periodically checks for new releases and applies them. After an update, the process exits and systemd's `Restart=always` brings it back on the new version. For manual upgrades:
 
 ```bash
 # 1. Stop the daemon
@@ -250,7 +250,7 @@ To rollback: stop the daemon, restore the database backup, put the old binaries 
 netclaw daemon uninstall
 ```
 
-This stops the service, disables it, removes the unit file, and runs `daemon-reload`. Your data in `~/.netclaw` stays untouched.
+Your data in `~/.netclaw` stays untouched.
 
 To remove manually:
 
@@ -263,13 +263,19 @@ systemctl --user daemon-reload
 
 ## Troubleshooting
 
+### Start here: `netclaw doctor`
+
+Before diving into specific symptoms, run [`netclaw doctor`](/cli/doctor/). It checks provider connectivity, config validity, daemon health, and common misconfigurations in one pass.
+
+![Netclaw doctor output showing health check diagnostics](/screenshots/output/doctor.png)
+
 ### Daemon stops after SSH disconnect
 
 Lingering isn't enabled. Fix it with `loginctl enable-linger $USER` and verify with `ls /var/lib/systemd/linger/`.
 
 ### "Failed to connect to bus" when running systemctl
 
-`XDG_RUNTIME_DIR` isn't set. Common when running `systemctl --user` from cron or a non-login shell. Export it manually:
+`XDG_RUNTIME_DIR` isn't set. Common when running `systemctl --user` from cron or a non-login shell. On headless servers, also make sure `dbus-user-session` is installed (`sudo apt install dbus-user-session`). Export the runtime dir manually:
 
 ```bash
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
@@ -290,7 +296,7 @@ If nothing shows, check the daemon log:
 tail -20 ~/.netclaw/logs/daemon.log
 ```
 
-Common causes: port conflict (another process on 5199), invalid config file, or missing provider configuration.
+Common causes: port conflict (another process on 5199), JSON syntax error in `netclaw.json`, or missing provider configuration.
 
 ### "Daemon already running" when starting
 
@@ -318,9 +324,11 @@ User-level services require systemd 236+. Check with `systemctl --version`. On o
 - [Exposure Modes](/deployment/exposure-modes/) — remote access via Tailscale or Cloudflare Tunnel
 - [Models](/configuration/models/) — model slot configuration
 - [OpenTelemetry](/observability/opentelemetry/) — metrics and log export
+- [`netclaw doctor`](/cli/doctor/) — built-in health check diagnostics
 
 ## Resources
 
 - [systemd user services documentation](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html) — full unit file reference
+- [systemd user services on ArchWiki](https://wiki.archlinux.org/title/Systemd/User) — best practical guide for user-level systemd
 - [loginctl enable-linger](https://www.freedesktop.org/software/systemd/man/latest/loginctl.html) — why lingering matters for headless services
 - [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention used by `NETCLAW_` env vars

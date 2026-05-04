@@ -3,4 +3,245 @@ title: "Slack"
 description: "Connect Netclaw to your Slack workspace."
 ---
 
-Content coming soon.
+Netclaw talks to Slack over [Socket Mode](https://api.slack.com/apis/socket-mode) -- outbound WebSocket connections only. No public URLs, no ingress rules, no reverse proxies. You create a Slack app, give netclaw two tokens, and it shows up in your workspace as a bot.
+
+## Prerequisites
+
+- Netclaw installed and initialized ([`netclaw init`](/cli/init/))
+- A Slack workspace where you can install apps (some orgs restrict this to workspace admins)
+
+## Create a Slack app
+
+<!-- TODO: needs user input — What are the exact step-by-step instructions for creating a Slack app at api.slack.com? Include which manifest settings matter and any non-obvious toggles. -->
+
+Head to [api.slack.com/apps](https://api.slack.com/apps) and create a new app. From scratch or from a manifest, doesn't matter.
+
+1. **Turn on Socket Mode** under Settings > Socket Mode. Generate an App-Level Token with the `connections:write` scope.
+
+<!-- TODO: needs user input — Does the App-Level Token require any scopes beyond connections:write? -->
+
+2. **Add bot token scopes** under OAuth & Permissions:
+
+<!-- TODO: needs user input — What is the complete list of required OAuth scopes? Code references channels:read, chat:write, and users:read, but the full list may be larger. -->
+
+| Scope | Why |
+|-------|-----|
+| `channels:read` | Resolve channel names to IDs, list channels |
+| `chat:write` | Post messages and replies |
+| `users:read` | Look up users for `lookup_slack_user` |
+| `app_mentions:read` | Receive @-mention events |
+| `files:read` | Access shared file content |
+
+3. **Install the app** to your workspace. Grab the Bot User OAuth Token (`xoxb-...`) from the OAuth & Permissions page.
+
+4. **Invite the bot** to each channel where it should respond: `/invite @yourbot`
+
+<!-- TODO: needs user input — Is /invite the correct slash command? Does the bot auto-join channels in AllowedChannelIds, or must it always be manually invited? -->
+
+## Configure netclaw
+
+Easiest path: [`netclaw init`](/cli/init/). Step 3 handles channel selection and token entry.
+
+![Channel selection during netclaw init](/screenshots/output/init-03-channels.png)
+
+Pick Slack, paste your tokens, done.
+
+For manual setup, store tokens with [`netclaw secrets`](/cli/secrets/):
+
+```bash
+netclaw secrets set Slack.BotToken xoxb-your-bot-token
+netclaw secrets set Slack.AppToken xapp-your-app-token
+```
+
+Then enable Slack and point it at a channel in `~/.netclaw/config/netclaw.json`:
+
+```json
+{
+  "Slack": {
+    "Enabled": true,
+    "DefaultChannelName": "general"
+  }
+}
+```
+
+Environment variables work too:
+
+```bash
+export NETCLAW_Slack__BotToken="xoxb-..."
+export NETCLAW_Slack__AppToken="xapp-..."
+```
+
+### All config fields
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `Enabled` | bool | `false` | Turn on Slack |
+| `SocketMode` | bool | `true` | Must be `true`. Only Socket Mode is supported. |
+| `BotToken` | string | -- | Bot User OAuth Token (`xoxb-...`). Store with `netclaw secrets set`. |
+| `AppToken` | string | -- | App-Level Token (`xapp-...`). Required for Socket Mode. Store with `netclaw secrets set`. |
+| `DefaultChannelName` | string | -- | Channel name, resolved to an ID at startup |
+| `DefaultChannelId` | string | -- | Channel ID directly (use instead of name if you prefer) |
+| `MentionOnly` | bool | `true` | Only respond when @-mentioned |
+| `AllowDirectMessages` | bool | `false` | Accept DMs |
+| `MentionRequiredInDm` | bool | `false` | Require @-mention even in DMs |
+| `AllowedChannelIds` | string[] | `[]` | Channel allow-list. Empty + no default = all channels denied |
+| `AllowedUserIds` | string[] | `[]` | User allow-list. Empty = everyone in allowed channels is accepted |
+| `ChannelAudiences` | object | `{}` | Per-channel [audience](/security/security-model/) overrides. Keys are channel IDs or `"dm"`. Values: `"personal"`, `"team"`, `"public"`. |
+
+Tokens live in `~/.netclaw/config/secrets.json` (encrypted at rest).
+
+## Access control
+
+Slack ACL is **default-deny**. Three settings decide who talks to the bot and where.
+
+### Channels
+
+The bot only responds in channels that pass the allow-list:
+
+- `DefaultChannelName` or `DefaultChannelId` allows one channel
+- `AllowedChannelIds` allows multiple
+- **If all three are empty, every channel message is denied.** This is the number one setup mistake.
+
+```json
+{
+  "Slack": {
+    "DefaultChannelName": "openclaw",
+    "AllowedChannelIds": ["C0123456789", "C9876543210"]
+  }
+}
+```
+
+Finding channel IDs: right-click a channel name in Slack, "View channel details," scroll to the bottom. [Slack's help article](https://slack.com/help/articles/221769328) has screenshots.
+
+### Users
+
+`AllowedUserIds` restricts who gets responses:
+
+- Empty (default) -- everyone in allowed channels is accepted
+- Non-empty -- only listed user IDs get responses, everyone else is silently dropped
+
+Finding user IDs: click a user's profile in Slack, open the three-dot menu, "Copy member ID." [Slack's help article](https://slack.com/help/articles/360003534892) has screenshots.
+
+Users in `AllowedUserIds` are treated as `TrustedInternal` by the [security model](/security/security-model/). Everyone else is `UntrustedExternal`.
+
+### Direct messages
+
+DMs are off by default:
+
+```json
+{
+  "Slack": {
+    "AllowDirectMessages": true
+  }
+}
+```
+
+With DMs on, users can just type normally -- `MentionRequiredInDm` defaults to `false`, so no @-mention needed.
+
+:::caution
+With `AllowDirectMessages: true` and `AllowedUserIds` empty, any workspace member can DM the bot. Lock down `AllowedUserIds` if that's not what you want.
+:::
+
+### Audience overrides
+
+Audience is resolved per-message: `Team` for DMs and channels in your allow-list, `Public` for everything else. Override with `ChannelAudiences`:
+
+```json
+{
+  "Slack": {
+    "ChannelAudiences": {
+      "C0123456789": "team",
+      "dm": "personal"
+    }
+  }
+}
+```
+
+[Security Model](/security/security-model/) has the full breakdown on how audiences map to tools and permissions.
+
+## Behavior in Slack
+
+### Threads and sessions
+
+Each Slack thread is its own isolated session, and the bot always replies in-thread. Idle sessions are checkpointed and freed from memory after 1 hour.
+
+On daemon restart, thread history is backfilled so in-progress conversations pick up where they left off.
+
+### Mention behavior
+
+`MentionOnly: true` (the default) means the bot ignores messages that don't @-mention it. Two exceptions:
+
+- **Thread replies** -- if a thread already has an active session, the bot responds to everything in that thread without needing a mention
+- **File shares** -- attached files bypass the mention check entirely, with or without an active thread
+
+Netclaw strips the @-mention before passing text to the LLM.
+
+### Message formatting
+
+Netclaw converts LLM markdown to Slack [Block Kit](https://api.slack.com/block-kit): headers, code blocks, blockquotes, lists, bold, italic, strikethrough, inline code, links. Everything renders natively in Slack.
+
+### Tool approval
+
+When a tool call needs approval, netclaw posts a Block Kit prompt right in the thread:
+
+![Tool approval prompt in Slack showing Approve once, Approve for this chat, Approve always, and Deny buttons](/assets/approval-prompt.png)
+
+Shows the tool name, the exact command, and four buttons. Only the user who triggered the request can approve. System-initiated tool calls (`VerifiedAutomation`) can be approved by anyone in the thread.
+
+Typing a letter in the thread works too: `A` = Approve once, `B` = Approve for this chat, `C` = Approve always, `D` = Deny.
+
+### Proactive messaging
+
+The LLM can initiate conversations through two built-in tools:
+
+| Tool | What it does |
+|------|-------------|
+| `send_slack_message` | Posts a top-level message to a channel or DM. Takes `channel_id` or `user_id`. Respects ACL. |
+| `lookup_slack_user` | Searches users by name, display name, or email. Returns up to 10 matches. Filtered to `AllowedUserIds` if set. Cached 5 minutes. |
+
+### Ignored messages
+
+The bot drops: empty messages (no text, no files), hidden messages, other bots' messages, its own messages, messages with unsupported subtypes (edits, joins, bot subtype messages), DMs when `AllowDirectMessages` is off, and un-mentioned channel messages when `MentionOnly` is on and there's no active thread.
+
+## Verify it works
+
+Restart the daemon and check status:
+
+```bash
+netclaw daemon stop && netclaw daemon start
+netclaw status
+```
+
+Slack should show `connected`. If it doesn't, run `netclaw doctor` -- it checks token validity and ACL config.
+
+Then @-mention the bot in an allowed channel. If it responds, you're set.
+
+## Troubleshooting
+
+Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshooting/). The hits:
+
+- **Connected but silent** -- `AllowedChannelIds` is empty and no default channel is set, so all traffic gets denied
+- **Works in some channels, not others** -- channel missing from `AllowedChannelIds`, or the bot hasn't been invited
+- **Socket Mode keeps disconnecting** -- the `xapp-...` App-Level Token may have expired or been revoked
+
+## Next steps
+
+- [Configure audiences and approval gates](/security/security-model/) to control what tools are available in each channel
+- [Set up systemd](/deployment/systemd/) so the daemon stays running after reboots
+- [Run `netclaw doctor`](/cli/doctor/) to verify token health and ACL config
+
+## Related pages
+
+- [`netclaw init`](/cli/init/) -- Slack setup at step 3
+- [`netclaw secrets`](/cli/secrets/) -- token management
+- [`netclaw doctor`](/cli/doctor/) -- Slack auth and ACL diagnostics
+- [Security Model](/security/security-model/) -- audiences and approval gates
+- [Channel Troubleshooting](/channels/troubleshooting/) -- error codes and debug logging
+
+## External resources
+
+- [Slack API: Socket Mode](https://api.slack.com/apis/socket-mode) -- how Socket Mode connections work
+- [Slack API: Bot Token Scopes](https://api.slack.com/scopes) -- scope reference
+- [Slack: Block Kit](https://api.slack.com/block-kit) -- message formatting
+- [Slack: Finding IDs](https://slack.com/help/articles/221769328) -- channel and user IDs for ACL config
+- [Slack: Finding User IDs](https://slack.com/help/articles/360003534892) -- step-by-step for copying member IDs

@@ -19,7 +19,7 @@ That's it. The daemon picks up the change via its file watcher — no restart ne
 
 ## Before You Begin
 
-- Netclaw is installed and `netclaw init` has been run (or you're comfortable editing `netclaw.json` directly — it lives at `~/.netclaw/netclaw.json` by default)
+- Netclaw is installed and `netclaw init` has been run (or you're comfortable editing `netclaw.json` directly — it lives at `~/.netclaw/config/netclaw.json` by default)
 - The external directory you want to add exists on disk (netclaw logs a warning for missing paths but still configures the source)
 
 ## Well-Known Sources
@@ -134,7 +134,7 @@ External skills loaded from disk go through:
 
 - **Frontmatter validation** — `name` and `description` are required; malformed YAML is rejected
 - **Symlink/path safety** — blocked unless `AllowSymlinks: true` for that source
-- **[Tool access policies](/architecture/security-model/)** — same restrictions as native skills; the `allowed-tools` frontmatter field is informational only and doesn't grant tool access
+- **[Tool access policies](/security/security-model/)** — same restrictions as native skills; the `allowed-tools` frontmatter field is informational only and doesn't grant tool access
 
 External skills do NOT go through the prompt injection content scanner (that only runs on skills authored through the `skill_manage` tool). The assumption is that external skill files are user-curated.
 

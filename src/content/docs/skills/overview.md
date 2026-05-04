@@ -136,8 +136,8 @@ Skills are just text, but text that lands in an agent's instructions can carry p
 Additional guardrails:
 
 - Symlinks are blocked by default in native and system directories. External sources can opt in via `AllowSymlinks: true` in config.
-- Sessions with a [public trust audience](/architecture/security-model/) cannot load skills. `skill_load` also returns an error when `SkillSync.Enabled` is `false`.
-- Skills run through the same [tool access policies](/architecture/security-model/) as everything else. The `allowed-tools` frontmatter field is informational — actual tool grants are controlled by the security policy.
+- Sessions with a [public trust audience](/security/security-model/) cannot load skills. `skill_load` also returns an error when `SkillSync.Enabled` is `false`.
+- Skills run through the same [tool access policies](/security/security-model/) as everything else. The `allowed-tools` frontmatter field is informational — actual tool grants are controlled by the security policy.
 
 ## Subagent routing
 
@@ -173,7 +173,7 @@ Run [`netclaw stats skills`](/cli/stats/) to see which skills the agent loads mo
 
 - No built-in skill marketplace or discovery beyond what your configured sources provide.
 - Skill content scanning uses regex-based heuristics. It catches common prompt injection patterns but is not a comprehensive security boundary.
-- The `allowed-tools` frontmatter field is informational. It does not grant tool access — that is controlled entirely by the [security policy](/architecture/security-model/).
+- The `allowed-tools` frontmatter field is informational. It does not grant tool access — that is controlled entirely by the [security policy](/security/security-model/).
 - Skills are text-only. They cannot register tools, modify daemon behavior, or execute code directly.
 - No versioning or rollback for native skills. If you overwrite a skill, the old version is gone.
 

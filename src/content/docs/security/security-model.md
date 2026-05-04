@@ -90,12 +90,16 @@ Add your own patterns in `~/.netclaw/config/netclaw.json`:
 
 ### Layer 2: Resource Hard Deny
 
-File access is checked against protected paths. Always denied:
+File access is checked against protected paths. Read and write have separate deny lists:
 
-- `~/.netclaw/keys/` — encryption key material
-- `~/.netclaw/config/` — configuration files (includes `secrets.json`)
+| Operation | Denied paths |
+|-----------|-------------|
+| **Read** | `~/.netclaw/config/secrets.json`, `~/.netclaw/keys/`, `~/.netclaw/config/webhooks/` |
+| **Write** | `~/.netclaw/config/secrets.json`, `~/.netclaw/keys/`, SQLite DB, PID file, lock file, restart manifest |
 
-Read and write operations have separate deny surfaces. Netclaw resolves symlinks before checking, so `ln -s ~/.netclaw/keys/ ./sneaky` won't bypass the policy.
+`~/.netclaw/config/netclaw.json` is intentionally **not** denied — the agent can read (but not write) the main config file.
+
+Netclaw resolves symlinks before checking, so `ln -s ~/.netclaw/keys/ ./sneaky` won't bypass the policy.
 
 ### Layer 3: Tool Access Grant
 
@@ -195,7 +199,9 @@ There is no permissive mode — access must be explicitly granted.
 - Approval gates require an interactive channel — headless, reminder, and webhook sessions auto-deny all gated tools
 - Secret redaction catches known patterns only — custom secret formats need custom hard-deny path rules
 - Content validation checks magic bytes but doesn't deep-scan file contents for embedded threats
-- Per-channel audience overrides are not yet supported — audience is determined by channel type, not channel instance
+- Per-channel audience overrides exist ([`ChannelAudiences` config](/security/hardening/)) but require manual channel ID mapping — there's no UI for it yet
+
+<!-- TODO: screenshot of ChannelAudiences config in netclaw.json — user will capture during tutorial work -->
 
 ## Related Pages
 

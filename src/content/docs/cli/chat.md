@@ -96,9 +96,9 @@ Sends one prompt, streams the response to stdout, exits when the turn completes 
 | `[tool:result] name → result` | Tool result |
 | `[usage] in=N out=N total=N cached=N prompt_ms=N tok_s=N` | Token usage and timing |
 | `[file] fileName → filePath` | File written by the agent |
-| `[subagent:start] name (N tools)` | [Sub-agent](/architecture/runtime/) spawned |
+| `[subagent:start] name (N tools)` | [Sub-agent](/architecture/overview/) spawned |
 | `[subagent:done] name (success/failed, Xs)` | Sub-agent completed |
-| `[compaction] N → M messages (keep=K, context=X/Y tokens)` | [Context compaction](/architecture/runtime/) — the daemon summarized older messages to free up token space |
+| `[compaction] N → M messages (keep=K, context=X/Y tokens)` | [Context compaction](/architecture/overview/) — the daemon summarized older messages to free up token space |
 
 Errors go to stderr as `[error] message`. Thinking tokens are logged to `~/.netclaw/logs/` but not written to stdout.
 

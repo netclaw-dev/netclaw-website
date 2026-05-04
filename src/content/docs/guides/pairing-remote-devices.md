@@ -193,7 +193,7 @@ Check the basics:
 
 1. Is the daemon running? (`netclaw daemon start` on the host)
 2. Is the exposure mode set to something other than `local`?
-3. Can you reach the endpoint from the remote machine? (`curl http://my-server:5199/health`)
+3. Can you reach the endpoint from the remote machine? (`curl http://my-server:5199/api/health/ready`)
 4. Is a firewall blocking port 5199?
 
 Run [`netclaw doctor`](/cli/doctor/) on the daemon host -- it includes exposure-mode health checks.

@@ -30,35 +30,35 @@ Pages marked `[x]` are complete. Autonomous pages can be written without user in
 - [x] `configuration/managed-providers`
 - [x] `configuration/self-hosted-providers`
 - [x] `configuration/models`
-- [ ] `configuration/mcp-servers`
-- [ ] `configuration/webhooks`
-- [ ] `configuration/reminders`
+- [x] `configuration/mcp-servers`
+- [x] `configuration/webhooks`
+- [x] `configuration/reminders`
 
 ## Batch 4: Observability (autonomous)
 
 - [x] `observability/operational-alerts`
-- [ ] `observability/opentelemetry`
+- [x] `observability/opentelemetry`
 
 ## Batch 5: Channels & Troubleshooting (autonomous)
 
-- [ ] `channels/troubleshooting`
+- [x] `channels/troubleshooting`
 
 ## Batch 6: Deployment (autonomous)
 
-- [ ] `deployment/docker`
-- [ ] `deployment/systemd`
-- [ ] `deployment/exposure-modes`
+- [x] `deployment/docker`
+- [x] `deployment/systemd`
+- [x] `deployment/exposure-modes`
 
 ## Batch 7: Architecture & Guides (autonomous with review)
 
-- [ ] `architecture/overview`
-- [ ] `architecture/security-model`
-- [ ] `channels/slack`
-- [ ] `channels/discord`
-- [ ] `skills/overview`
-- [ ] `skills/external-skills`
-- [ ] `guides/connecting-slack`
-- [ ] `guides/mcp-tool-permissions`
+- [x] `architecture/overview`
+- [x] `architecture/security-model`
+- [x] `channels/slack`
+- [x] `channels/discord`
+- [x] `skills/overview`
+- [x] `skills/external-skills`
+- [x] `guides/connecting-slack`
+- [x] `guides/mcp-tool-permissions`
 - [ ] `guides/pairing-remote-devices`
 
 ## Batch 8: Needs Interview

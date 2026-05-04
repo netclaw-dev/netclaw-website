@@ -12,31 +12,103 @@ Netclaw talks to Slack over [Socket Mode](https://api.slack.com/apis/socket-mode
 
 ## Create a Slack app
 
-<!-- TODO: needs user input — What are the exact step-by-step instructions for creating a Slack app at api.slack.com? Include which manifest settings matter and any non-obvious toggles. -->
+The fastest path: create from a manifest. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App**.
 
-Head to [api.slack.com/apps](https://api.slack.com/apps) and create a new app. From scratch or from a manifest, doesn't matter.
+![Slack Your Apps page](/screenshots/output/slack-your-apps.png)
 
-1. **Turn on Socket Mode** under Settings > Socket Mode. Generate an App-Level Token with the `connections:write` scope.
+Select **From a manifest**, pick your workspace, and paste this:
 
-<!-- TODO: needs user input — Does the App-Level Token require any scopes beyond connections:write? -->
+```json
+{
+  "display_information": {
+    "name": "Netclaw",
+    "description": "AI assistant powered by Netclaw",
+    "background_color": "#512BD4"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "Netclaw",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "files:read",
+        "files:write",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "mpim:history",
+        "mpim:read",
+        "users:read"
+      ]
+    }
+  },
+  "settings": {
+    "event_subscriptions": {
+      "bot_events": [
+        "app_mention",
+        "message.channels",
+        "message.groups",
+        "message.im",
+        "message.mpim"
+      ]
+    },
+    "interactivity": {
+      "is_enabled": true
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": true,
+    "token_rotation_enabled": false
+  }
+}
+```
 
-2. **Add bot token scopes** under OAuth & Permissions:
+Change the `name` and `display_name` to whatever you want your bot to be called.
 
-<!-- TODO: needs user input — What is the complete list of required OAuth scopes? Code references channels:read, chat:write, and users:read, but the full list may be larger. -->
+After creating the app, you need two tokens:
+
+1. **App-Level Token** — Settings > Basic Information > App-Level Tokens. Click **Generate Token and Scopes**, name it anything, and add the `connections:write` scope.
+
+![Generate an app-level token dialog](/screenshots/output/slack-generate-app-token.png)
+
+Click **Generate** and copy the `xapp-...` token.
+
+2. **Bot Token** — Go to **Install App** in the sidebar and click **Install to {Your Workspace}**.
+
+![Slack Install App page](/screenshots/output/slack-install-app.png)
+
+After approving, copy the `xoxb-...` Bot User OAuth Token from the OAuth & Permissions page.
+
+Then invite the bot to each channel where it should respond: `/invite @YourBotName`
+
+### What the scopes do
 
 | Scope | Why |
 |-------|-----|
-| `channels:read` | Resolve channel names to IDs, list channels |
-| `chat:write` | Post messages and replies |
-| `users:read` | Look up users for `lookup_slack_user` |
 | `app_mentions:read` | Receive @-mention events |
-| `files:read` | Access shared file content |
-
-3. **Install the app** to your workspace. Grab the Bot User OAuth Token (`xoxb-...`) from the OAuth & Permissions page.
-
-4. **Invite the bot** to each channel where it should respond: `/invite @yourbot`
-
-<!-- TODO: needs user input — Is /invite the correct slash command? Does the bot auto-join channels in AllowedChannelIds, or must it always be manually invited? -->
+| `channels:history` | Read message history in public channels |
+| `channels:read` | Resolve channel names to IDs, list public channels |
+| `chat:write` | Post messages and replies in threads |
+| `chat:write.customize` | Post with custom display name/avatar |
+| `files:read` | Download files shared in conversations |
+| `files:write` | Upload files (agent output, attachments) |
+| `groups:history` | Read message history in private channels |
+| `groups:read` | List private channels the bot is in |
+| `im:history` | Read DM history for thread context |
+| `im:read` | List DM conversations |
+| `im:write` | Open DM conversations for proactive messaging |
+| `mpim:history` | Read group DM history |
+| `mpim:read` | List group DM conversations |
+| `users:read` | Look up users by name or email for `lookup_slack_user` |
 
 ## Configure netclaw
 
@@ -213,6 +285,8 @@ netclaw status
 ```
 
 Slack should show `connected`. If it doesn't, run `netclaw doctor` -- it checks token validity and ACL config.
+
+<!-- TODO: screenshot of netclaw status showing Slack connected to a real workspace -->
 
 Then @-mention the bot in an allowed channel. If it responds, you're set.
 

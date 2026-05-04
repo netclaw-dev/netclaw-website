@@ -13,23 +13,68 @@ Netclaw connects to Discord over the [Gateway WebSocket API](https://discord.com
 
 ## Create a Discord bot
 
-<!-- TODO: needs user input — What are the exact step-by-step instructions for creating a Discord bot at discord.com/developers/applications? Include screenshots of the portal if possible. -->
-
 Head to [discord.com/developers/applications](https://discord.com/developers/applications) and create a new application.
 
-1. Go to the Bot section and create the bot. Copy the token -- you'll only see it once. If you miss it, click "Reset Token" on the Bot page to generate a new one.
+![Discord Applications page](/screenshots/output/discord-setup-applications.png)
 
-2. Under [Privileged Gateway Intents](https://discord.com/developers/docs/events/gateway#privileged-intents) on the Bot page, turn on **Message Content**. Without it, netclaw can't read message text.
+### 1. Create the application
 
-3. Go to OAuth2 > URL Generator. Select these scopes and permissions:
+Click **New Application**, give it a name, and hit Create.
 
-   **Scopes:** `bot`, `applications.commands`
+![New Application dialog](/screenshots/output/discord-setup-create-app.png)
 
-   **Bot Permissions:** Send Messages, Create Public Threads, Send Messages in Threads, Embed Links, Read Message History, Add Reactions
+### 2. Copy the bot token
 
-   <!-- TODO: needs user input — Is this the complete set of bot permissions? Does the bot need Manage Threads to rename threads with session titles? -->
+Go to **Bot** in the left sidebar. Click **Reset Token** to generate a bot token and copy it immediately -- Discord only shows it once.
 
-   Copy the generated URL, open it in your browser, and select your server. The bot appears in your server's member list once the daemon is running.
+![Bot settings page](/screenshots/output/discord-setup-bot-settings.png)
+
+If you lose the token, you can always reset it here, but you'll need to update your netclaw config with the new value.
+
+### 3. Enable Message Content Intent
+
+Scroll down on the Bot page to **Privileged Gateway Intents** and enable **Message Content**. Without this, netclaw receives message events but can't read their text.
+
+![Privileged Gateway Intents with Message Content enabled](/screenshots/output/discord-setup-bot-intents.png)
+
+### 4. Set up OAuth2 scopes and permissions
+
+Go to **OAuth2 > URL Generator**. Check these scopes:
+
+- `bot`
+- `applications.commands`
+
+![OAuth2 scopes selection](/screenshots/output/discord-setup-oauth-scopes.png)
+
+Then select bot permissions:
+
+![Bot permissions checklist](/screenshots/output/discord-setup-bot-permissions.png)
+
+**Required permissions:** Send Messages, Create Public Threads, Send Messages in Threads, Manage Threads, Embed Links, Read Message History, Add Reactions.
+
+Manage Threads is needed so netclaw can rename threads with session titles as conversations progress.
+
+### 5. Install the bot to your server
+
+Copy the generated URL at the bottom of the page.
+
+![Generated OAuth2 URL](/screenshots/output/discord-setup-oauth-url.png)
+
+Open it in your browser. Discord shows an authorization dialog -- select your server and click **Authorize**.
+
+![OAuth install approval dialog](/screenshots/output/discord-setup-install-dialog.png)
+
+The bot appears in your server's member list once the daemon is running.
+
+### 6. Set Installation to None
+
+Under **Installation** in the left sidebar, set the install method to **None**. This prevents users from installing the bot to other servers through Discord's app directory.
+
+![Installation settings set to None](/screenshots/output/discord-setup-installation-none.png)
+
+If you want others to install via a link you control, use **Discord Provided Link** instead.
+
+![Installation with Discord Provided Link](/screenshots/output/discord-setup-installation-provided-link.png)
 
 ## Configure netclaw
 

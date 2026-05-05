@@ -7,11 +7,6 @@ Reminders are autonomous agent sessions that fire on a schedule. You define what
 
 The scheduling subsystem is enabled by default. For CLI commands that create and manage reminders, see [`netclaw reminder`](/cli/reminder/).
 
-## Before you begin
-
-- The daemon must be running — start it with `netclaw daemon start` or [`netclaw init`](/cli/init/)
-- For channel delivery, [Slack must be configured](/cli/init/) in your netclaw setup
-
 ## Global configuration
 
 Toggle the scheduling subsystem in `~/.netclaw/config/netclaw.json`:

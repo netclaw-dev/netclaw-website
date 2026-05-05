@@ -1,9 +1,5 @@
 {
   "pages": {
-    "__homepage__": {
-      "hash": "9d40aa3d1dac1fce0699ba87aa035e7d8ade662ce529231cfd9beb1b8b4d93ce",
-      "imageUrl": "https://hcti.io/v1/image/019dfa05-fe44-754f-9de0-2fa43ce1c069"
-    },
     "architecture/overview": {
       "hash": "f96263caa71b181518462af7b361d5dccdae3a0c927b86bfb831d0b23f9d0181",
       "imageUrl": "https://hcti.io/v1/image/642a8f9d5dea41e63b5f421fb2b5882f5b94c5078e67a0288814c5f557ecbb0f"
@@ -179,6 +175,10 @@
     "skills/skill-server": {
       "hash": "13d89c9f77cf6820f7e9723f0a1724558f9998349c2f3f44df23a1702f39aede",
       "imageUrl": "https://hcti.io/v1/image/a70897afbe3e94297ca1b473ce9ae09db69ed6454338e9722823030203882b81"
+    },
+    "__homepage__": {
+      "hash": "832aa2ff01870a7200516422a9855629d4c00d98a9bf6cde5ec3174580750318",
+      "imageUrl": "https://hcti.io/v1/image/019dfa19-dbdf-7ad0-b8c4-ec9f46ea7abf"
     }
   }
 }

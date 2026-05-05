@@ -71,7 +71,7 @@ Instructions for the agent go here...
 | `compatibility` | No | Which agent platforms can use this skill |
 | `allowed-tools` | No | Space-delimited list of tools the skill needs (informational — does not grant access) |
 | `disable-model-invocation` | No | When `true`, excluded from the LLM index (still invocable via `/name`) |
-| `user-invocable` | No | Default `true`; when `false`, hidden from slash commands |
+| `invocable` | No | Default `true`; when `false`, hidden from slash commands |
 | `argument-hint` | No | Hint text shown after the slash command in completions |
 | `metadata.subagent` | No | Routes execution to a named subagent instead of returning skill content |
 

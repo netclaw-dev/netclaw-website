@@ -77,6 +77,7 @@ export default defineConfig({
           label: 'Notifications & Observability',
           items: [
             { label: 'Operational Alerts', slug: 'observability/operational-alerts' },
+            { label: 'Health Checks', slug: 'observability/health-checks' },
             { label: 'OpenTelemetry', slug: 'observability/opentelemetry' },
           ],
         },

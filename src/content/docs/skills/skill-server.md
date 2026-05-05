@@ -5,6 +5,8 @@ description: "Running and connecting a skill server."
 
 SkillServer is a self-hosted skill registry — a private NuGet feed or npm registry, but for [SKILL.md](https://agentskills.io) files. Host it behind your firewall, publish proprietary skills, and netclaw instances on the network sync from it automatically.
 
+**Source code and releases: [github.com/netclaw-dev/skill-server](https://github.com/netclaw-dev/skill-server)**
+
 It implements two open standards:
 
 - **[Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-spec)** — discovery via `/.well-known/agent-skills/index.json`

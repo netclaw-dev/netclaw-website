@@ -3,7 +3,11 @@ title: "Secrets Management"
 description: "Encrypted credential storage with netclaw secrets."
 ---
 
-Netclaw encrypts credentials at rest using [ASP.NET Data Protection](https://learn.microsoft.com/en-us/aspnet/core/security/data-protection/introduction). No plaintext secret ever touches disk. The encryption is machine-bound — keys are tied to the host where they were created and can't be copied to another machine.
+Netclaw encrypts credentials at rest using [ASP.NET Data Protection](https://learn.microsoft.com/en-us/aspnet/core/security/data-protection/introduction). No plaintext secret ever touches disk. Key material lives in `~/.netclaw/keys/`, separate from `secrets.json` — copying the secrets file alone is insufficient to decrypt its values.
+
+:::note
+The goal isn't bulletproof encryption — anyone with shell access to the machine can decrypt these values. The goal is preventing the *agent* from accidentally reading raw credentials during tool use. Encryption at rest means `file_read` on `secrets.json` returns ciphertext, not your API keys.
+:::
 
 Three layers protect credentials independently: encryption at rest keeps `secrets.json` opaque, ACL denial blocks the agent from reading specific secret files, and output redaction scrubs known secret patterns before the LLM sees them. If one layer fails, the other two still hold.
 

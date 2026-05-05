@@ -3,11 +3,7 @@ title: "Webhooks"
 description: "Configure webhook routes for event-driven automation."
 ---
 
-Netclaw has two separate webhook systems. **Inbound webhook routes** let external services POST to your daemon and kick off autonomous agent sessions -- the daemon spawns a Claude session with the route's prompt and the inbound payload. **Outbound notification webhooks** go the other way -- the daemon pushes operational alerts to your Slack channels or alerting infrastructure.
-
-Most of this page covers inbound routes. For outbound alerts, see the [section below](#outbound-notification-webhooks) or the full [Operational Alerts](/observability/operational-alerts/) reference.
-
-## Inbound Webhook Routes
+Inbound webhook routes let external services POST to your daemon and kick off autonomous agent sessions. The daemon verifies the signature, spawns a session with the route's prompt and the inbound payload, and optionally delivers results to a notification target.
 
 External services POST JSON to `/api/webhooks/<route>`. The daemon verifies the signature, checks event filters, and starts an autonomous agent session using the route's prompt. Each route is a standalone JSON file in `~/.netclaw/config/webhooks/`.
 
@@ -240,66 +236,7 @@ Route files contain plaintext secrets. Treat `~/.netclaw/config/webhooks/` the s
 - The agent is [hard-denied](/security/secrets/#agent-isolation) from reading this directory
 - Prefer `--secret-file` or `--secret-env` over `--secret` when creating routes via CLI (avoids shell history exposure)
 
-## Outbound Notification Webhooks
-
-Separately from inbound routes, the daemon can POST operational alerts to webhook URLs you configure -- daemon crashes, provider failures, channel disconnects.
-
-The full reference is at [Operational Alerts](/observability/operational-alerts/). Here's the short version.
-
-### Configuration
-
-Add notification targets to `~/.netclaw/config/netclaw.json`:
-
-```json
-{
-  "Notifications": {
-    "Webhooks": [
-      {
-        "Url": "https://hooks.slack.com/services/T00/B00/xxx",
-        "Name": "ops-slack",
-        "Format": "Slack"
-      },
-      {
-        "Url": "https://your-alerting.example.com/alert",
-        "Name": "generic-target",
-        "Format": "Generic"
-      }
-    ],
-    "DeduplicationWindowSeconds": 300,
-    "MaxRetries": 2,
-    "TimeoutSeconds": 10
-  }
-}
-```
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `Webhooks[].Url` | string | **(required)** | HTTP(S) endpoint to POST alerts to |
-| `Webhooks[].Name` | string? | `null` | Label for logs |
-| `Webhooks[].Format` | enum | `"Generic"` | `Generic` or `Slack`. URLs containing `hooks.slack.com` auto-detect as Slack. |
-| `Webhooks[].Headers` | object? | `null` | Custom HTTP headers (auth tokens, etc.) |
-| `DeduplicationWindowSeconds` | int | `300` | Suppress identical alerts within this window |
-| `MaxRetries` | int | `2` | Delivery retry attempts per target |
-| `TimeoutSeconds` | int | `10` | HTTP timeout per attempt |
-
-### Alert types
-
-Inbound webhook events emit their own alerts alongside system-level events:
-
-| Type | Severity | Description |
-|------|----------|-------------|
-| `webhook.received` | Info | Valid inbound delivery accepted |
-| `webhook.route.invalid` | Warning | Route file is malformed or missing |
-
-For the full list of daemon, provider, channel, and reminder alerts, see [Operational Alerts](/observability/operational-alerts/#alert-types).
-
-### Delivery behavior
-
-Retries use exponential backoff (1s base, 30s cap, +/-25% jitter). Client errors (4xx) are not retried -- only server errors (5xx) and timeouts. The internal queue holds 256 alerts; when full, the daemon drops the oldest.
-
-## Setup sequence
-
-### Inbound routes
+## Setup
 
 1. Enable webhooks in `netclaw.json` (or toggle during [`netclaw init`](/cli/init/))
 2. Create a route: `netclaw webhooks set <name> --prompt "..." --secret-env SECRET_VAR`
@@ -310,12 +247,6 @@ Retries use exponential backoff (1s base, 30s cap, +/-25% jitter). Client errors
 ![Init wizard showing the inbound webhooks toggle](/screenshots/output/init-09-webhooks.png)
 
 You only need to restart when first enabling `Webhooks.Enabled`. After that, route changes are [hot-reloaded](#hot-reload) on each request.
-
-### Outbound notifications
-
-1. Add `Notifications.Webhooks[]` entries to `netclaw.json`
-2. Restart the daemon: `netclaw daemon stop && netclaw daemon start`
-3. Watch for the `daemon.started` alert as confirmation
 
 ## Troubleshooting
 
@@ -348,15 +279,13 @@ The base URL depends on how you expose the daemon. [Tailscale Serve](https://tai
 ## Limitations
 
 - Notification targets are Slack-only. Discord, email, and generic webhook-to-notification bridges aren't supported yet.
-- No per-destination alert filtering -- all targets receive all alert types.
-- Inbound route secrets are stored in plaintext JSON (not in the encrypted `secrets.json` vault).
+- Route secrets are stored in plaintext JSON (not in the encrypted `secrets.json` vault).
 - Only SHA-256 is supported for HMAC verification.
 - No webhook request logging or replay. Failed sessions are visible via [`netclaw stats`](/cli/stats/) but the original payloads aren't stored.
 
 ## Related pages
 
 - [`netclaw webhooks`](/cli/webhooks/) -- CLI reference for route management (list, show, set, delete, validate)
-- [Operational Alerts](/observability/operational-alerts/) -- full reference for outbound notification webhooks
 - [Secrets Management](/security/secrets/) -- encrypted credential storage and agent isolation
 - [Security Model](/security/security-model/) -- audience definitions and trust levels
 - [`netclaw doctor`](/cli/doctor/) -- validates all webhook route files
@@ -369,5 +298,4 @@ The base URL depends on how you expose the daemon. [Tailscale Serve](https://tai
 - [HMAC signature verification](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) -- how GitHub's `X-Hub-Signature-256` works
 - [Tailscale Serve](https://tailscale.com/kb/1312/serve) -- expose your webhook endpoint without a public IP
 - [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) -- alternative to Tailscale for public webhook ingress
-- [Slack Incoming Webhooks](https://api.slack.com/messaging/webhooks) -- create Slack webhook URLs for outbound notifications
 - [Locate your Slack channel ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID) -- find the channel ID for notification targets

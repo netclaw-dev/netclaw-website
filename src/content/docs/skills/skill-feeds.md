@@ -9,15 +9,28 @@ Skills follow the [AgentSkills.io](https://agentskills.io) open standard format.
 
 ## How It Works
 
-The sync protocol runs on a simple loop:
-
-1. Daemon fetches `{feed-url}/.well-known/agent-skills/index.json`
-2. Parses the RFC skill index (name, version, SHA-256 digest, download URL)
-3. Compares against local sync state — downloads only changed or new skills
-4. Verifies SHA-256 digest of every downloaded file
-5. Runs the prompt injection content scanner on each skill
-6. Writes verified skills to `~/.netclaw/skills/.server-feeds/{feed-name}/`
-7. Rescans all skill directories and updates the agent's skill index
+```mermaid
+flowchart TD
+    A[Daemon starts] --> B[Sync all feeds in parallel]
+    B --> C{For each feed}
+    C --> D[Fetch /.well-known/agent-skills/index.json]
+    D --> E[Diff against local sync state]
+    E --> F{New or changed skills?}
+    F -->|No| G[Skip — already up to date]
+    F -->|Yes| H[Download skill files]
+    H --> I[Verify SHA-256 digest]
+    I -->|Mismatch| J[Reject — log warning]
+    I -->|OK| K[Content scan for prompt injection]
+    K -->|Rejected| J
+    K -->|Allowed| L[Write to ~/.netclaw/skills/.server-feeds/]
+    L --> M[Update sync state]
+    G --> N[Rescan all skill directories]
+    M --> N
+    J --> N
+    N --> O[Update agent skill index]
+    O --> P[Sleep SyncIntervalMinutes]
+    P --> B
+```
 
 Each feed syncs independently. A failing server never blocks other feeds or daemon startup. On failure, the daemon falls back to on-disk skills from the last successful sync.
 
@@ -36,15 +49,6 @@ Add a feed after init:
 ```bash
 netclaw skill feed add corp-skills --url https://skills.corp.com
 ```
-
-If the server requires authentication:
-
-```bash
-netclaw skill feed add corp-skills --url https://skills.corp.com
-netclaw secrets set SkillFeeds.Feeds.0.ApiKey sk-your-key
-```
-
-The API key is encrypted at rest in `~/.netclaw/config/secrets.json`. The config entry supports the `ENC:` prefix for pre-encrypted values.
 
 Or edit `~/.netclaw/config/netclaw.json` directly:
 
@@ -70,7 +74,6 @@ Or edit `~/.netclaw/config/netclaw.json` directly:
 |-------|------|---------|-------------|
 | `Name` | string | — | Filesystem-safe identifier for this feed |
 | `Url` | string | — | Base URL; daemon appends `/.well-known/agent-skills/index.json` |
-| `ApiKey` | string | null | Optional auth token (supports `ENC:` prefix for encrypted values) |
 | `Enabled` | bool | `true` | Toggle without removing the entry |
 | `TimeoutSeconds` | int | `30` | HTTP timeout for this feed |
 
@@ -193,15 +196,6 @@ Periodic sync fires every `SyncIntervalMinutes` (default 60). If you need immedi
 
 The content scanner flagged prompt injection patterns in the skill body. Run `netclaw skill issues` for details. Work with the skill author to revise the content, or file an issue on the skill server if you believe it's a false positive.
 
-### Auth failures
-
-If your feed requires an API key, verify it's set correctly:
-
-```bash
-netclaw secrets list | grep SkillFeeds
-```
-
-Re-set it if needed with `netclaw secrets set SkillFeeds.Feeds.0.ApiKey <key>`.
 
 ## Related Pages
 

@@ -43,7 +43,7 @@ Tools, filesystem access, and attachment policies differ by audience:
 
 | Audience | Tools | MCP Servers | Filesystem | Attachment Types |
 |----------|-------|-------------|------------|-----------------|
-| **Personal** | All | All | Unrestricted | All (including unknown MIME types) |
+| **Personal** | All | All | Unrestricted | Image, PDF, Document, Archive, Media, Other |
 | **Team** | `file_read`, `attach_file` | None | Session-scoped only | Image, PDF, Document, Archive, Media |
 | **Public** | `file_read`, `file_write`, `attach_file` | None | Session-scoped only | Images only |
 

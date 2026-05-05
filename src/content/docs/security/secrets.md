@@ -115,7 +115,7 @@ If doctor flags unencrypted values, you'll need the original plaintext to re-enc
 | Agent reads its own credentials | Resource hard-deny on `secrets.json`, `keys/`, and `webhooks/` |
 | Secret leaks into tool stdout | Regex-based output redaction before LLM ingestion |
 | Secret exposed via CLI command | Write-only vault with no read/list/dump commands |
-| Encryption keys copied to another machine | Machine-bound Data Protection keys; keys + secrets both required |
+| Encryption keys copied to another machine | Keys and secrets both required — `secrets.json` alone is useless |
 | Permission drift after manual edits | `netclaw doctor` flags incorrect file modes |
 
 ## Recovery
@@ -135,10 +135,10 @@ If a secret isn't taking effect, check for environment variable overrides. `NETC
 
 ## Limitations
 
-- Machine-bound encryption means secrets aren't portable between hosts. Each machine needs its own `secrets set` pass.
+- Secrets are portable only if you copy both `~/.netclaw/keys/` and `~/.netclaw/config/secrets.json` together. The keys directory contains the Data Protection key ring needed to decrypt values.
 - No built-in key rotation. Re-running `secrets set` overwrites the previous value, but there's no automated rotation schedule.
 - Windows relies on user-profile ACLs rather than explicit `chmod`, so permission auditing is less straightforward.
-- Single-machine vault, not a team secrets manager. For shared secret distribution, look at [HashiCorp Vault](https://developer.hashicorp.com/vault/docs) or [AWS Secrets Manager](https://docs.aws.amazon.com/secretsmanager/latest/userguide/intro.html).
+- Single-machine vault, not a team secrets manager. No integration with external secret stores (Vault, AWS Secrets Manager, etc.).
 
 ## Related Pages
 

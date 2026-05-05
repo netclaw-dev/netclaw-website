@@ -1,8 +1,12 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import rehypeMermaid from 'rehype-mermaid';
 
 export default defineConfig({
   site: 'https://netclaw.dev',
+  markdown: {
+    rehypePlugins: [[rehypeMermaid, { strategy: 'inline-svg', dark: true }]],
+  },
   vite: {
     server: {
       allowedHosts: ['.ts.net'],

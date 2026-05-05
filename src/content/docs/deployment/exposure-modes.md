@@ -1,13 +1,14 @@
 ---
 title: Exposure Modes
-description: Configure how netclaw is exposed to the network — local, Tailscale Serve, Tailscale Funnel, or Cloudflare Tunnel.
+description: Configure how netclaw is exposed to the network — local, reverse proxy, Tailscale Serve, Tailscale Funnel, or Cloudflare Tunnel.
 ---
 
-Exposure mode controls how the daemon is reachable over the network. Most setups stay on local mode. You only need a tunnel mode when something external (GitHub webhooks, CI, a second machine) needs to reach the daemon.
+Exposure mode controls how the daemon is reachable over the network. Most setups use local mode. You only need a non-local mode when something external (GitHub webhooks, CI, a second machine, or a reverse proxy) needs to reach the daemon.
 
 ## Before you begin
 
 - Netclaw installed and initialized (`netclaw init`). See [Installation](/getting-started/installation/) if needed.
+- For reverse proxy: a working proxy already configured, a non-loopback internal IP for the daemon, and the proxy source IP or CIDR ready for `TrustedProxies`.
 - For Tailscale modes: [`tailscaled` installed and running](https://tailscale.com/download).
 - For Cloudflare Tunnel: [`cloudflared` installed and configured](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/).
 
@@ -16,6 +17,7 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 | Mode | Config value | Required process | Reachability | Risk |
 |------|-------------|-----------------|-------------|------|
 | **Local** | `local` | None | Loopback only | Lowest |
+| **Reverse Proxy** | `reverse-proxy` | Your reverse proxy | Whatever the proxy exposes | Medium |
 | **Tailscale Serve** | `tailscale-serve` | `tailscaled` | Your Tailscale network (called a [tailnet](https://tailscale.com/kb/1136/tailnet)), HTTPS | Low |
 | **Tailscale Funnel** | `tailscale-funnel` | `tailscaled` | Public internet via Tailscale | High |
 | **Cloudflare Tunnel** | `cloudflare-tunnel` | `cloudflared` | Public internet via Cloudflare | High |
@@ -25,6 +27,27 @@ The `netclaw init` wizard covers this at step 9:
 ![Exposure mode selection in the netclaw init wizard, with Local highlighted as the recommended option](/screenshots/output/init-09-exposure.png)
 
 Options marked with a warning triangle expose the daemon to the public internet. Tailscale Serve is the recommended remote mode: tailnet-only access, no public exposure.
+
+### Reverse Proxy
+
+```json
+{
+  "Daemon": {
+    "Host": "10.0.0.5",
+    "ExposureMode": "reverse-proxy",
+    "TrustedProxies": ["10.0.0.10"]
+  }
+}
+```
+
+Use this when nginx, Caddy, Traefik, HAProxy, or another reverse proxy is the public edge.
+
+In this mode:
+
+- `Daemon.Host` must be a non-loopback internal address. `127.0.0.1`, `::1`, and `localhost` are rejected in `reverse-proxy` mode.
+- `TrustedProxies` must list the proxy's source IP or CIDR. Forwarded headers are only honored from those peers.
+
+If the proxy runs on the same machine, the final hop into netclaw still needs to target a non-loopback internal IP. A same-host reverse proxy is fine, but the final hop into netclaw still cannot use loopback.
 
 ## Configuration
 
@@ -74,6 +97,8 @@ Funnel extends Serve to the public internet. Anyone with the URL can reach the d
 
 Routes traffic through Cloudflare's network to the daemon. Set up `cloudflared` with a [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/) pointed at `127.0.0.1:5199`, and pair it with a [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy to restrict who can connect.
 
+If `cloudflared` runs outside the daemon's process namespace, set `Daemon.SkipTunnelProcessCheck` to `true` so startup validation skips the local process probe without skipping the rest of the auth checks.
+
 <!-- TODO: needs user input — What's the recommended Cloudflare Access policy configuration for netclaw? -->
 
 ### Full Daemon section
@@ -82,7 +107,9 @@ Routes traffic through Cloudflare's network to the daemon. Set up `cloudflared` 
 |-------|------|---------|-------|
 | `Host` | string | `127.0.0.1` | IP address the daemon binds to |
 | `Port` | int | `5199` | TCP port |
-| `ExposureMode` | string | `local` | `local`, `tailscale-serve`, `tailscale-funnel`, or `cloudflare-tunnel` |
+| `ExposureMode` | string | `local` | `local`, `reverse-proxy`, `tailscale-serve`, `tailscale-funnel`, or `cloudflare-tunnel` |
+| `TrustedProxies` | string[] | `[]` | Required in `reverse-proxy`; literal IPs or CIDRs only |
+| `SkipTunnelProcessCheck` | bool | `false` | Skip local tunnel process detection for sidecar or host-managed tunnel topologies |
 
 ```json
 {
@@ -94,7 +121,7 @@ Routes traffic through Cloudflare's network to the daemon. Set up `cloudflared` 
 }
 ```
 
-Case-insensitive — `tailscale-serve`, `TailscaleServe`, and `TAILSCALE-SERVE` all work.
+Case-insensitive — `reverse-proxy`, `ReverseProxy`, and `REVERSE-PROXY` all work, same as the tunnel modes.
 
 **Docker users:** if you switch to a tunnel mode, update your container's port binding to match the `Host` and `Port` values here. See [Docker Deployment](/deployment/docker/) for details.
 
@@ -103,9 +130,10 @@ Case-insensitive — `tailscale-serve`, `TailscaleServe`, and `TAILSCALE-SERVE` 
 Override any field with `NETCLAW_Daemon__` prefixed env vars:
 
 ```bash
-NETCLAW_Daemon__ExposureMode=tailscale-serve
-NETCLAW_Daemon__Host=127.0.0.1
+NETCLAW_Daemon__ExposureMode=reverse-proxy
+NETCLAW_Daemon__Host=10.0.0.5
 NETCLAW_Daemon__Port=5199
+NETCLAW_Daemon__TrustedProxies__0=10.0.0.10
 ```
 
 Double underscores separate path segments, following the [.NET configuration convention](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider).
@@ -132,9 +160,13 @@ They do nothing in local mode.
 
 ## Device pairing
 
-Non-local modes require at least one paired device or an alternative remote authentication scheme. Without one, the daemon refuses to start — remote clients have no way to authenticate.
+Non-local modes require at least one paired device or an alternative remote authentication scheme. Without one, the daemon refuses to start because remote clients have no way to authenticate.
 
-The init wizard handles this: it generates a bootstrap device token when you pick a tunnel mode, writing it to `~/.netclaw/config/devices.json` and `~/.netclaw/config/secrets.json`. For manual setup, pair a device before starting the daemon:
+On fresh setup-owned installs, netclaw automatically creates a one-time bootstrap path for the first non-local start. Before the first successful non-local daemon start, it seeds one local paired device and matching local client token when no paired devices already exist. That covers the init wizard, first Docker boot, and manual setups that still use the daemon's local state directory.
+
+After the first successful non-local start, that auto-seeding stops. Normal CLI use is paired-device auth from that point on.
+
+If the daemon is already running and you need to add another device, pair from the daemon host:
 
 ```bash
 netclaw daemon pair
@@ -160,6 +192,8 @@ Netclaw.
 ```
 
 Both are fatal. The daemon won't start until you fix the underlying issue.
+
+In `reverse-proxy` mode, startup also fails if the daemon is still bound to loopback or if `TrustedProxies` is empty or malformed.
 
 ## Troubleshooting
 
@@ -197,16 +231,36 @@ Or switch to local mode if you don't need remote access:
 
 Startup aborted with "no paired devices exist and no alternative remote authentication scheme is configured."
 
-Pair a device:
+If this is a brand-new non-local install, check whether the daemon actually completed its first successful start. The one-shot bootstrap only happens before that first successful non-local startup.
+
+If the daemon is already running, pair from the daemon host:
 
 ```bash
 netclaw daemon pair
 ```
 
-Or re-run the init wizard, which generates a bootstrap token automatically when you select a tunnel mode:
+If the device store was lost after the first successful non-local start and the daemon will not start anymore, temporarily switch `Daemon.ExposureMode` to `local` or restore `devices.json` and `secrets.json` from backup. Then start the daemon, run `netclaw daemon pair`, and switch back.
+
+You can also re-run the init wizard, which still cooperates with the runtime bootstrap path:
 
 ```bash
 netclaw init
+```
+
+### Reverse proxy bound to loopback
+
+Startup aborted because `Daemon.ExposureMode` is `reverse-proxy` but `Daemon.Host` is `127.0.0.1`, `::1`, or `localhost`.
+
+Bind netclaw to a non-loopback internal IP and point the proxy at that address instead of loopback:
+
+```json
+{
+  "Daemon": {
+    "Host": "10.0.0.5",
+    "ExposureMode": "reverse-proxy",
+    "TrustedProxies": ["10.0.0.10"]
+  }
+}
 ```
 
 ### Non-loopback bind in local mode
@@ -234,8 +288,6 @@ Or switch to the exposure mode that reflects how the daemon is actually reachabl
 }
 ```
 
-<!-- TODO: needs user input — Should Host remain 127.0.0.1 for tunnel modes, or should it be 0.0.0.0? Tunnels typically terminate locally and proxy to loopback, but this should be confirmed. -->
-
 ## Related pages
 
 - [Docker Deployment](/deployment/docker/) — containerized daemon with loopback port binding
@@ -250,4 +302,6 @@ Or switch to the exposure mode that reflects how the daemon is actually reachabl
 - [Tailscale Funnel documentation](https://tailscale.com/kb/1223/funnel) — expose tailnet services to the public internet
 - [Cloudflare Tunnel documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — route traffic through Cloudflare to your origin
 - [Cloudflare Access documentation](https://developers.cloudflare.com/cloudflare-one/policies/access/) — identity-aware access policies for tunneled services
+- [nginx reverse proxy guide](https://docs.nginx.com/nginx/admin-guide/web-server/reverse-proxy/) — baseline reverse-proxy behavior and forwarding model
+- [Cloudflare Tunnel service docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/configure-tunnels/local-management/as-a-service/) — service startup and lifecycle details for cloudflared
 - [Tailscale download](https://tailscale.com/download) — install Tailscale on your platform

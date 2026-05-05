@@ -172,11 +172,14 @@ Exposure mode controls network reachability. It's separate from audience and pos
 | Mode | Scope | Requires |
 |------|-------|----------|
 | `local` | Loopback only | Nothing (default) |
+| `reverse-proxy` | Whatever your proxy exposes | Trusted proxy config + non-loopback final hop |
 | `tailscale-serve` | Your tailnet | [`tailscaled`](https://tailscale.com/kb/) |
 | `tailscale-funnel` | Public internet | [`tailscaled`](https://tailscale.com/kb/1223/funnel/) |
 | `cloudflare-tunnel` | Public internet | [`cloudflared`](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) |
 
 Internet-reachable modes force explicit confirmation during [`netclaw init`](/cli/init/) and trigger high-risk diagnostic warnings. Changing exposure mode requires a daemon restart — not hot-reloaded.
+
+`reverse-proxy` has an extra trust-boundary rule: loopback auto-auth is not inherited through the proxy path. A reverse proxy can front netclaw, but the final hop into the daemon must be a non-loopback internal address and the proxy source must be explicitly trusted.
 
 A Personal-posture deployment exposed via Tailscale Funnel is reachable from the internet but still applies Personal audience rules to TUI sessions and Team rules to Slack. Exposure and audience are orthogonal.
 

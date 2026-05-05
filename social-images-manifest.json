@@ -105,8 +105,8 @@
       "imageUrl": "https://hcti.io/v1/image/292fbcccd9914a9c91a0738a6761c5e415c793b6e3d97a3b282f6ba340486bb7"
     },
     "deployment/exposure-modes": {
-      "hash": "e8baf14472f7f6848d6f325662cfaaa8e5c218eb0c503a22021e748f5d6a7969",
-      "imageUrl": "https://hcti.io/v1/image/e8df67e916d7e662c134601345647d510b2b90f2af1b85537817761cb4efc698"
+      "hash": "d18cf6800d78805419d7324432070556d829d05997a231f786d93193f5e970ad",
+      "imageUrl": "https://hcti.io/v1/image/7ddfb5e506a8c2c157d85ec9a438cc8ceda6a6eda0fe876428895f70f55df6ce"
     },
     "deployment/systemd": {
       "hash": "8d2c632b152b487fe516506b4120ae564770130dae5cbe524830ee01f86006cd",

@@ -119,6 +119,7 @@ The daemon binds to `127.0.0.1:5199` by default. Keep it that way unless you hav
 | Mode | Scope | Risk |
 |------|-------|------|
 | `local` | Loopback only | Minimal — only local processes can connect |
+| `reverse-proxy` | Whatever your proxy exposes | Medium to high — depends on final hop and trusted-proxy config |
 | `tailscale-serve` | Your tailnet | Low — [Tailscale identity](https://tailscale.com/kb/1312/serve) gates access |
 | `tailscale-funnel` | Public internet | High — anyone on the internet can reach it via [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) |
 | `cloudflare-tunnel` | Public internet | High — requires a [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy |
@@ -128,6 +129,8 @@ The daemon binds to `127.0.0.1:5199` by default. Keep it that way unless you hav
 The exposure selection during `netclaw init`. Internet-facing modes force explicit confirmation.
 
 If you need remote access, prefer `tailscale-serve`. It limits access to your tailnet. Funnel exposes you to the public internet — a completely different threat model.
+
+If you need a conventional reverse proxy, bind netclaw to a non-loopback internal IP and explicitly set `Daemon.TrustedProxies`. `reverse-proxy` mode rejects loopback final-hop proxying on purpose.
 
 For Docker deployments, bind to loopback explicitly:
 
@@ -143,7 +146,7 @@ Changing exposure mode requires a daemon restart. It's excluded from hot-reload 
 netclaw daemon stop && netclaw daemon start
 ```
 
-<!-- TODO: needs user input — What Cloudflare Access policy configuration is needed from the netclaw side? Is there a config field or is it purely Cloudflare-side? -->
+In `reverse-proxy` mode, daemon-host CLI access is no longer "loopback means trusted." Local control-plane requests may still work, but they do so through explicit paired-device auth when the exposure mode requires it.
 
 ## Slack Channel Restrictions
 

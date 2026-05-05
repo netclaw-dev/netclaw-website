@@ -3,7 +3,7 @@ title: "netclaw init"
 description: "Interactive setup wizard for providers, channels, security, and network exposure."
 ---
 
-First-run wizard. Configures your provider, security policy, channels, identity, skills, and network exposure in one pass, then starts the daemon.
+Interactive first-run setup. Configures your provider, security policy, channels, identity, skills, and network exposure in one pass, then starts the daemon.
 
 ## Usage
 
@@ -25,11 +25,12 @@ Have these ready before starting:
 - **Slack tokens** (if using Slack) — Bot Token (`xoxb-...`) + App Token (`xapp-...`). See the [Slack quickstart](https://api.slack.com/start/quickstart)
 - **Discord bot token** (if using Discord) — from the [Discord developer portal](https://discord.com/developers/docs/getting-started)
 
-No other dependencies needed.
+For local-only setup, that is enough. For non-local exposure modes, you may also need `tailscaled`, `cloudflared`, or a working reverse proxy depending on the mode you choose.
+
 
 ## Wizard steps
 
-The wizard adapts to your choices — steps get skipped based on your security posture and feature selections.
+The wizard skips steps based on your choices, security posture, and feature selections.
 
 ### 1. LLM Provider
 
@@ -124,11 +125,12 @@ Subscribe to skill feeds — curated skill collections from the community or you
 | Mode | Reachability | Requires |
 |------|-------------|----------|
 | `local` | Loopback only (this machine) | Nothing |
+| `reverse-proxy` | Whatever your proxy exposes | Reverse proxy + trusted proxy list |
 | `tailscale-serve` | Your [Tailscale](https://tailscale.com/kb/) tailnet | `tailscaled` running |
 | `tailscale-funnel` | Public internet via Tailscale | `tailscaled` running |
 | `cloudflare-tunnel` | Public internet via [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) | `cloudflared` running |
 
-The internet-facing modes (`tailscale-funnel`, `cloudflare-tunnel`) make you type an explicit confirmation. They're not kidding about the warning.
+The internet-facing modes (`tailscale-funnel`, `cloudflare-tunnel`) make you type an explicit confirmation because they expose the daemon to the internet.
 
 ![Webhook configuration](/screenshots/output/init-09-webhooks.png)
 
@@ -138,13 +140,17 @@ If you enabled webhooks, you'll configure inbound routes here.
 
 ![Health check running](/screenshots/output/init-10-health-check.png)
 
-Validates config files, tests provider connectivity, verifies channel tokens, checks tunnel prerequisites.
+Validates config files, tests provider connectivity, verifies channel tokens, and checks tunnel or reverse-proxy prerequisites.
 
 ![Health check complete](/screenshots/output/init-10-health-check-complete.png)
 
-All green? The daemon starts automatically.
+If all checks pass, the daemon starts automatically.
 
-If something fails, the wizard tells you which check broke and suggests running `netclaw doctor` for detailed diagnostics.
+If you picked a non-local exposure mode, the first successful daemon start also keeps a bootstrap pairing path available so the local CLI can finish remote-auth setup.
+
+If something fails, the wizard tells you which check broke, shows exposure-mode validation failures directly, and suggests running `netclaw doctor` for detailed diagnostics.
+
+If `netclaw init` fails partway through, the files it already wrote stay on disk. It is safe to rerun `netclaw init`, or inspect the saved config and use `netclaw doctor` before trying again.
 
 ## What it creates
 
@@ -152,6 +158,7 @@ If something fails, the wizard tells you which check broke and suggests running 
 |------|---------|
 | `~/.netclaw/config/netclaw.json` | Main configuration (includes security posture) |
 | `~/.netclaw/config/secrets.json` | Encrypted credentials |
+| `~/.netclaw/config/devices.json` | Paired device registry, including first-launch bootstrap device when needed |
 | `~/.netclaw/identity/` | Agent identity and personality |
 
 ## After init
@@ -180,3 +187,4 @@ netclaw chat
 - [Slack Socket Mode](https://api.slack.com/apis/socket-mode) — How netclaw connects to Slack without a public endpoint
 - [Tailscale Funnel documentation](https://tailscale.com/kb/1223/funnel/) — Exposing services to the public internet via Tailscale
 - [Cloudflare Tunnel documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — Exposing services via Cloudflare's network
+- [Traefik reverse proxy docs](https://doc.traefik.io/traefik/routing/routers/) — reverse-proxy option if you're exposing netclaw behind Traefik

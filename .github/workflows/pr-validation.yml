@@ -1,0 +1,103 @@
+name: pr_validation
+
+on:
+  pull_request:
+    branches:
+      - dev
+
+jobs:
+  build-site:
+    name: "Build Astro"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+  link-validation:
+    name: "Link and URL Validation"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+      - name: Install link-validator
+        run: |
+          INSTALL_DIR="${GITHUB_WORKSPACE}/link-validator-bin"
+          mkdir -p "$INSTALL_DIR"
+
+          echo "Downloading link-validator v0.1.1..."
+          curl -L https://github.com/Aaronontheweb/link-validator/releases/download/v0.1.1/link-validator-linux-x64.tar.gz -o link-validator.tar.gz
+          tar -xzf link-validator.tar.gz -C "$INSTALL_DIR"
+          chmod +x "$INSTALL_DIR/link-validator"
+
+          "$INSTALL_DIR/link-validator" --version
+          echo "LINK_VALIDATOR_PATH=$INSTALL_DIR/link-validator" >> $GITHUB_ENV
+
+      - name: Serve site and validate links
+        run: |
+          # Start Astro preview server in background
+          npx astro preview --port 4321 &
+          SERVER_PID=$!
+
+          # Wait for server to be ready
+          echo "Waiting for Astro preview server to start..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4321 > /dev/null 2>&1; then
+              echo "Server is ready."
+              break
+            fi
+            sleep 1
+          done
+
+          if ! curl -sf http://localhost:4321 > /dev/null 2>&1; then
+            echo "Failed to start preview server"
+            kill $SERVER_PID 2>/dev/null
+            exit 1
+          fi
+
+          # Run link validator
+          echo "Running link validator..."
+          $LINK_VALIDATOR_PATH --url http://localhost:4321 \
+            --output link-validation-report.md \
+            --max-external-retries 3 || VALIDATION_EXIT_CODE=$?
+
+          # Display report
+          echo "Link validation report:"
+          cat link-validation-report.md
+
+          # Cleanup
+          kill $SERVER_PID 2>/dev/null
+
+          exit ${VALIDATION_EXIT_CODE:-0}
+
+      - name: Upload link validation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: link-validation-report
+          path: link-validation-report.md
+          retention-days: 30

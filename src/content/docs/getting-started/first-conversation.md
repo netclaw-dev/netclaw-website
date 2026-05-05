@@ -91,5 +91,5 @@ At this point, Netclaw has your profile and a working tool stack. A few directio
 
 - [`netclaw chat` reference](/cli/chat/) — flags, modes, keyboard shortcuts
 - [Security Model](/security/security-model/) — how tool access and permissions work
-- [MCP Tool Use](https://modelcontextprotocol.io/docs/concepts/tool-use) — the protocol behind tool execution
+- [MCP Tools](https://modelcontextprotocol.io/specification/2025-03-26/server/tools) — the protocol behind tool execution
 - [SignalR documentation](https://learn.microsoft.com/en-us/aspnet/core/signalr/introduction) — real-time protocol between CLI and daemon

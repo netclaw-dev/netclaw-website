@@ -99,6 +99,16 @@ There's an economic argument here too. A $3,000 GPU with 64GB VRAM runs local in
 
 For tasks that genuinely need frontier capabilities — complex agentic coding, multi-step research across large codebases — netclaw delegates to tools like [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) or [OpenCode](https://opencode.ai/) in headless mode via skills. Use your existing subscriptions for frontier work. Use local models for everything else.
 
+## Automatic memory formation
+
+Agents that forget everything between conversations aren't useful for real work. But agents that require users to manually save context don't get used either.
+
+Netclaw forms memories automatically. A per-session observation sidecar watches the conversation and, when the session goes idle, distills key facts, decisions, and project context into durable memory — without an extra LLM call during your turn. A background curation pipeline validates proposals, deduplicates against existing memories, blocks secret content, and persists what survives to SQLite.
+
+On the next turn — in any session — relevant memories are recalled automatically via deterministic full-text search and injected into the system prompt. No vector database, no embeddings, no external service. The agent remembers that your project uses PostgreSQL, that you prefer Terraform over Pulumi, that the deploy target changed last Tuesday — because it observed those facts and stored them.
+
+This is the kind of feature that belongs in core, not in a plugin. Memory touches the session lifecycle, the compaction pipeline, the security model (public sessions get no memory access), and the system prompt assembly. Pushing it to the edges would mean every integration reimplements it badly. The [memory architecture](/architecture/memory-model/) covers the full system.
+
 ## The philosophy of no
 
 Open-source maintainers tend to say yes too much. Every accepted contribution is a maintenance commitment. Every feature that lands in core is a feature that can't be pushed to a plugin, an MCP server, or a skill that someone else maintains.

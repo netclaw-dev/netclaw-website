@@ -47,13 +47,15 @@ LLMs are inherently non-deterministic — same input, different output, every ti
 
 The operating principle is **reversibility**: if the agent is about to perform an action that can't be undone, that action needs a deterministic gate — an [approval prompt](/architecture/security-model/#human-in-the-loop-as-a-layer-not-a-crutch) where a human confirms intent. If you want to turn those gates off, that's your decision. You live with the consequences.
 
-## Audience dispositions over RBAC
+## Lightweight access control without an identity provider
 
 The real-world use case that drove this: a bot in a team Slack channel that can answer questions about live service status for anyone, but only operators — the IT folks — can trigger high-privilege actions like exporting log dumps or restarting services.
 
-Traditional role-based access control requires identity infrastructure that most self-hosted deployments don't have. Netclaw takes a different approach: **audience dispositions** classify trust by deployment topology and channel type, not by individual user identity.
+Traditional role-based access control solves this, but it requires a fully managed identity provider — something most self-hosted deployments don't have and shouldn't need. To keep netclaw simple and self-hostable, we distilled two lightweight primitives that are adjacent to RBAC without the infrastructure dependency:
 
-Three tiers:
+1. **Audience dispositions** classify trust by deployment topology and channel type. Personal (you at your machine), Team (your Slack workspace), or Public (untrusted sources). The disposition determines what tools are visible, what memory is accessible, and whether approval gates are active.
+
+2. **Listing owners** are the specific user IDs in each channel who actually operate the bot. They get elevated trust within their audience tier.
 
 | Audience | Trust | Typical source |
 |----------|-------|----------------|
@@ -61,7 +63,11 @@ Three tiers:
 | **Team** | Scoped access | Slack workspace, Discord server |
 | **Public** | Minimal access | Unknown or untrusted channels |
 
-The audience shapes everything downstream: which tools are visible, what memory is accessible, whether approval gates are active, how much context the agent shares. Every other security decision flows from this one. See [audience scoping](/architecture/security-model/#audience-as-the-trust-primitive) for how this works in practice.
+During [`netclaw init`](/cli/init/), you assign each connected channel to an audience tier. The same Slack workspace can have DMs classified as Personal and a shared ops channel classified as Team:
+
+![Per-channel audience configuration during netclaw init](/screenshots/output/init-04-channel-audiences.png)
+
+This isn't a better idea than RBAC. It's a pragmatic simplification that lets you deploy an agent with meaningful access control today, on your own hardware, without standing up Entra or Okta first. Every other security decision flows from the audience disposition. See [audience scoping](/architecture/security-model/#audience-as-the-trust-primitive) for how it works in practice.
 
 ## MCP-first tooling
 

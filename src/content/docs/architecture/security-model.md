@@ -31,27 +31,24 @@ Personal  >  Team  >  Public
 
 Posture selection during `netclaw init` — the choice that establishes the baseline trust tier for your deployment.
 
-This maps to how people actually deploy: you trust yourself on your own machine, partially trust your coworkers in Slack, and don't trust unknown sources at all. The exact channel-to-audience mapping and per-audience permission tables are in the [Security Model reference](/security/security-model/#trust-audiences).
+This maps to how people actually deploy: you trust yourself on your own machine, partially trust your coworkers in Slack, and don't trust unknown sources at all. During setup, you assign each channel to an audience tier individually:
+
+![Per-channel audience configuration during netclaw init](/screenshots/output/init-04-channel-audiences.png)
+
+The same platform can span multiple audience tiers — Slack DMs as Personal, a shared ops channel as Team. The exact per-audience permission tables are in the [Security Model reference](/security/security-model/#trust-audiences).
 
 ### Four layers, not one
 
-A single permission check is a single point of failure. Netclaw stacks four independent [defense-in-depth](https://csrc.nist.gov/glossary/term/defense_in_depth) layers:
+No tool executes without passing four independent checks. Each layer can only deny — none can override a denial from another.
 
-```
-┌─────────────────────────────────┐
-│  1. Operation Hard Deny         │  ← unconditional, not overridable
-├─────────────────────────────────┤
-│  2. Resource Hard Deny          │  ← path-based, symlink-aware
-├─────────────────────────────────┤
-│  3. Tool Access Grant           │  ← audience-scoped allowlist
-├─────────────────────────────────┤
-│  4. Approval Gate               │  ← human in the loop
-└─────────────────────────────────┘
-```
+| Layer | Class | What it does |
+|-------|-------|-------------|
+| **Operation hard deny** | `ShellCommandPolicy` | Blocks unconditionally dangerous commands — `rm -rf /`, `sudo`, fork bombs, daemon self-kill. Structural matching on tokenized verb chains. Not approvable. |
+| **Resource hard deny** | `ToolPathPolicy` | Blocks access to protected paths — `secrets.json`, key material, control-plane files. Symlink-aware. Maintains separate deny surfaces for reads, writes, and shell path references. |
+| **Tool access grant** | `ToolAccessPolicy` | Audience-scoped allowlist. If a tool isn't granted to the current audience, the model never sees it. Binary — available or invisible. |
+| **Approval gate** | `IToolApprovalService` | Human-in-the-loop confirmation for operations that pass the first three checks but are operationally risky. Approvals can be scoped to once, session, or persistent. |
 
-Each layer can only deny — none can override a denial from a layer above it. Layer 1 blocks `rm -rf /` regardless of audience or approval status. Layer 2 blocks credential access even for Personal. Layer 3 controls what the model can see. Layer 4 adds human oversight for high-risk operations.
-
-This is a conceptual model — the actual enforcement runs across both the gateway (for inbound message ACLs) and the session layer (for tool execution policy). What matters: no tool executes without passing all four checks, regardless of where in the code they run. See the [reference page](/security/security-model/#four-layer-invocation-stack) for exact deny lists and configuration syntax.
+The execution order in code doesn't match this conceptual ordering — `ToolAccessPolicy` runs first (fail fast on unavailable tools before evaluating shell commands), then `ShellCommandPolicy`, then `ToolPathPolicy`, then the approval gate. The deny-only semantics are the same regardless of order. See the [reference page](/security/security-model/#four-layer-invocation-stack) for exact deny lists and configuration syntax.
 
 ### Policy before dispatch
 

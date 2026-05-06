@@ -49,6 +49,7 @@ export default defineConfig({
           items: [
             { label: 'Design Philosophy', slug: 'architecture/design-philosophy' },
             { label: 'Overview', slug: 'architecture/overview' },
+            { label: 'Sessions & Input Model', slug: 'architecture/sessions' },
             { label: 'Security Model', slug: 'architecture/security-model' },
           ],
         },

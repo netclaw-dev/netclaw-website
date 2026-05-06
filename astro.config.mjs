@@ -45,6 +45,14 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Architecture & Philosophy',
+          items: [
+            { label: 'Design Philosophy', slug: 'architecture/design-philosophy' },
+            { label: 'Overview', slug: 'architecture/overview' },
+            { label: 'Security Model', slug: 'architecture/security-model' },
+          ],
+        },
+        {
           label: 'Channels',
           items: [
             { label: 'Slack', slug: 'channels/slack' },
@@ -113,13 +121,6 @@ export default defineConfig({
             { label: 'Docker', slug: 'deployment/docker' },
             { label: 'systemd', slug: 'deployment/systemd' },
             { label: 'Exposure Modes', slug: 'deployment/exposure-modes' },
-          ],
-        },
-        {
-          label: 'Architecture',
-          items: [
-            { label: 'Overview', slug: 'architecture/overview' },
-            { label: 'Security Model', slug: 'architecture/security-model' },
           ],
         },
         {

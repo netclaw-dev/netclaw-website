@@ -75,6 +75,7 @@ export default defineConfig({
             { label: 'Managed Providers', slug: 'configuration/managed-providers' },
             { label: 'Self-Hosted Providers', slug: 'configuration/self-hosted-providers' },
             { label: 'Models', slug: 'configuration/models' },
+            { label: 'Search Providers', slug: 'configuration/search-providers' },
             { label: 'MCP Servers', slug: 'configuration/mcp-servers' },
             { label: 'Webhooks', slug: 'configuration/webhooks' },
             { label: 'Reminders', slug: 'configuration/reminders' },

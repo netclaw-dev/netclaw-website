@@ -82,13 +82,10 @@ The [Brave Search API](https://brave.com/search/api/) is a managed search backen
 }
 ```
 
-```json
-// ~/.netclaw/config/secrets.json (encrypted at rest)
-{
-  "Search": {
-    "BraveApiKey": "your-key-here"
-  }
-}
+Store the API key with the [`netclaw secrets`](/cli/secrets/) CLI rather than editing `secrets.json` by hand — values are encrypted at rest and the CLI handles that for you:
+
+```bash
+netclaw secrets set Search.BraveApiKey your-key-here
 ```
 
 Get a key from [api.search.brave.com](https://api.search.brave.com/). The free tier is sufficient for personal use; paid tiers raise the rate limit.

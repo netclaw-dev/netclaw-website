@@ -5,6 +5,16 @@ description: "Run Netclaw as a systemd service on Linux."
 
 The netclaw daemon (`netclawd`) runs as a systemd user service — no `sudo`, no root, just your own account. One CLI command sets everything up.
 
+## Why user-level systemd?
+
+Netclaw is a personal agent. It operates on files in your home directory, signs in to services using your credentials, and connects to tools you've authorized. Running the daemon under your own user account matches the privilege envelope it actually needs.
+
+Choosing `systemd --user` over `systemd --system` is **security-neutral relative to running the daemon directly from your shell**. The same files are reachable, the same credentials are accessible, the same network endpoints are in scope. systemd gives you auto-restart on crash, lingering across logout, and journal integration. None of those require elevated privileges.
+
+The contrast that matters is user-level versus system-level. A system-level service would run as root, or force you to provision a dedicated `netclaw` user. Netclaw's threat model has no use for either. Root would put a personal agent in the same privilege class as the kernel; a dedicated service user would split your config and credentials across two filesystem owners for no benefit.
+
+For stricter isolation, layer hardening directives onto the unit file: `ProtectHome=`, `NoNewPrivileges=true`, seccomp filters. Those add real sandboxing. User-level alone doesn't claim to.
+
 ## Before you begin
 
 - Linux with systemd **236+** (Ubuntu 20.04+, Debian 11+, Fedora 36+, RHEL 8+, etc.) — check with `systemctl --version`
@@ -51,6 +61,7 @@ ExecStop=/path/to/netclaw daemon stop
 Restart=always
 RestartSec=5
 Environment=DOTNET_ENVIRONMENT=Production
+Environment=PATH=/path/to/installdir:/home/you/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
 [Install]
 WantedBy=default.target
@@ -58,9 +69,11 @@ WantedBy=default.target
 
 The `/path/to/` placeholders are resolved to actual binary locations by `netclaw daemon install` — the literal string never gets written. `ExecStop` uses the CLI's `daemon stop` command instead of a raw signal, which lets the daemon fire shutdown webhooks and drain active sessions before exiting. After `ExecStop` completes, systemd sends SIGTERM with a 10-second grace period. If the process is still alive after that, SIGKILL finishes it. In practice the daemon shuts down well within that window.
 
+The `Environment=PATH=` directive is there because systemd `--user` services start with a sanitized default PATH that does not include `~/.local/bin` or any custom install directory. Without it, the agent's shell tool can't resolve `netclaw` (or other user-installed binaries) when it shells out from inside the daemon. The generated PATH puts your install directory first, then `~/.local/bin`, then the standard system path. If you upgrade from a Netclaw version that predates this directive, see the [Troubleshooting](#shell-tool-cant-find-netclaw-or-other-user-installed-binaries) section below.
+
 ### Manual installation
 
-If you prefer to create the service file yourself, adjust the `ExecStart` and `ExecStop` paths to wherever your binaries actually live:
+If you prefer to create the service file yourself, adjust the `ExecStart`, `ExecStop`, and `PATH` entries to point at wherever your binaries and user-bin directory actually live:
 
 ```bash
 mkdir -p ~/.config/systemd/user
@@ -77,6 +90,7 @@ ExecStop=/path/to/netclaw daemon stop
 Restart=always
 RestartSec=5
 Environment=DOTNET_ENVIRONMENT=Production
+Environment=PATH=/path/to/installdir:/home/you/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
 [Install]
 WantedBy=default.target
@@ -312,6 +326,26 @@ If nothing shows, the lock file is stale. Remove it and restart:
 systemctl --user stop netclaw
 rm ~/.netclaw/netclaw.lock
 systemctl --user start netclaw
+```
+
+### Shell tool can't find `netclaw` (or other user-installed binaries)
+
+If your agent reports `command not found` when shelling out to `netclaw stats`, `gh`, or any other binary in `~/.local/bin`, the systemd unit's PATH is missing the directory where those binaries live. This was the default before the `Environment=PATH=` directive was baked into the install template, so older units don't have it at all.
+
+Run `netclaw doctor` to confirm — the **Systemd Unit PATH** check will report a Warning if the unit lacks a PATH directive or doesn't include the daemon's install directory.
+
+Refresh the unit file:
+
+```bash
+netclaw daemon uninstall
+netclaw daemon install
+systemctl --user restart netclaw
+```
+
+Verify the daemon picked up the new PATH:
+
+```bash
+cat /proc/$(pgrep -u "$USER" netclawd)/environ | tr '\0' '\n' | grep PATH
 ```
 
 ### Service fails on older systemd versions

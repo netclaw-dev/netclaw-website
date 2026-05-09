@@ -39,12 +39,14 @@ The **Daemon** column in each table indicates whether the netclaw daemon (the ba
 | `daemon start` | Start daemon as a background process |
 | `daemon stop` | Stop daemon gracefully |
 | `daemon status` | Show daemon process status |
-| `daemon install` | Install systemd user service (Linux) |
-| `daemon uninstall` | Remove systemd user service (Linux) |
+| [`daemon install`](/deployment/systemd/) | Install systemd user service (Linux) |
+| [`daemon uninstall`](/deployment/systemd/#uninstalling) | Remove systemd user service (Linux) |
 | `daemon pair` | Generate a pairing code (run on the host machine) |
 | `daemon devices` | List paired devices |
 | `daemon devices revoke <name>` | Revoke a paired device by name |
 | `pair <endpoint>` | Pair this device with a remote daemon using a pairing code (run on the remote device) |
+
+`daemon install` writes a `systemd --user` unit, so the daemon runs under your own user account at the same privilege you have at the shell. No root, no dedicated service identity. See [systemd Service](/deployment/systemd/) for the security model and operational walkthrough.
 
 See the [Pairing Remote Devices](/guides/pairing-remote-devices/) guide for the full walkthrough.
 

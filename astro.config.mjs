@@ -129,7 +129,6 @@ export default defineConfig({
         {
           label: 'Guides',
           items: [
-            { label: 'Connecting Slack', slug: 'guides/connecting-slack' },
             { label: 'MCP Tool Permissions', slug: 'guides/mcp-tool-permissions' },
             { label: 'Pairing Remote Devices', slug: 'guides/pairing-remote-devices' },
           ],

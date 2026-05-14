@@ -62,16 +62,35 @@ The memory system supports two update patterns: **merge-document** (revise and c
 
 Memory formation happens outside the conversation turn — the user never waits for it.
 
-```mermaid
-flowchart LR
-    subgraph Session
-        SA[Session Actor] -->|transcript stream| OBS[Observation Sidecar]
-    end
-    OBS -->|idle timeout| LLM[Sidecar LLM Call]
-    LLM -->|memory proposals| CQ[(Checkpoint Queue\nSQLite table)]
-    CQ --> CUR[Curation Pipeline]
-    CUR -->|validated memories| DB[(Memory Store\nSQLite)]
-    DB -->|auto-recall\nbefore each turn| SA
+```text
+┌────────────────────────┐
+│    Session Actor       │◂──────────┐
+└───────────┬────────────┘           │
+            │                        │
+            ▾ transcript stream      │
+┌────────────────────────┐           │
+│  Observation Sidecar   │           │
+└───────────┬────────────┘           │
+            │                        │
+            ▾ idle timeout           │
+┌────────────────────────┐           │
+│  Sidecar LLM Call      │           │
+└───────────┬────────────┘           │
+            │                        │
+            ▾ memory proposals       │
+┌────────────────────────┐           │
+│  Checkpoint Queue      │ (SQLite)  │
+└───────────┬────────────┘           │
+            │                        │
+            ▾                        │
+┌────────────────────────┐           │
+│  Curation Pipeline     │           │
+└───────────┬────────────┘           │
+            │                        │
+            ▾ validated memories     │
+┌────────────────────────┐           │
+│  Memory Store (SQLite) │───────────┘
+└────────────────────────┘ auto-recall
 ```
 
 **Observation sidecar.** Each session has a companion [actor](/architecture/sessions/#session-identity) that accumulates the conversation transcript — user messages, assistant replies, tool calls. When the session goes idle, the sidecar makes a separate LLM call (not part of the conversation) to distill observations into memory proposals.

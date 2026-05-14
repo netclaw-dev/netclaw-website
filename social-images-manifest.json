@@ -179,6 +179,30 @@
     "__homepage__": {
       "hash": "832aa2ff01870a7200516422a9855629d4c00d98a9bf6cde5ec3174580750318",
       "imageUrl": "https://hcti.io/v1/image/019dfa19-dbdf-7ad0-b8c4-ec9f46ea7abf"
+    },
+    "architecture/design-philosophy": {
+      "hash": "f4b25f7aa2aa29ff8243bebdb490e9c24611e7e8b4ff42db54c6c34a275363b9",
+      "imageUrl": "https://hcti.io/v1/image/0c7657aaaec15dbdbe67f8b7e08aae203404938efb602676af644b9cee8603fa"
+    },
+    "architecture/sessions": {
+      "hash": "f814cec267bd1a2ec26957567230770b78008a63263e648371aa56d5184a4105",
+      "imageUrl": "https://hcti.io/v1/image/8e5ef2ce05dd12c0ba616342909dd849c4cdff3458c720c740ae27a1743aac87"
+    },
+    "architecture/memory-model": {
+      "hash": "31f4932baf12371ce46de7306be22cb8c7c0651207d82f231f8c9804fbd3318a",
+      "imageUrl": "https://hcti.io/v1/image/d6e4391b05c5a8062ce39e67299327c8854e4383a5b385f42a4253f282d80fcf"
+    },
+    "configuration/search-providers": {
+      "hash": "84ecc62b6d3b821ba504ac970d577aededae243b149dd97b0e9c3a5bb381a572",
+      "imageUrl": "https://hcti.io/v1/image/a22071bffb632d85228f9bafdf754596da92773f715195497f2a0d4ea73b4ea4"
+    },
+    "comparisons/openclaw": {
+      "hash": "75bbc239a4b568a6b3d8506a32cd6bcfe3f022b560b424da4a9d7ba01814dbe7",
+      "imageUrl": "https://hcti.io/v1/image/da4a3ddb3f054e17880e45081a0dd894a246f6d8a6e84a5d5f9818ccb4e005b7"
+    },
+    "comparisons/hermes-agent": {
+      "hash": "5bef9970a046b26bf11550a893fded19988c2a48e31c3b716850cfe782729158",
+      "imageUrl": "https://hcti.io/v1/image/7fd6d42356b5a610dc77c71477c445684b5a18212ff7df0125ae88ee5ddb1f09"
     }
   }
 }

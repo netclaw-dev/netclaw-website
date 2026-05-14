@@ -133,6 +133,13 @@ export default defineConfig({
             { label: 'Pairing Remote Devices', slug: 'guides/pairing-remote-devices' },
           ],
         },
+        {
+          label: 'Comparisons',
+          items: [
+            { label: 'vs. OpenClaw', slug: 'comparisons/openclaw' },
+            { label: 'vs. Hermes Agent', slug: 'comparisons/hermes-agent' },
+          ],
+        },
       ],
     }),
   ],

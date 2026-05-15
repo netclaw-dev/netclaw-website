@@ -58,6 +58,8 @@ Inbound message ACL checks run in the gateway boundary, before messages reach th
 
 Approval gates sit at Layer 4 — after hard denies and access grants have already filtered. The human only sees requests that are structurally permitted but operationally risky. You're not approving every `ls` — you're approving `git push` to a remote.
 
+![Approval gate prompt in Slack — the human sees verb, tool, and directory before choosing](/assets/approval-prompt.png)
+
 The approval system extracts verb-chain patterns from shell commands. A verb-chain is the leading command tokens (`git push`, `docker compose up`) without paths or flags — so approving `git push` covers `git push origin main` and `git push --force-with-lease`. Compound commands (`cmd1 && cmd2`) are split and each segment is checked independently.
 
 Channels that don't support interactive prompts (scheduled reminders, webhooks, headless automation) auto-deny tools that require approval — unless those tools have been persistently pre-approved or appear on the safe-list for non-interactive execution.

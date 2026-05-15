@@ -215,6 +215,10 @@
     "troubleshooting/vllm": {
       "hash": "902c5043f1030978cb147b457d7c4eec867697ae15604deaa8a48b1f878565b0",
       "imageUrl": "https://hcti.io/v1/image/d8e5c7cc00e321eb8f99fc8ba2f7b07ddb8333c30732d011ffaff50e0d07e5e9"
+    },
+    "cli/approvals": {
+      "hash": "0e65e1158ee4534375f57357ceb31969aaa4368e5c0ddf26b904241494da4983",
+      "imageUrl": "https://hcti.io/v1/image/198015467abee5e9e87c72a0247548834f0ad112df244447f7c2506fa74272ea"
     }
   }
 }

@@ -111,10 +111,12 @@ MCP tool grants are configured separately per server and per audience through [`
 
 Tools that pass layers 1-3 hit the approval gate, which prompts the operator for confirmation:
 
+![Approval gate prompt in Slack showing Approve once, Approve for this chat, Approve always, and Deny options](/assets/approval-prompt.png)
+
 | Option | Behavior |
 |--------|----------|
 | Approve once | Valid for the current session only |
-| Approve always | Persisted to `~/.netclaw/config/tool-approvals.json` (edit this file directly to revoke) |
+| Approve always | Persisted to `~/.netclaw/config/tool-approvals.json` — manage with [`netclaw approvals`](/cli/approvals/) |
 | Deny | Blocks this invocation |
 
 Approval timeouts work differently depending on the channel:

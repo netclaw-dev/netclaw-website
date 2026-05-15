@@ -116,6 +116,7 @@ export default defineConfig({
             { label: 'reminder', slug: 'cli/reminder' },
             { label: 'skill', slug: 'cli/skill' },
             { label: 'secrets', slug: 'cli/secrets' },
+            { label: 'approvals', slug: 'cli/approvals' },
           ],
         },
         {

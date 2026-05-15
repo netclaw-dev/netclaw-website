@@ -203,6 +203,18 @@
     "comparisons/hermes-agent": {
       "hash": "5bef9970a046b26bf11550a893fded19988c2a48e31c3b716850cfe782729158",
       "imageUrl": "https://hcti.io/v1/image/7fd6d42356b5a610dc77c71477c445684b5a18212ff7df0125ae88ee5ddb1f09"
+    },
+    "guides/llama-cpp-troubleshooting": {
+      "hash": "cc42e55a55434d66725941295ec2bfa723847b362225d30efa72edce16debc55",
+      "imageUrl": "https://hcti.io/v1/image/d5f922bec1ef4d12c8ddcd859835ce68a12386ccf35447fc07685158bbc90d55"
+    },
+    "troubleshooting/llama-cpp": {
+      "hash": "93b59d2d0449d120f6e60608356091f5243f2b3a8aecf38f25ebf602aa2af2d2",
+      "imageUrl": "https://hcti.io/v1/image/652b775832fce1496edc7c248db6d25c8181c130f845fdc8d1c6964cc0f75f17"
+    },
+    "troubleshooting/vllm": {
+      "hash": "902c5043f1030978cb147b457d7c4eec867697ae15604deaa8a48b1f878565b0",
+      "imageUrl": "https://hcti.io/v1/image/d8e5c7cc00e321eb8f99fc8ba2f7b07ddb8333c30732d011ffaff50e0d07e5e9"
     }
   }
 }

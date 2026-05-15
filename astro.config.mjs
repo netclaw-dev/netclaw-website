@@ -134,6 +134,13 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Troubleshooting',
+          items: [
+            { label: 'llama.cpp', slug: 'troubleshooting/llama-cpp' },
+            { label: 'vLLM', slug: 'troubleshooting/vllm' },
+          ],
+        },
+        {
           label: 'Comparisons',
           items: [
             { label: 'vs. OpenClaw', slug: 'comparisons/openclaw' },

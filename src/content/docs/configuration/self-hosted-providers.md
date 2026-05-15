@@ -231,6 +231,7 @@ Self-hosted entries show `✓` when reachable with models discovered, or `⚠` w
 - Changing providers requires a daemon restart.
 - Tool calling quality varies between models. Qwen3 30B+ and Llama 3.1 70B+ handle it well; smaller models often choke on complex tool schemas.
 - The openai-compatible provider sends standard OpenAI tool-calling format. Servers that don't implement tool calling will fall back to structured prompting.
+- llama.cpp requires `--jinja` for Qwen3 and other reasoning models — without it, raw XML leaks into chat. See [llama.cpp Troubleshooting](/troubleshooting/llama-cpp/).
 
 ## See Also
 

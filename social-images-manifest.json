@@ -219,6 +219,10 @@
     "cli/approvals": {
       "hash": "0e65e1158ee4534375f57357ceb31969aaa4368e5c0ddf26b904241494da4983",
       "imageUrl": "https://hcti.io/v1/image/198015467abee5e9e87c72a0247548834f0ad112df244447f7c2506fa74272ea"
+    },
+    "guides/scripting-sessions": {
+      "hash": "f1b6abc19df5cc11daca0c7301e46bf4def13c9e71754161bf8a09ffba29d9bb",
+      "imageUrl": "https://hcti.io/v1/image/247a22723ef1458ef06052128d19309e01a88bd31e4b8637c26393f4a12edc48"
     }
   }
 }

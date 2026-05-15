@@ -132,6 +132,7 @@ export default defineConfig({
           items: [
             { label: 'MCP Tool Permissions', slug: 'guides/mcp-tool-permissions' },
             { label: 'Pairing Remote Devices', slug: 'guides/pairing-remote-devices' },
+            { label: 'Scripting Headless Sessions', slug: 'guides/scripting-sessions' },
           ],
         },
         {

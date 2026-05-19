@@ -148,70 +148,27 @@ netclaw daemon stop && netclaw daemon start
 
 In `reverse-proxy` mode, daemon-host CLI access is no longer "loopback means trusted." Local control-plane requests may still work, but they do so through explicit paired-device auth when the exposure mode requires it.
 
-## Slack Channel Restrictions
+## Channel Access Restrictions
 
-Out of the box, Slack uses `MentionOnly: true` (netclaw only responds when @mentioned) and `AllowDirectMessages: false`. Lock down channel and user access on top of that.
+Every chat channel gates who can reach netclaw through the same four controls:
 
-### Channel Allowlist
+- **Channel allowlist** -- which channels netclaw answers in. No allowlist and no default channel denies all channel traffic.
+- **User allowlist** -- which users get a response. Empty accepts everyone in the allowed channels.
+- **Direct messages** -- off by default. Enable them only alongside a user allowlist.
+- **Per-channel audiences** -- override the [trust audience](/security/security-model/#trust-audiences) for a single channel, or for DMs.
 
-With no channel allowlist and no default channel set, netclaw denies all channel traffic. Explicitly list the channels it should respond in:
+Defaults are restrictive everywhere: `MentionOnly: true`, `AllowDirectMessages: false`, and empty allowlists. The config keys are identical across channels -- only the ID format and where you copy IDs from differ. Each channel page documents its own setup:
 
-```json
-{
-  "Slack": {
-    "AllowedChannelIds": ["C0123ABCDEF", "C0456GHIJKL"],
-    "MentionOnly": true
-  }
-}
-```
+<!-- Index: add a row when a new channel ships. -->
 
-To find a Slack channel ID: right-click the channel name in Slack, select "View channel details," and look at the bottom of the panel. Or see [Slack's guide to finding IDs](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID).
+| Channel | Access control reference |
+|---------|--------------------------|
+| Slack | [Slack access control](/channels/slack/#access-control) |
+| Discord | [Discord access control](/channels/discord/#access-control) |
 
-### User Allowlist
+Webhooks are the exception -- they have no channel or user allowlist. Inbound webhooks authenticate with HMAC signatures instead. See [`netclaw webhooks`](/cli/webhooks/).
 
-Restrict which users can invoke netclaw:
-
-```json
-{
-  "Slack": {
-    "AllowedUserIds": ["U0123ABCDEF", "U0456GHIJKL"]
-  }
-}
-```
-
-User IDs follow the same pattern — click a user's profile in Slack and find the ID under "More."
-
-### DMs and Per-Channel Audiences
-
-Keep DMs off unless you need them. If you enable DMs, restrict which users can DM:
-
-```json
-{
-  "Slack": {
-    "AllowDirectMessages": true,
-    "AllowedUserIds": ["U0123ABCDEF"]
-  }
-}
-```
-
-You can also override the [audience](/security/security-model/#trust-audiences) per channel. Useful if you want a specific Slack channel to get Personal-level tool access while everything else stays at Team:
-
-```json
-{
-  "Slack": {
-    "ChannelAudiences": {
-      "C0123ABCDEF": "personal",
-      "dm": "team"
-    }
-  }
-}
-```
-
-The `"dm"` key is reserved. It maps all direct messages to the specified audience.
-
-Invalid audience values in `ChannelAudiences` result in a deny (fail-closed).
-
-[`netclaw doctor`](/cli/doctor/) warns if Slack is enabled with no channel allowlist and no default channel configured, or if DMs are enabled without an `AllowedUserIds` list.
+[`netclaw doctor`](/cli/doctor/) runs a `Slack ACL` check that flags Slack enabled with no channel allowlist and no default channel, or DMs enabled without a user allowlist.
 
 ## Approval Gates
 
@@ -327,4 +284,3 @@ netclaw doctor --format json | jq -e '.exitCode == 0'
 - [Tailscale ACLs](https://tailscale.com/kb/1018/acls/) -- network-level access control for `tailscale-serve` deployments
 - [Cloudflare Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) -- IdP-based access control for `cloudflare-tunnel` deployments
 - [GitHub webhook security](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks) -- best practices for HMAC verification and secret rotation
-- [Slack: Locate your URL or ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID) -- finding channel and user IDs for allowlist configuration

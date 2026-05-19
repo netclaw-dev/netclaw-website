@@ -229,6 +229,8 @@ Audience is resolved per-message: `Team` for DMs and channels in your allow-list
 }
 ```
 
+The `"dm"` key is reserved -- it matches every direct message rather than a channel ID. A channel-ID entry takes precedence over it. An unrecognized audience value is rejected outright: the message is denied rather than falling back to a default.
+
 [Security Model](/security/security-model/) has the full breakdown on how audiences map to tools and permissions.
 
 ## Behavior in Slack

@@ -60,9 +60,13 @@ Copy the generated URL at the bottom of the page.
 
 ![Generated OAuth2 URL](/screenshots/output/discord-setup-oauth-url.png)
 
-Open it in your browser. Discord shows an authorization dialog -- select your server and click **Authorize**.
+Open it in your browser. Discord asks which server to add the bot to -- pick yours and click **Continue**.
 
 ![OAuth install approval dialog](/screenshots/output/discord-setup-install-dialog.png)
+
+Discord then lists the permissions the bot is requesting. Confirm they match the set from step 4 and click **Authorize**.
+
+![Discord OAuth2 permissions confirmation with the Authorize button](/screenshots/output/discord-setup-authorize-dialog.png)
 
 The bot appears in your server's member list once the daemon is running.
 

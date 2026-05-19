@@ -82,3 +82,69 @@ import Pagination from 'virtual:starlight/components/Pagination';
     }
   }
 </style>
+
+<script>
+  // Click-to-zoom lightbox for documentation images. Styles live in custom.css.
+  function initLightbox() {
+    const images = document.querySelectorAll('.sl-markdown-content img');
+    if (!images.length) return;
+
+    let overlay = document.querySelector('.lightbox-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'lightbox-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', 'Image preview');
+      overlay.hidden = true;
+      overlay.innerHTML =
+        '<button class="lightbox-close" type="button" aria-label="Close image preview">&times;</button>' +
+        '<img class="lightbox-image" alt="" />';
+      document.body.appendChild(overlay);
+    }
+
+    const overlayImg = overlay.querySelector('.lightbox-image');
+    const closeBtn = overlay.querySelector('.lightbox-close');
+
+    function open(src, alt) {
+      overlayImg.src = src;
+      overlayImg.alt = alt || '';
+      overlay.hidden = false;
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => overlay.classList.add('is-open'));
+    }
+
+    function close() {
+      overlay.classList.remove('is-open');
+      document.body.style.overflow = '';
+      const done = (e) => {
+        if (e.target !== overlay) return;
+        overlay.hidden = true;
+        overlayImg.removeAttribute('src');
+        overlay.removeEventListener('transitionend', done);
+      };
+      overlay.addEventListener('transitionend', done);
+    }
+
+    images.forEach((img) => {
+      if (img.dataset.lightbox === 'ready') return; // already wired
+      if (img.closest('a')) return;                 // leave linked images alone
+      img.dataset.lightbox = 'ready';
+      img.classList.add('lightbox-trigger');
+      img.addEventListener('click', () => open(img.currentSrc || img.src, img.alt));
+    });
+
+    if (!overlay.dataset.bound) {
+      overlay.dataset.bound = 'true';
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay || e.target === closeBtn) close();
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !overlay.hidden) close();
+      });
+    }
+  }
+
+  initLightbox();
+  document.addEventListener('astro:page-load', initLightbox);
+</script>

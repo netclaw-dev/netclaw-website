@@ -41,13 +41,17 @@ Posture and audience are related but distinct. Posture is a deployment-wide sett
 
 Tools, filesystem access, and attachment policies differ by audience:
 
-| Audience | Tools | MCP Servers | Filesystem | Attachment Types |
-|----------|-------|-------------|------------|-----------------|
-| **Personal** | All | All | Unrestricted | Image, PDF, Document, Archive, Media, Other |
-| **Team** | `file_read`, `attach_file` | None | Session-scoped only | Image, PDF, Document, Archive, Media |
-| **Public** | `file_read`, `file_write`, `attach_file` | None | Session-scoped only | Images only |
+<!-- TODO: Public grants `file_write` while Team doesn't — tracked in netclaw-dev/netclaw#1084. If that issue removes `file_write` from the Public profile, update the Public row below and rewrite the "looks backwards" paragraph. -->
 
-Public having `file_write` while Team doesn't looks backwards — Public's `file_write` is restricted to the session-scoped temp directory (which is wiped on session end), so the blast radius is minimal. Team omits it because Team sessions are longer-lived and shared across users.
+| Audience | Tools | MCP Servers | Memory | Filesystem | Attachment Types |
+|----------|-------|-------------|--------|------------|-----------------|
+| **Personal** | All | All | Full | Unrestricted | Image, PDF, Document, Archive, Media, Other |
+| **Team** | `file_read`, `attach_file` | None | Full | Session-scoped only | Image, PDF, Document, Archive, Media |
+| **Public** | `file_read`, `file_write`, `attach_file` | None | Disabled | Session-scoped only | Images only |
+
+Public having `file_write` while Team doesn't looks backwards, but the tool grant isn't the real boundary — filesystem scope is. Both audiences confine every read and write to a session-scoped temp directory that's wiped on session end. Granting `file_write` only changes how the agent edits files inside that sandbox; it can't widen what the agent reaches. The split is a per-audience default in `netclaw.json` — adjust each audience's `AllowedTools` list if it doesn't suit your deployment.
+
+Memory is hard-disabled for Public — not just defaulted off. Public sessions get no automatic recall before a turn, write no new memories after one, and never see the memory tools, so they can't pull in cross-session context or leave anything behind. Team and Personal get the full memory subsystem. See [Memory Model](/architecture/memory-model/#audience-scoping) for how stored memories carry audience and boundary context.
 
 MCP server permissions are managed separately per audience through [`netclaw mcp permissions`](/cli/mcp-tools/). New MCP servers start with zero tool grants for all audiences — you must explicitly enable them.
 

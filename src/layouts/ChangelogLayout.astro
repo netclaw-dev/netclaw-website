@@ -1,0 +1,413 @@
+---
+import ChangelogSidebar from '../components/ChangelogSidebar.astro';
+import SiteNav from '../components/SiteNav.astro';
+import { formatDate, REPO_URL, REPO } from '../lib/releases.js';
+
+interface Release {
+  tag: string;
+  name: string | null;
+  url: string;
+  date: string;
+  prerelease: boolean;
+  bodyHtml: string;
+}
+
+interface Props {
+  release: Release | null;
+  releases: Release[];
+  fetchError: string | null;
+  pageTitle: string;
+  pageDescription: string;
+  canonicalUrl?: string;
+}
+
+const { release, releases, fetchError, pageTitle, pageDescription, canonicalUrl } =
+  Astro.props;
+
+const currentTag = release?.tag;
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NY61NRBJ68"></script>
+  <script is:inline>window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-NY61NRBJ68');</script>
+
+  <title>{pageTitle}</title>
+  <meta name="description" content={pageDescription}>
+  <meta name="theme-color" content="#512BD4">
+
+  {canonicalUrl && <link rel="canonical" href={canonicalUrl}>}
+
+  <meta property="og:title" content={pageTitle}>
+  <meta property="og:description" content={pageDescription}>
+  <meta property="og:type" content="article">
+  {canonicalUrl && <meta property="og:url" content={canonicalUrl}>}
+  <meta property="og:site_name" content="Netclaw">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@petabridge">
+  <meta name="twitter:title" content={pageTitle}>
+  <meta name="twitter:description" content={pageDescription}>
+
+  <link rel="icon" href="/assets/favicons/favicon.ico" sizes="any">
+  <link rel="icon" href="/assets/favicons/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="/assets/favicons/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+
+  <style is:inline>
+    :root {
+      --purple: #512BD4;
+      --purple-hover: #6d3fe8;
+      --purple-soft: rgba(81, 43, 212, 0.15);
+      --ink: #0f1117;
+      --dark: #1a1a2e;
+      --paper: #ffffff;
+      --mute: #8a8fa3;
+      --mute-light: #c2c5cf;
+      --teal: #00d4aa;
+      --teal-dim: rgba(0, 212, 170, 0.15);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+    body {
+      font-family: 'Space Grotesk', -apple-system, system-ui, sans-serif;
+      color: var(--paper);
+      background: var(--ink);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .skip-link {
+      position: absolute;
+      top: -100px; left: 16px;
+      background: var(--purple);
+      color: var(--paper);
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 200;
+      transition: top 0.15s;
+    }
+    .skip-link:focus { top: 8px; }
+    :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+    /* ---- HEADER ---- */
+    .changelog-header {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 64px 32px 24px;
+    }
+    .changelog-header .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--teal-dim);
+      border: 1px solid rgba(0, 212, 170, 0.3);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      color: var(--teal);
+      margin-bottom: 18px;
+      text-decoration: none;
+    }
+    .changelog-header .eyebrow:hover { background: rgba(0, 212, 170, 0.22); }
+    .changelog-header h1 {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+    .changelog-header .lede {
+      color: var(--mute-light);
+      font-size: 1.02rem;
+      max-width: 640px;
+    }
+    .changelog-header .lede a { color: var(--teal); text-decoration: none; }
+    .changelog-header .lede a:hover { text-decoration: underline; }
+
+    /* ---- TWO-COLUMN LAYOUT ---- */
+    .changelog-layout {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 12px 32px 100px;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 48px;
+      align-items: start;
+    }
+    @media (max-width: 900px) {
+      .changelog-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 12px 20px 60px;
+      }
+    }
+
+    /* ---- TIMELINE (right column) ---- */
+    .timeline { min-width: 0; }
+
+    .release {
+      padding: 28px 32px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .release-header {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 6px;
+    }
+    .release-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: var(--paper);
+      letter-spacing: -0.01em;
+    }
+    .release-tag a { color: inherit; text-decoration: none; }
+    .release-tag a:hover { color: var(--teal); }
+    .release-prerelease {
+      display: inline-block;
+      padding: 2px 10px;
+      background: var(--purple-soft);
+      border: 1px solid rgba(81, 43, 212, 0.4);
+      border-radius: 100px;
+      color: #b29bff;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .release-date {
+      color: var(--mute);
+      font-size: 0.9rem;
+      margin-left: auto;
+    }
+    .release-name {
+      color: var(--mute-light);
+      font-size: 1rem;
+      margin-bottom: 18px;
+    }
+
+    /* ---- RELEASE BODY (rendered markdown) ---- */
+    .release-body { color: var(--mute-light); font-size: 0.95rem; line-height: 1.7; }
+    .release-body > :first-child { margin-top: 0; }
+    .release-body > :last-child { margin-bottom: 0; }
+    .release-body h1, .release-body h2, .release-body h3, .release-body h4 {
+      color: var(--paper);
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 22px 0 10px;
+      line-height: 1.3;
+    }
+    .release-body h1 { font-size: 1.3rem; }
+    .release-body h2 { font-size: 1.18rem; }
+    .release-body h3 { font-size: 1.05rem; }
+    .release-body h4 { font-size: 0.98rem; }
+    .release-body p { margin-bottom: 12px; }
+    .release-body ul, .release-body ol { margin: 4px 0 14px 24px; }
+    .release-body li { margin-bottom: 4px; }
+    .release-body li > p { margin-bottom: 4px; }
+    .release-body a { color: var(--teal); text-decoration: none; }
+    .release-body a:hover { text-decoration: underline; }
+    .release-body code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85em;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 1px 6px;
+      border-radius: 4px;
+      color: var(--paper);
+    }
+    .release-body pre {
+      background: #0d0d14;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+    .release-body pre code { background: none; border: none; padding: 0; color: var(--paper); }
+    .release-body blockquote {
+      border-left: 3px solid var(--purple);
+      padding: 4px 16px;
+      margin: 12px 0;
+      color: var(--mute-light);
+      font-style: italic;
+      background: rgba(81, 43, 212, 0.06);
+      border-radius: 0 6px 6px 0;
+    }
+    .release-body hr {
+      border: none;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      margin: 20px 0;
+    }
+    .release-body img { max-width: 100%; border-radius: 8px; margin: 8px 0; }
+    .release-body table {
+      border-collapse: collapse;
+      margin: 12px 0;
+      width: 100%;
+      font-size: 0.9rem;
+    }
+    .release-body th, .release-body td {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .release-body th { background: rgba(255, 255, 255, 0.04); font-weight: 600; color: var(--paper); }
+
+    /* ---- BOTTOM NAV (prev/next release) ---- */
+    .release-pager {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .release-pager a {
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      color: var(--mute-light);
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .release-pager a:hover {
+      border-color: rgba(81, 43, 212, 0.4);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--paper);
+    }
+    .release-pager .pager-label {
+      font-size: 0.72rem;
+      color: var(--mute);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .release-pager .pager-version {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+      color: var(--paper);
+    }
+    .release-pager .pager-next {
+      text-align: right;
+      grid-column: 2;
+    }
+    .release-pager .pager-prev { grid-column: 1; }
+    @media (max-width: 600px) {
+      .release-pager { grid-template-columns: 1fr; }
+      .release-pager .pager-next, .release-pager .pager-prev { grid-column: 1; text-align: left; }
+    }
+
+    .empty, .error {
+      padding: 24px 32px;
+      border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 12px;
+      color: var(--mute-light);
+      text-align: center;
+    }
+    .error a { color: var(--teal); text-decoration: none; }
+    .error a:hover { text-decoration: underline; }
+
+    /* ---- FOOTER ---- */
+    .footer {
+      background: var(--ink);
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 32px;
+    }
+    .footer-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--mute);
+      font-size: 0.86rem;
+    }
+    .footer a { color: var(--mute-light); text-decoration: none; }
+    .footer a:hover { color: var(--paper); }
+
+    @media (max-width: 720px) {
+      .changelog-header { padding: 48px 20px 16px; }
+      .changelog-header h1 { font-size: 1.9rem; }
+      .release { padding: 22px 18px; }
+      .release-tag { font-size: 1.3rem; }
+      .release-date { margin-left: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to content</a>
+
+  <SiteNav currentPage="changelog" />
+
+  <header class="changelog-header">
+    <a class="eyebrow" href={`${REPO_URL}/releases`} target="_blank" rel="noopener">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/></svg>
+      Pulled from GitHub Releases
+    </a>
+    <h1 id="main-content">Changelog</h1>
+    <p class="lede">
+      Every release of <a href={REPO_URL} target="_blank" rel="noopener">{REPO}</a>. Pick a version from the sidebar — this page rebuilds whenever a new release is published.
+    </p>
+  </header>
+
+  <div class="changelog-layout">
+    <ChangelogSidebar releases={releases} currentTag={currentTag} />
+
+    <main class="timeline" id="release-detail">
+      {fetchError && (
+        <div class="error">
+          <p>Couldn't load releases from GitHub during the last build.</p>
+          <p style="margin-top:8px"><a href={`${REPO_URL}/releases`} target="_blank" rel="noopener">View releases on GitHub →</a></p>
+        </div>
+      )}
+
+      {!fetchError && !release && (
+        <div class="empty">No releases published yet.</div>
+      )}
+
+      {release && (
+        <>
+          <article class="release">
+            <div class="release-header">
+              <h2 class="release-tag"><a href={release.url} target="_blank" rel="noopener">v{release.tag}</a></h2>
+              {release.prerelease && <span class="release-prerelease">Pre-release</span>}
+              <time class="release-date" datetime={release.date}>{formatDate(release.date)}</time>
+            </div>
+            {release.name && <p class="release-name">{release.name}</p>}
+            <div class="release-body" set:html={release.bodyHtml} />
+          </article>
+
+          <slot name="pager" />
+        </>
+      )}
+    </main>
+  </div>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div>&copy; 2026 <a href="https://petabridge.com" target="_blank" rel="noopener">Petabridge, LLC</a> &middot; <a href="https://github.com/netclaw-dev/netclaw/blob/main/LICENSE" target="_blank" rel="noopener">Apache 2.0</a></div>
+      <div><a href="/">netclaw.dev</a></div>
+    </div>
+  </footer>
+</body>
+</html>

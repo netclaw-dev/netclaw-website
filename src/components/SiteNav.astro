@@ -1,0 +1,197 @@
+---
+// Shared top-level navbar for netclaw.dev. Used by the landing page and the
+// changelog. The Starlight docs have their own top bar wired via
+// astro.config.mjs (Starlight `logo`/`components` slots).
+
+interface Props {
+  currentPage?: 'home' | 'changelog';
+}
+const { currentPage } = Astro.props;
+const isCurrent = (p: string) => (currentPage === p ? 'page' : undefined);
+---
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <img class="nav-icon" src="/assets/netclaw-icon-purple.svg" alt="" aria-hidden="true">
+      <span>netclaw</span>
+    </a>
+    <a href="/getting-started/installation/" class="nav-search" id="search-btn">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Search docs
+    </a>
+    <ul class="nav-links">
+      <li><a href="/#features">Features</a></li>
+      <li><a href="/#get-started">Get Started</a></li>
+      <li><a href="/getting-started/installation/">Docs</a></li>
+      <li><a href="/changelog" aria-current={isCurrent('changelog')}>Changelog</a></li>
+      <li><a href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener">Discord</a></li>
+      <li><a href="https://github.com/netclaw-dev" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+    <button class="nav-hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <ul class="nav-mobile">
+    <li><a href="/getting-started/installation/">Search Docs</a></li>
+    <li><a href="/#features">Features</a></li>
+    <li><a href="/#get-started">Get Started</a></li>
+    <li><a href="/getting-started/installation/">Docs</a></li>
+    <li><a href="/changelog" aria-current={isCurrent('changelog')}>Changelog</a></li>
+    <li><a href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener">Discord</a></li>
+    <li><a href="https://github.com/netclaw-dev" target="_blank" rel="noopener">GitHub</a></li>
+  </ul>
+</nav>
+
+<script>
+  const hamburger = document.querySelector('.nav-hamburger');
+  const mobileNav = document.querySelector('.nav-mobile');
+  if (hamburger && mobileNav) {
+    hamburger.addEventListener('click', () => {
+      const open = hamburger.getAttribute('aria-expanded') === 'true';
+      hamburger.setAttribute('aria-expanded', String(!open));
+      mobileNav.classList.toggle('open');
+    });
+    mobileNav.querySelectorAll('a').forEach((a) => {
+      a.addEventListener('click', () => {
+        hamburger.setAttribute('aria-expanded', 'false');
+        mobileNav.classList.remove('open');
+      });
+    });
+  }
+</script>
+
+<style>
+  .nav {
+    background: #0f1117;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 32px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: #ffffff;
+  }
+  .nav-logo .nav-icon {
+    height: 36px;
+    width: 36px;
+    display: block;
+    flex-shrink: 0;
+    filter: brightness(1.4) saturate(0.9);
+  }
+  .nav-logo span {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 28px;
+    list-style: none;
+  }
+  .nav-links a {
+    color: #c2c5cf;
+    text-decoration: none;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: color 0.15s;
+  }
+  .nav-links a:hover { color: #ffffff; }
+  .nav-links a[aria-current="page"] { color: #00d4aa; }
+
+  .nav-hamburger {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    flex-direction: column;
+    gap: 5px;
+    color: #c2c5cf;
+  }
+  .nav-hamburger span {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: #c2c5cf;
+    border-radius: 2px;
+    transition: transform 0.2s, opacity 0.2s;
+  }
+  .nav-hamburger[aria-expanded="true"] span:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .nav-hamburger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .nav-hamburger[aria-expanded="true"] span:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  .nav-mobile {
+    display: none;
+    list-style: none;
+    background: rgba(15, 17, 23, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 16px 32px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .nav-mobile.open { display: block; }
+  .nav-mobile li { padding: 8px 0; }
+  .nav-mobile a {
+    color: #c2c5cf;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+  .nav-mobile a:hover { color: #ffffff; }
+  .nav-mobile a[aria-current="page"] { color: #00d4aa; }
+
+  .nav-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #8a8fa3;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .nav-search:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #c2c5cf;
+  }
+  .nav-search svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.6;
+  }
+
+  @media (max-width: 720px) {
+    .nav-links { display: none; }
+    .nav-search { display: none; }
+    .nav-hamburger { display: flex; }
+  }
+</style>

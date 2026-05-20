@@ -39,10 +39,7 @@ Scroll down on the Bot page to **Privileged Gateway Intents** and enable **Messa
 
 ### 4. Set up OAuth2 scopes and permissions
 
-Go to **OAuth2 > URL Generator**. Check these scopes:
-
-- `bot`
-- `applications.commands`
+Go to **OAuth2 > URL Generator**. Check the `bot` scope.
 
 ![OAuth2 scopes selection](/screenshots/output/discord-setup-oauth-scopes.png)
 

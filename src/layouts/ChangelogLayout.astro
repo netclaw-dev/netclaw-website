@@ -1,7 +1,8 @@
 ---
 import ChangelogSidebar from '../components/ChangelogSidebar.astro';
+import ReleasePager from '../components/ReleasePager.astro';
 import SiteNav from '../components/SiteNav.astro';
-import { formatDate, REPO_URL, REPO } from '../lib/releases.js';
+import { formatDate, getReleases, REPO_URL, REPO } from '../lib/releases.js';
 
 interface Release {
   tag: string;
@@ -14,17 +15,23 @@ interface Release {
 
 interface Props {
   release: Release | null;
-  releases: Release[];
-  fetchError: string | null;
   pageTitle: string;
   pageDescription: string;
   canonicalUrl?: string;
 }
 
-const { release, releases, fetchError, pageTitle, pageDescription, canonicalUrl } =
-  Astro.props;
+const { release, pageTitle, pageDescription, canonicalUrl } = Astro.props;
+
+// Releases helper is module-cached, so calling it from the layout costs
+// nothing beyond the one fetch the build already pays for.
+const { releases, error: fetchError } = await getReleases();
 
 const currentTag = release?.tag;
+
+// releases is newest-first, so a smaller index is a newer release.
+const currentIndex = release ? releases.findIndex((r) => r.tag === release.tag) : -1;
+const newer = currentIndex > 0 ? releases[currentIndex - 1] : null;
+const older = currentIndex >= 0 ? releases[currentIndex + 1] || null : null;
 ---
 <!doctype html>
 <html lang="en">
@@ -270,51 +277,6 @@ const currentTag = release?.tag;
     }
     .release-body th { background: rgba(255, 255, 255, 0.04); font-weight: 600; color: var(--paper); }
 
-    /* ---- BOTTOM NAV (prev/next release) ---- */
-    .release-pager {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 28px;
-    }
-    .release-pager a {
-      padding: 14px 18px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      color: var(--mute-light);
-      text-decoration: none;
-      transition: border-color 0.2s, background 0.2s, color 0.2s;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      background: rgba(255, 255, 255, 0.02);
-    }
-    .release-pager a:hover {
-      border-color: rgba(81, 43, 212, 0.4);
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--paper);
-    }
-    .release-pager .pager-label {
-      font-size: 0.72rem;
-      color: var(--mute);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .release-pager .pager-version {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 600;
-      color: var(--paper);
-    }
-    .release-pager .pager-next {
-      text-align: right;
-      grid-column: 2;
-    }
-    .release-pager .pager-prev { grid-column: 1; }
-    @media (max-width: 600px) {
-      .release-pager { grid-template-columns: 1fr; }
-      .release-pager .pager-next, .release-pager .pager-prev { grid-column: 1; text-align: left; }
-    }
-
     .empty, .error {
       padding: 24px 32px;
       border: 1px dashed rgba(255, 255, 255, 0.15);
@@ -397,7 +359,7 @@ const currentTag = release?.tag;
             <div class="release-body" set:html={release.bodyHtml} />
           </article>
 
-          <slot name="pager" />
+          <ReleasePager older={older} newer={newer} />
         </>
       )}
     </main>

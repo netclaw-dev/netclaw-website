@@ -4,46 +4,20 @@ import { getReleases } from '../../lib/releases.js';
 
 export async function getStaticPaths() {
   const { releases } = await getReleases();
-  return releases.map((r, i) => ({
+  return releases.map((r) => ({
     params: { tag: r.tag },
-    props: {
-      release: r,
-      releases,
-      // releases is newest-first, so a smaller index is a newer release.
-      newer: releases[i - 1] || null,
-      older: releases[i + 1] || null,
-    },
+    props: { release: r },
   }));
 }
 
-const { release, releases, newer, older } = Astro.props;
+const { release } = Astro.props;
 const canonical = `https://netclaw.dev/changelog/${release.tag}`;
-const headline = release.name && release.name !== release.rawTag
-  ? ` — ${release.name}`
-  : '';
+// release.name is non-null only when it differs from the tag (filtered in releases.js).
+const headline = release.name ? ` — ${release.name}` : '';
 ---
 <ChangelogLayout
   release={release}
-  releases={releases}
-  fetchError={null}
   pageTitle={`v${release.tag} — Netclaw Changelog`}
   pageDescription={`Release notes for Netclaw v${release.tag}${headline}.`}
   canonicalUrl={canonical}
->
-  <nav slot="pager" class="release-pager" aria-label="Adjacent releases">
-    {older ? (
-      <a class="pager-prev" href={`/changelog/${older.tag}`}>
-        <span class="pager-label">← Older release</span>
-        <span class="pager-version">v{older.tag}</span>
-      </a>
-    ) : (
-      <span />
-    )}
-    {newer && (
-      <a class="pager-next" href={`/changelog/${newer.tag}`}>
-        <span class="pager-label">Newer release →</span>
-        <span class="pager-version">v{newer.tag}</span>
-      </a>
-    )}
-  </nav>
-</ChangelogLayout>
+/>

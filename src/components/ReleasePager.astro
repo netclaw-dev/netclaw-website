@@ -1,0 +1,78 @@
+---
+interface PagerEntry {
+  tag: string;
+}
+
+interface Props {
+  older?: PagerEntry | null;
+  newer?: PagerEntry | null;
+}
+
+const { older, newer } = Astro.props;
+---
+
+{(older || newer) && (
+  <nav class="release-pager" aria-label="Adjacent releases">
+    {older && (
+      <a class="pager-prev" href={`/changelog/${older.tag}`}>
+        <span class="pager-label">← Older release</span>
+        <span class="pager-version">v{older.tag}</span>
+      </a>
+    )}
+    {newer && (
+      <a class="pager-next" href={`/changelog/${newer.tag}`}>
+        <span class="pager-label">Newer release →</span>
+        <span class="pager-version">v{newer.tag}</span>
+      </a>
+    )}
+  </nav>
+)}
+
+<style>
+  .release-pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 28px;
+  }
+  .release-pager a {
+    padding: 14px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: #c2c5cf;
+    text-decoration: none;
+    transition: border-color 0.2s, background 0.2s, color 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .release-pager a:hover {
+    border-color: rgba(81, 43, 212, 0.4);
+    background: rgba(255, 255, 255, 0.04);
+    color: #ffffff;
+  }
+  .pager-label {
+    font-size: 0.72rem;
+    color: #8a8fa3;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .pager-version {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: #ffffff;
+  }
+  .pager-prev { grid-column: 1; }
+  .pager-next {
+    grid-column: 2;
+    text-align: right;
+  }
+  @media (max-width: 600px) {
+    .release-pager { grid-template-columns: 1fr; }
+    .pager-next, .pager-prev {
+      grid-column: 1;
+      text-align: left;
+    }
+  }
+</style>

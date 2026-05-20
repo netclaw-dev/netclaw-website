@@ -2,7 +2,7 @@
 import ChangelogLayout from '../layouts/ChangelogLayout.astro';
 import { getReleases } from '../lib/releases.js';
 
-const { releases, error } = await getReleases();
+const { releases } = await getReleases();
 const latest = releases[0] || null;
 
 // /changelog always renders the latest release. The canonical URL points at
@@ -13,23 +13,10 @@ const canonical = latest ? `https://netclaw.dev/changelog/${latest.tag}` : undef
 const description = latest
   ? `Release notes for Netclaw v${latest.tag} and every previous version.`
   : 'Release notes and version history for Netclaw.';
-
-const previous = releases[1] || null;
 ---
 <ChangelogLayout
   release={latest}
-  releases={releases}
-  fetchError={error}
   pageTitle="Changelog — Netclaw"
   pageDescription={description}
   canonicalUrl={canonical}
->
-  {previous && (
-    <nav slot="pager" class="release-pager" aria-label="Older releases">
-      <a class="pager-next" href={`/changelog/${previous.tag}`}>
-        <span class="pager-label">Previous release →</span>
-        <span class="pager-version">v{previous.tag}</span>
-      </a>
-    </nav>
-  )}
-</ChangelogLayout>
+/>

@@ -1,7 +1,5 @@
-// Shared helper for fetching netclaw GitHub releases at build time.
-// Both `src/pages/changelog.astro` and `src/pages/changelog/[tag].astro`
-// import from here, and the module-level cache makes sure we only hit
-// the GitHub API once per build.
+// Build-time helper for fetching netclaw GitHub releases. Module-level cache
+// keeps the API hit to once per build regardless of how many routes consume it.
 
 import { marked } from 'marked';
 
@@ -52,15 +50,19 @@ export async function getReleases() {
   return _cache;
 }
 
+// UTC-locked so a build that happens in a non-UTC timezone (e.g. local dev)
+// renders the same date as a Cloudflare Pages build (which is always UTC).
 export const formatDate = (iso) =>
   new Date(iso).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
+    timeZone: 'UTC',
   });
 
 export const shortDate = (iso) =>
   new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
+    timeZone: 'UTC',
   });

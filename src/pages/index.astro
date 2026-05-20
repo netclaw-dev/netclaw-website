@@ -242,6 +242,60 @@ import SiteNav from '../components/SiteNav.astro';
       text-decoration: underline;
     }
 
+    /* ---- LIVE STAT PILLS ---- */
+
+    .hero-stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      min-height: 34px;
+    }
+
+    .community-stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: -24px 0 40px;
+      min-height: 34px;
+    }
+
+    .stat-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 100px;
+      padding: 7px 16px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--mute-light);
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+    }
+
+    .stat-pill[hidden] { display: none; }
+
+    .stat-pill:hover {
+      border-color: rgba(81, 43, 212, 0.45);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--paper);
+    }
+
+    .stat-pill svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
+
+    .stat-pill .stat-value {
+      color: var(--teal);
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
     /* ---- TERMINAL (HERO) ---- */
 
     .hero-terminal-wrapper {
@@ -1348,6 +1402,18 @@ import SiteNav from '../components/SiteNav.astro';
             View on GitHub
           </a>
         </div>
+        <div class="hero-stats" aria-live="polite">
+          <a class="stat-pill" href="https://github.com/netclaw-dev/netclaw/releases/latest" target="_blank" rel="noopener" data-stat="release" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <span class="stat-label">Latest release</span>
+            <span class="stat-value" data-release>&mdash;</span>
+          </a>
+          <a class="stat-pill" href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener" data-stat="discord" hidden>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+            <span class="stat-value" data-discord-count>&mdash;</span>
+            <span class="stat-label">in Discord</span>
+          </a>
+        </div>
         <p class="social-proof">Built by the team behind <a href="https://getakka.net" target="_blank" rel="noopener">Akka.NET</a></p>
       </div>
 
@@ -1704,6 +1770,18 @@ import SiteNav from '../components/SiteNav.astro';
   <section class="community">
     <div class="community-inner">
       <h2>Join the community</h2>
+      <div class="community-stats" aria-live="polite">
+        <a class="stat-pill" href="https://github.com/netclaw-dev/netclaw/releases/latest" target="_blank" rel="noopener" data-stat="release" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+          <span class="stat-label">Latest release</span>
+          <span class="stat-value" data-release>&mdash;</span>
+        </a>
+        <a class="stat-pill" href="https://discord.gg/ayqrChDtNs" target="_blank" rel="noopener" data-stat="discord" hidden>
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+          <span class="stat-value" data-discord-count>&mdash;</span>
+          <span class="stat-label">members in Discord</span>
+        </a>
+      </div>
       <div class="social-tiles">
         <a href="https://discord.gg/ayqrChDtNs" class="social-tile" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
@@ -1809,6 +1887,37 @@ import SiteNav from '../components/SiteNav.astro';
       el.classList.add('reveal');
       observer.observe(el);
     });
+
+    // --- Live stats: latest release + Discord member count ---
+    (function () {
+      function fillStat(attr, value) {
+        document.querySelectorAll('[' + attr + ']').forEach(function (el) {
+          el.textContent = value;
+          const pill = el.closest('.stat-pill');
+          if (pill) pill.hidden = false;
+        });
+      }
+
+      fetch('https://api.github.com/repos/netclaw-dev/netclaw/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' }
+      })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => {
+          if (d && d.tag_name) {
+            fillStat('data-release', 'v' + d.tag_name.replace(/^v/i, ''));
+          }
+        })
+        .catch(() => { /* leave release pill hidden */ });
+
+      fetch('https://discord.com/api/v9/invites/ayqrChDtNs?with_counts=true')
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(d => {
+          if (d && typeof d.approximate_member_count === 'number') {
+            fillStat('data-discord-count', d.approximate_member_count.toLocaleString());
+          }
+        })
+        .catch(() => { /* leave Discord pill hidden */ });
+    })();
   </script>
 
 </body>

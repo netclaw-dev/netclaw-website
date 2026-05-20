@@ -17,6 +17,7 @@
     "sharp": "^0.34.0"
   },
   "devDependencies": {
+    "marked": "^18.0.4",
     "playwright": "^1.59.1"
   }
 }

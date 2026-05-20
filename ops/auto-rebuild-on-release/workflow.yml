@@ -1,0 +1,29 @@
+# Copy this file to `.github/workflows/website-rebuild.yml` in the
+# netclaw-dev/netclaw repository. See README.md for setup steps.
+name: Trigger netclaw.dev rebuild
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Cloudflare Pages deploy hook
+        env:
+          HOOK: ${{ secrets.WEBSITE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::error::WEBSITE_DEPLOY_HOOK secret is not set on this repository." >&2
+            exit 1
+          fi
+          status=$(curl -sS -X POST -w "%{http_code}" -o /tmp/cf-body "$HOOK")
+          echo "Cloudflare Pages deploy hook responded: HTTP $status"
+          cat /tmp/cf-body || true
+          echo
+          if [ "$status" != "200" ]; then
+            echo "::error::Deploy hook returned non-200 status." >&2
+            exit 1
+          fi

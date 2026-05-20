@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - dev
+  # Manual rebuild via the Actions tab "Run workflow" button, and the trigger
+  # used by netclaw-dev/netclaw's release workflow to refresh /changelog.
+  workflow_dispatch:
 
 jobs:
   deploy:

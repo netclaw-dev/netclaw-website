@@ -81,7 +81,7 @@ netclaw daemon stop && netclaw daemon start
 
 Daemon start hangs, then Discord shows `disconnected`. Logs show a 30-second timeout waiting for the gateway READY event.
 
-The bot token may be valid but the bot hasn't been invited to any server, so Discord has nothing to initialize. Verify the bot has been added to your server with the correct OAuth2 scopes. Use Discord's [URL Generator](https://discord.com/developers/docs/topics/oauth2#bot-authorization-flow) to create an invite link with `bot` and `applications.commands` scopes.
+The bot token may be valid but the bot hasn't been invited to any server, so Discord has nothing to initialize. Verify the bot has been added to your server. Use Discord's [URL Generator](https://discord.com/developers/docs/topics/oauth2#bot-authorization-flow) to create an invite link with the `bot` scope.
 
 ## ACL and Permissions
 

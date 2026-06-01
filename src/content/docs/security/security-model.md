@@ -202,6 +202,77 @@ When in doubt, netclaw denies:
 
 There is no permissive mode — access must be explicitly granted.
 
+## Customizing Approval Gates (Personal)
+
+On the Personal audience, most tools auto-approve out of the box. Two things always prompt, regardless of config:
+
+- `shell_execute` — every shell command
+- `file_write` / `file_edit` targeting netclaw's own config directory (`~/.netclaw/config`) — the *control plane*
+
+These are fail-closed on Personal: the gate ignores your default mode and forces a prompt unless you explicitly opt the tool into `Auto`. Everything else on Personal is auto-approved by default.
+
+You tune this per-audience under `Tools.AudienceProfiles.<audience>.ApprovalPolicy` in `~/.netclaw/config/netclaw.json`. Each tool resolves to one of three modes:
+
+| Mode | Behavior |
+|------|----------|
+| `Auto` | Runs immediately, no prompt |
+| `Approval` | Prompts the operator before each run (the [Layer 4](#approval-gates) gate) |
+| `Deny` | Always blocked — same as not granting the tool |
+
+### Stop shell from prompting
+
+Set an explicit override for `shell_execute`:
+
+```json
+{
+  "Tools": {
+    "AudienceProfiles": {
+      "Personal": {
+        "ApprovalPolicy": {
+          "ToolOverrides": {
+            "shell_execute": "Auto"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Then restart the daemon:
+
+```bash
+netclaw daemon stop && netclaw daemon start
+```
+
+:::caution
+Two non-obvious traps, because shell is fail-closed:
+
+- **`DefaultMode: "Auto"` won't do it.** `DefaultMode` is already the default, and the fail-closed check runs *before* it — so shell keeps prompting. You need the explicit `shell_execute` entry in `ToolOverrides`.
+- **Deleting the entry won't do it either.** Removing `shell_execute` drops it back to the fail-closed default, which is a prompt. To silence shell you have to set it to `Auto`, not remove it.
+:::
+
+The same applies to control-plane writes — opt them in with `"file_write:control-plane": "Auto"` (and `"file_edit:control-plane"`). Think hard before you do: that lets the agent rewrite netclaw's own config without asking.
+
+### Precedence
+
+A tool's mode is resolved in this order, first match wins:
+
+1. Exact `ToolOverrides` entry (`shell_execute`, `file_write:control-plane`, or an MCP `server/tool` key)
+2. `McpServerDefaults` entry for an MCP tool's server
+3. Built-in fail-closed default — shell and control-plane writes on Personal
+4. `DefaultMode`
+
+### What this doesn't change
+
+Relaxing an approval gate only removes the confirmation prompt. The other layers still apply:
+
+- **Layer 1 hard-deny** still blocks `rm -rf /`, `sudo`, fork bombs, and the rest of the [operation hard-deny list](#layer-1-operation-hard-deny) — no override reaches it.
+- **Layer 3 tool grants** still decide which tools exist for each audience.
+- **Team and Public are untouched** — this is the Personal profile only.
+
+The tradeoff is real: with `shell_execute` on `Auto`, a [prompt-injected](#prompt-injection-detection) agent can run any non-hard-denied command without a human in the loop. The hard-deny list is your remaining backstop.
+
 ## Limitations
 
 - Prompt injection detection uses regex pattern matching, not semantic analysis — novel phrasings can evade it

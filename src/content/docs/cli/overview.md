@@ -122,7 +122,7 @@ Non-TUI commands silently check for updates on startup. TUI commands skip this â
 ## Version Output
 
 ```
-netclaw 0.16.2 (commit 5f3f0ee, built 2026-04-30T03:18:25Z)
+netclaw 0.22.1 (commit bc2170d, built 2026-06-01T12:38:11Z)
 ```
 
 ## Related

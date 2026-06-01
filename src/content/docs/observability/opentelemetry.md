@@ -53,11 +53,41 @@ Telemetry:Otlp:Endpoint must be an absolute URI.
 
 ## What gets exported
 
-The OTel resource service name is `netclawd` (hardcoded, not configurable).
+Every signal carries an OpenTelemetry resource identifying the service. The name defaults to `netclawd`, but it — and the rest of the `service.*` attributes — are yours to set; see [Service identity](#service-identity).
 
 Every log line the daemon produces goes to your collector, with full formatting and scope data (`IncludeFormattedMessage`, `IncludeScopes`, `ParseStateValues` all enabled). Two meters cover metrics: one for session-level token usage, one for per-channel message flow. Full reference below.
 
 Distributed tracing is off for now. The cross-actor model produces disconnected spans with no meaningful causality chain, so it's more noise than signal.
+
+## Service identity
+
+Service identity comes from the standard OpenTelemetry environment variables — netclaw keeps no identity config of its own. Set them however you launch the daemon:
+
+```bash
+export OTEL_SERVICE_NAME="netclaw-prod"
+export OTEL_RESOURCE_ATTRIBUTES="service.namespace=ops,service.instance.id=claw-prod-01"
+```
+
+Four attributes end up on every signal and on each [operational alert](/observability/operational-alerts/):
+
+| Attribute | Source | Default |
+|-----------|--------|---------|
+| `service.name` | `OTEL_SERVICE_NAME` or `OTEL_RESOURCE_ATTRIBUTES` | `netclawd` |
+| `service.version` | `OTEL_RESOURCE_ATTRIBUTES`, else the build | the running netclaw version |
+| `service.instance.id` | `OTEL_RESOURCE_ATTRIBUTES` | `{hostname}:{pid}` |
+| `service.namespace` | `OTEL_RESOURCE_ATTRIBUTES` | unset |
+
+netclaw logs the resolved identity once at startup, so you can confirm the env vars took effect:
+
+```
+OpenTelemetry service identity resolved: service.name=netclaw-prod, service.namespace=ops, service.instance.id=claw-prod-01, service.version=0.22.1
+```
+
+Give each instance a distinct name (or namespace / instance ID) when several report to the same collector or alert webhook — that's what lets you tell them apart.
+
+:::note
+The short-lived `Telemetry:ServiceName` property from 0.18.2 is gone. Since 0.19.0, service identity is sourced only from the OpenTelemetry environment variables above.
+:::
 
 ## Metrics reference
 

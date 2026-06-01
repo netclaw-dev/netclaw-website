@@ -260,9 +260,9 @@ When a tool call needs approval, netclaw posts a Block Kit prompt right in the t
 
 ![Tool approval prompt in Slack showing Approve once, Approve for this chat, Approve always, and Deny buttons](/assets/approval-prompt.png)
 
-Shows the tool name, the exact command, and four buttons. Only the user who triggered the request can approve. System-initiated tool calls (`VerifiedAutomation`) can be approved by anyone in the thread.
+Shows the tool name, the exact command, and the approval buttons. Only the user who triggered the request can approve. System-initiated tool calls (`VerifiedAutomation`) can be approved by anyone in the thread.
 
-Typing a letter in the thread works too: `A` = Approve once, `B` = Approve for this chat, `C` = Approve always, `D` = Deny.
+The full prompt offers five choices: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** -- "Always anywhere" is the broadest grant, so reach for it sparingly. A risky or compound command is pruned to just **Once** and **Deny**. Typing the option's letter in the thread works too (`A`--`E`, matching the order above).
 
 ### Proactive messaging
 

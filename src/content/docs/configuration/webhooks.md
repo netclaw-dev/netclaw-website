@@ -144,6 +144,8 @@ The `Audience` field controls which tool permissions the webhook session gets:
 
 Default is `Public`. Use this for anything internet-facing (GitHub, GitLab). Reserve `Personal` for internal services you fully control.
 
+A webhook session runs autonomously — there's no one in a thread to approve a tool call — so any tool that would otherwise prompt for approval is auto-denied. What *does* run is the audience's non-interactive tool surface: as of 0.22.0, that includes `shell_execute` and the file tools within the session's autonomous filesystem zone. Earlier builds blocked shell entirely in webhook contexts, so a webhook that needs to run a command requires 0.22.0 or later.
+
 ### Notification targets
 
 When `NotificationTarget` is set, the agent posts results to that channel. Only Slack is supported:

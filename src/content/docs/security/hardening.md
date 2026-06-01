@@ -33,10 +33,8 @@ Shell access is the biggest risk surface you can control. Three modes in `~/.net
 | Mode | Behavior |
 |------|----------|
 | `Off` | Shell completely disabled. No `shell_execute` tool available. |
-| `SandboxOnly` | Shell runs in a sandboxed environment. |
+| `SandboxOnly` | Reserved for a future sandboxed backend that doesn't ship in 0.22.1. Setting it **denies shell entirely** (tools fail with `shell_requires_sandbox_backend`), so today it behaves like `Off`. Use `Off` or `HostAllowed`. |
 | `HostAllowed` | Shell runs directly on the host. Approval gates are your only guardrail. |
-
-<!-- TODO: needs user input — SandboxOnly mode appears in config but the sandbox backend isn't implemented yet. What's the current behavior if someone sets SandboxOnly? Does it fall back to Off? -->
 
 Set the mode explicitly:
 
@@ -266,8 +264,7 @@ netclaw doctor --format json | jq -e '.exitCode == 0'
 - Prompt injection detection is regex-based. It catches known patterns (role resets, exfiltration attempts, invisible Unicode) but novel phrasings, Base64 encoding, synonym substitution, and non-English attacks can evade it. Treat it as a tripwire, not a firewall.
 - Tool grants are per-audience, not per-channel. `ChannelAudiences` overrides which audience a channel maps to, but you can't give one Slack channel different tools than another channel with the same audience.
 - Secret redaction catches `sk-*`, Slack tokens (`xox[baprs]-*`), `ghp_*`, AWS access keys (`AKIA*`), JWTs, PEM blocks, and common JSON key names. Custom secret formats won't be redacted. Use hard-deny path rules to block file access instead.
-- Approval gates only work on interactive channels. Headless mode, reminders, and webhooks auto-deny all gated tools. Design automation workflows with that in mind.
-<!-- TODO: needs user input — Are there plans for netclaw acl commands (validate, test, explain)? The CLI contract mentions them but they don't appear to be documented yet. -->
+- Approval gates only work on interactive channels. Headless mode, reminders, and webhooks auto-deny tools that would otherwise prompt for approval. Design automation workflows with that in mind.
 
 ## Related Pages
 

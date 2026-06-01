@@ -41,15 +41,13 @@ Posture and audience are related but distinct. Posture is a deployment-wide sett
 
 Tools, filesystem access, and attachment policies differ by audience:
 
-<!-- TODO: Public grants `file_write` while Team doesn't — tracked in netclaw-dev/netclaw#1084. If that issue removes `file_write` from the Public profile, update the Public row below and rewrite the "looks backwards" paragraph. -->
-
 | Audience | Tools | MCP Servers | Memory | Filesystem | Attachment Types |
 |----------|-------|-------------|--------|------------|-----------------|
 | **Personal** | All | All | Full | Unrestricted | Image, PDF, Document, Archive, Media, Other |
-| **Team** | `file_read`, `attach_file` | None | Full | Session-scoped only | Image, PDF, Document, Archive, Media |
-| **Public** | `file_read`, `file_write`, `attach_file` | None | Disabled | Session-scoped only | Images only |
+| **Team** | `file_read`, `file_list`, `file_write`, `file_edit`, `attach_file`, web search/fetch, skills, reminders, `set_working_directory` | None | Full | Session-scoped only | Image, PDF, Document, Archive, Media |
+| **Public** | `file_read`, `file_list`, `attach_file` | None | Disabled | Session-scoped only | Images only |
 
-Public having `file_write` while Team doesn't looks backwards, but the tool grant isn't the real boundary — filesystem scope is. Both audiences confine every read and write to a session-scoped temp directory that's wiped on session end. Granting `file_write` only changes how the agent edits files inside that sandbox; it can't widen what the agent reaches. The split is a per-audience default in `netclaw.json` — adjust each audience's `AllowedTools` list if it doesn't suit your deployment.
+Public is read-only — it reads, lists, and attaches files, but can't write, search the web, or manage skills. Team adds writes and edits, web search and fetch, skill management, and reminders. The two grants cascade, so everything Public can do, Team can too. Filesystem scope is the hard boundary underneath: Public and Team both confine every read and write to a session-scoped temp directory that's wiped on session end, so even a re-granted write tool can't widen what the agent reaches. Personal gets the full tool surface and unrestricted filesystem access. The split is a per-audience default in `netclaw.json` — adjust each audience's `AllowedTools` list if it doesn't suit your deployment.
 
 Memory is hard-disabled for Public — not just defaulted off. Public sessions get no automatic recall before a turn, write no new memories after one, and never see the memory tools, so they can't pull in cross-session context or leave anything behind. Team and Personal get the full memory subsystem. See [Memory Model](/architecture/memory-model/#audience-scoping) for how stored memories carry audience and boundary context.
 
@@ -115,13 +113,17 @@ MCP tool grants are configured separately per server and per audience through [`
 
 Tools that pass layers 1-3 hit the approval gate, which prompts the operator for confirmation:
 
-![Approval gate prompt in Slack showing Approve once, Approve for this chat, Approve always, and Deny options](/assets/approval-prompt.png)
+![Approval gate prompt in a Slack thread](/assets/approval-prompt.png)
 
 | Option | Behavior |
 |--------|----------|
-| Approve once | Valid for the current session only |
-| Approve always | Persisted to `~/.netclaw/config/tool-approvals.json` — manage with [`netclaw approvals`](/cli/approvals/) |
+| Once | Just this invocation |
+| This chat | The rest of the current session |
+| Always here | This command, rooted at the current directory — persisted to `~/.netclaw/config/tool-approvals.json` |
+| Always anywhere | This command, everywhere — a global grant persisted to the same file. The broadest option; use it sparingly. |
 | Deny | Blocks this invocation |
+
+The full prompt shows all five; a risky or compound command is pruned to just **Once** and **Deny**. Manage saved approvals with [`netclaw approvals`](/cli/approvals/).
 
 Approval timeouts work differently depending on the channel:
 

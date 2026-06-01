@@ -111,6 +111,12 @@ Every alert arrives as a JSON POST with this envelope:
   "timestamp": "2026-05-02T14:30:00Z",
   "source": "netclaw",
   "hostname": "claw-prod-01",
+  "service": {
+    "name": "netclaw-prod",
+    "namespace": "ops",
+    "instanceId": "claw-prod-01:12345",
+    "version": "0.22.1"
+  },
   "context": {
     "lastProvider": "anthropic",
     "errorCount": "5"
@@ -118,7 +124,7 @@ Every alert arrives as a JSON POST with this envelope:
 }
 ```
 
-The `context` object varies by alert type — it carries whatever extra detail is relevant to that event.
+The `service` object is the [service identity](/observability/opentelemetry/#service-identity) sourced from the OpenTelemetry environment variables. `instanceId` always has a value (it defaults to `{hostname}:{pid}`); `namespace` appears only when you set it. When several netclaw instances post to the same endpoint, that's how you tell which one fired. The `context` object varies by alert type, carrying whatever extra detail is relevant to that event.
 
 ### Slack Block Kit
 

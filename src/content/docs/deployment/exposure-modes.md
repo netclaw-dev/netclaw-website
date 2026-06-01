@@ -28,6 +28,10 @@ The `netclaw init` wizard covers this at step 9:
 
 Options marked with a warning triangle expose the daemon to the public internet. Tailscale Serve is the recommended remote mode: tailnet-only access, no public exposure.
 
+:::caution
+In every non-local mode (reverse proxy and the three tunnel modes), a loopback connection is **not** trusted as the local operator — the loopback peer is the proxy or tunnel forwarding remote traffic, not a same-host process. You must pair a device or authenticate remotely, even from the daemon's own host, and pairing codes can't be minted from a loopback connection. Only `local` mode auto-trusts loopback. (This closes the SEC-005 tunnel-loopback auth bypass.)
+:::
+
 ### Reverse Proxy
 
 ```json

@@ -221,9 +221,9 @@ Discord natively renders markdown -- bold, italic, code blocks, headers, lists, 
 
 ### Tool approval
 
-When a tool call needs approval, netclaw posts an interactive button prompt in the thread. The prompt shows the tool name, action, and pattern(s), with four buttons: **Approve once** (green), **Approve for this chat**, **Approve always**, and **Deny** (red). Only the user who triggered the request can approve.
+When a tool call needs approval, netclaw posts an interactive button prompt in the thread. The prompt shows the tool name, action, and pattern(s). The full set is five buttons: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** -- "Always anywhere" grants the command everywhere, so use it sparingly. A risky or compound command is pruned to just **Once** and **Deny**. Only the user who triggered the request can approve.
 
-If posting the button prompt fails, netclaw falls back to a text prompt where you reply with `A`, `B`, `C`, or `D`.
+If posting the button prompt fails, netclaw falls back to a text prompt where you reply with the option's letter (`A`--`E`, in the order above).
 
 After a decision, netclaw updates the original message in-place with a checkmark or denied icon.
 

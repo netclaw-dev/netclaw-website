@@ -7,6 +7,7 @@
     "build": "npm run copy-screenshots && node scripts/generate-social-images.mjs && astro build",
     "preview": "astro preview",
     "astro": "astro",
+    "check-version": "node scripts/check-docs-version.mjs",
     "copy-screenshots": "mkdir -p public/screenshots/output && rsync -a --delete screenshots/output/ public/screenshots/output/"
   },
   "dependencies": {

@@ -1,9 +1,9 @@
 ---
 title: "Channel Troubleshooting"
-description: "Diagnose and fix common Slack and Discord channel issues."
+description: "Diagnose and fix common Slack, Discord, and Mattermost channel issues."
 ---
 
-Netclaw not responding in Slack or Discord? Two commands will tell you what's wrong most of the time:
+Netclaw not responding in Slack, Discord, or Mattermost? Two commands will tell you what's wrong most of the time:
 
 ```bash
 netclaw status    # live connector health (requires running daemon)
@@ -24,7 +24,7 @@ Daemon logs live at `~/.netclaw/logs/`, or `journalctl -u netclaw` if you're run
 
 ![netclaw doctor running diagnostic checks including Slack Auth and Slack ACL](/screenshots/output/doctor.png)
 
-Doctor only checks Slack right now (Auth and ACL). For Discord, you're looking at `netclaw status` and daemon logs.
+Doctor only checks Slack right now (Auth and ACL). For Discord and Mattermost, you're looking at `netclaw status` and daemon logs.
 
 ## Authentication Errors
 
@@ -82,6 +82,19 @@ netclaw daemon stop && netclaw daemon start
 Daemon start hangs, then Discord shows `disconnected`. Logs show a 30-second timeout waiting for the gateway READY event.
 
 The bot token may be valid but the bot hasn't been invited to any server, so Discord has nothing to initialize. Verify the bot has been added to your server. Use Discord's [URL Generator](https://discord.com/developers/docs/topics/oauth2#bot-authorization-flow) to create an invite link with the `bot` scope.
+
+### Mattermost: Invalid Bot Token
+
+`netclaw status` shows Mattermost as `disconnected`. Daemon logs show `Mattermost rejected the bot token (HTTP 401)`.
+
+The bot's personal access token is wrong or was revoked. Re-issue it from the System Console (**Integrations > Bot Accounts**) and update the secret:
+
+```bash
+netclaw secrets set Mattermost.BotToken your-new-token
+netclaw daemon stop && netclaw daemon start
+```
+
+If startup logs say `Mattermost is enabled but Mattermost:ServerUrl is not configured` or `...no bot token is configured`, the corresponding field is missing from `netclaw.json`/`secrets.json`. See the [Mattermost setup guide](/channels/mattermost/).
 
 ## ACL and Permissions
 

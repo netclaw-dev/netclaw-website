@@ -1,0 +1,2 @@
+# Ephemeral bootstrap output (contains a demo bot token; never commit)
+.bootstrap.json

@@ -59,6 +59,7 @@ export default defineConfig({
           items: [
             { label: 'Slack', slug: 'channels/slack' },
             { label: 'Discord', slug: 'channels/discord' },
+            { label: 'Mattermost', slug: 'channels/mattermost' },
             { label: 'Troubleshooting', slug: 'channels/troubleshooting' },
           ],
         },

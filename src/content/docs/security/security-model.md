@@ -119,11 +119,11 @@ Tools that pass layers 1-3 hit the approval gate, which prompts the operator for
 |--------|----------|
 | Once | Just this invocation |
 | This chat | The rest of the current session |
-| Always here | This command, rooted at the current directory — persisted to `~/.netclaw/config/tool-approvals.json` |
-| Always anywhere | This command, everywhere — a global grant persisted to the same file. The broadest option; use it sparingly. |
+| Always here | The command's verb, scoped to the current directory — persisted to `~/.netclaw/config/tool-approvals.json` |
+| Always anywhere | The command's verb, everywhere — a global grant persisted to the same file. The broadest option; use it sparingly. |
 | Deny | Blocks this invocation |
 
-The full prompt shows all five; a risky or compound command is pruned to just **Once** and **Deny**. Manage saved approvals with [`netclaw approvals`](/cli/approvals/).
+Grants are keyed by the command's verb (e.g. `git`, `npm`), not the full command string; a compound command records one entry per verb. The full prompt shows all five options, but netclaw shows fewer when some don't apply — a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. Manage saved approvals with [`netclaw approvals`](/cli/approvals/).
 
 Approval timeouts work differently depending on the channel:
 

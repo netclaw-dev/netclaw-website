@@ -68,7 +68,7 @@ Enable or disable memory, search, skills, scheduling, sub-agents, and webhooks. 
 
 ![Channel picker](/screenshots/output/init-03-channels.png)
 
-Slack, Discord, or both. Each one opens a sub-step for tokens and workspace config.
+Slack, Discord, [Mattermost](/channels/mattermost/), or any combination. Each one opens a sub-step for tokens and workspace config.
 
 Slack needs a Bot Token (`xoxb-...`) and App Token (`xapp-...`) for [Socket Mode](https://api.slack.com/apis/socket-mode). It tests connectivity before moving on.
 

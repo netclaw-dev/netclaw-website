@@ -187,7 +187,7 @@ The output lists every tool the Team audience can see on the `notion` server, al
 
 ## Persistent Approvals
 
-When a user picks "Approve always" at an approval prompt, the decision persists to `~/.netclaw/config/tool-approvals.json`. These approvals survive daemon restarts.
+When a user picks one of the "Always" options — **Always here** (the command's verb, scoped to a directory) or **Always anywhere** (a global grant) — at an approval prompt, the decision persists to `~/.netclaw/config/tool-approvals.json`. These approvals survive daemon restarts.
 
 To revoke a persistent approval, edit the file directly:
 
@@ -242,7 +242,7 @@ The server needs authentication before you can grant tools. Run `netclaw mcp aut
 
 Expected behavior. Headless, reminders, and webhooks auto-deny all approval-gated tools. Set those tools to `Auto` for the relevant audience, or accept that they won't run unattended.
 
-### "Approve always" not working after daemon restart
+### Persistent approvals not working after daemon restart
 
 Check that `~/.netclaw/config/tool-approvals.json` exists and is valid JSON. If it was quarantined (you'll see a `.invalid` file alongside it), the original was corrupt. Inspect the quarantined copy and recreate the approvals you need.
 

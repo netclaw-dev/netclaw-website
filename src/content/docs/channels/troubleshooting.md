@@ -24,7 +24,7 @@ Daemon logs live at `~/.netclaw/logs/`, or `journalctl -u netclaw` if you're run
 
 ![netclaw doctor running diagnostic checks including Slack Auth and Slack ACL](/screenshots/output/doctor.png)
 
-Doctor only checks Slack right now (Auth and ACL). For Discord and Mattermost, you're looking at `netclaw status` and daemon logs.
+Doctor only checks Slack right now (Auth and ACL). For Discord, use `netclaw status` and the daemon logs. Mattermost isn't in `netclaw status` yet, so it's daemon logs only.
 
 ## Authentication Errors
 
@@ -85,7 +85,7 @@ The bot token may be valid but the bot hasn't been invited to any server, so Dis
 
 ### Mattermost: Invalid Bot Token
 
-`netclaw status` shows Mattermost as `disconnected`. Daemon logs show `Mattermost rejected the bot token (HTTP 401)`.
+The daemon logs show `Mattermost rejected the bot token (HTTP 401)` (Mattermost isn't surfaced in `netclaw status` yet, so the logs are the signal).
 
 The bot's personal access token is wrong or was revoked. Re-issue it from the System Console (**Integrations > Bot Accounts**) and update the secret:
 

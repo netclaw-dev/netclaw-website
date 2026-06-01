@@ -1481,12 +1481,12 @@ import SiteNav from '../components/SiteNav.astro';
           </div>
           <div class="tab-panel" id="panel-docker" role="tabpanel" aria-labelledby="tab-docker" data-panel="docker">
             <div class="code-block">
-              <code><span class="code-cmd">docker</span> <span class="code-flag">run -d --name</span> netclaw <span class="code-flag">-v</span> <span class="code-flag">{'{your-config-dir}'}</span>:/root/.netclaw <span class="code-url">ghcr.io/netclaw-dev/netclaw</span></code>
-              <button class="copy-btn" aria-label="Copy to clipboard" data-copy={"docker run -d --name netclaw -v {your-config-dir}:/root/.netclaw ghcr.io/netclaw-dev/netclaw"}>
+              <code><span class="code-cmd">docker</span> <span class="code-flag">run -d --name</span> netclaw <span class="code-flag">-v</span> netclaw-home:/home/netclaw/.netclaw <span class="code-url">ghcr.io/netclaw-dev/netclaw</span></code>
+              <button class="copy-btn" aria-label="Copy to clipboard" data-copy={"docker run -d --name netclaw -v netclaw-home:/home/netclaw/.netclaw ghcr.io/netclaw-dev/netclaw"}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
             </div>
-            <p class="tab-note">Mount your local <code>~/.netclaw</code> config directory. Configure with <code>NETCLAW_</code> env vars.</p>
+            <p class="tab-note">Persists config and state in a named volume (the image runs as non-root <code>netclaw</code>). Configure with <code>NETCLAW_</code> env vars.</p>
           </div>
         </div>
       </div>
@@ -1534,7 +1534,7 @@ import SiteNav from '../components/SiteNav.astro';
         </p>
       </div>
       <div class="approval-showcase">
-        <img src="/assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — showing Approve once, Approve for this chat, Approve always, and Deny buttons" width="1000" height="400" loading="lazy" onclick="document.getElementById('lightbox').classList.add('open')">
+        <img src="/assets/approval-prompt.png" alt="Netclaw tool approval prompt in a Slack thread, with approve and deny buttons" width="1000" height="400" loading="lazy" onclick="document.getElementById('lightbox').classList.add('open')">
         <span class="expand-hint">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
           Click to enlarge

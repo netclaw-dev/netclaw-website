@@ -201,7 +201,7 @@ The last layer before a tool actually runs. Configure per audience:
 
 - Headless sessions (reminders, webhooks, `netclaw chat -p "prompt"`) auto-deny all gated tools. There's no human to ask.
 - No response within 5 minutes means deny.
-- "Approve always" persists to `~/.netclaw/config/tool-approvals.json`. Revoke by editing the file directly.
+- The "Always here" and "Always anywhere" options persist to `~/.netclaw/config/tool-approvals.json` — manage them with [`netclaw approvals`](/cli/approvals/).
 
 If nobody is watching the approval prompts in production, set `DefaultMode: "Deny"` for Team and Public. Auto-deny is safer than a 5-minute timeout nobody sees.
 

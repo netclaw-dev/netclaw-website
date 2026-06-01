@@ -7,11 +7,11 @@ When the agent reads a file, netclaw classifies it upfront instead of assuming e
 
 ## How files are classified
 
-Netclaw identifies a file by its extension and its magic bytes (the signature in the first few KB), then sorts it into a category:
+Netclaw identifies a file by its extension and its magic bytes (the signature in the first few KB), then recognizes its type:
 
-| Category | Examples |
-|----------|----------|
-| Text | `.txt`, `.md`, `.csv`, `.json`, `.xml`, `.yaml`, source code |
+| Type | Examples |
+|------|----------|
+| Text | `.txt`, `.md`, `.csv`, `.json`, `.xml`, `.yaml` — plus any UTF-8 text file (source code included), detected by content |
 | Image | PNG, JPEG, GIF, WebP, BMP, TIFF |
 | PDF | `application/pdf` |
 | Document | DOCX, XLSX, PPTX, ODT, RTF |
@@ -34,7 +34,7 @@ What `file_read` returns depends on the category:
 
 Files shared in Slack, Discord, or Mattermost flow through the same classifier. An image dropped in a channel reaches a vision model the same way a `file_read` image does, and the same per-format and size rules apply.
 
-What's allowed per channel is governed by the [audience](/security/security-model/)'s attachment policy: which categories are accepted, a max file size (25 MB by default), and a max number of files per message (10 by default). Lock a channel down by narrowing its allowed categories.
+What's allowed per channel is governed by the [audience](/security/security-model/)'s attachment policy: which categories are accepted, a max file size (25 MB by default), and a max number of files per message (10 by default). The policy's categories are coarser than the types above -- `Image`, `PDF`, `Document`, `Archive`, `Media`, and `Other` -- and audio and video both fall under a single `Media` category, so you can't allow one without the other. Lock a channel down by narrowing its allowed categories.
 
 :::note
 Vision support is a property of the model, not netclaw. Point a model role at a vision-capable model (check `netclaw model`) before expecting the agent to read images. As of 0.22.1, an image attached via a tool call stays attached across turn boundaries -- earlier builds could drop it, leaving the model to guess at what it never actually received.

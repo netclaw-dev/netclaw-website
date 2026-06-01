@@ -5,9 +5,9 @@ description: "Inspect, revoke, and manage persistent tool approvals."
 
 When netclaw's [approval gates](/architecture/security-model/#human-in-the-loop-as-a-layer-not-a-crutch) prompt you to allow a tool invocation, your "always allow" choices get saved to `~/.netclaw/config/tool-approvals.json`. This command lets you see what's been approved, revoke entries you no longer want, and add global trust rules. Running `netclaw approvals` with no subcommand opens the [interactive TUI](#tui).
 
-![Approval gate prompt in Slack showing Approve once, Approve for this chat, Approve always, and Deny options](/assets/approval-prompt.png)
+![Approval gate prompt in a Slack thread, with approve and deny options](/assets/approval-prompt.png)
 
-The "Approve always" option in the channel prompt is what creates persistent entries in `tool-approvals.json`.
+The two "Always" options in the channel prompt — **Always here** (the command's verb, scoped to the current directory) and **Always anywhere** (a global grant) — are what create persistent entries in `tool-approvals.json`.
 
 Audiences (`personal`, `team`, `public`) scope approvals to who's talking to the agent. An approval granted under `personal` doesn't apply when a team member triggers the same command. See [audience dispositions](/architecture/security-model/#audience-as-the-trust-primitive) for background.
 

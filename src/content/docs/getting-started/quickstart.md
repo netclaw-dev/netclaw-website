@@ -39,9 +39,9 @@ Pick how much you trust the environment. **Personal** is single-user with full t
 
 ### Connect channels (optional)
 
-![Channel selection](/screenshots/output/init-step3-channels.png)
+![Channel selection](/screenshots/output/init-03-channels.png)
 
-Wire up Slack, Discord, or both. Each channel needs a token — the wizard prompts for them and tests connectivity before moving on.
+Wire up Slack, Discord, or [Mattermost](/channels/mattermost/). Each channel needs a token — the wizard prompts for them and tests connectivity before moving on.
 
 ![Slack bot token entry](/screenshots/output/init-step3-slack-bot-token.png)
 

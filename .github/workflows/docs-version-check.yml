@@ -45,7 +45,8 @@ jobs:
           gh label create docs-drift --color FBCA04 \
             --description "Docs trailing a published netclaw release" --force 2>/dev/null || true
           documented=$(node -e "process.stdout.write(require('./src/version.json').documentedVersion)")
-          latest=$(gh release list --repo netclaw-dev/netclaw --limit 1 --json tagName --jq '.[0].tagName')
+          repo=$(node -e "process.stdout.write(require('./src/version.json').sourceRepo)")
+          latest=$(gh release list --repo "$repo" --exclude-pre-releases --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
           title="docs: behind netclaw ${latest} (documented ${documented})"
           body=$(printf 'The docs are written against **%s** but netclaw **%s** is published.\n\nRun a content pass and bump `src/version.json`.\n\n_Filed automatically by the docs_version_check workflow._' "$documented" "$latest")
           existing=$(gh issue list --state open --label docs-drift --json number --jq '.[0].number')

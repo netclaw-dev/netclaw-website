@@ -10,7 +10,6 @@ services:
       - "8065:8065"
     environment:
       MM_SERVICESETTINGS_SITEURL: http://localhost:8065
-      MM_SERVICESETTINGS_ENABLEOPENSERVER: "true"
       MM_TEAMSETTINGS_ENABLEOPENSERVER: "true"
       MM_SERVICESETTINGS_ENABLETESTING: "true"
       # NOTE: EnableBotAccountCreation / EnableUserAccessTokens are intentionally

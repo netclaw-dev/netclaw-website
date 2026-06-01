@@ -258,11 +258,11 @@ Netclaw converts LLM markdown to Slack [Block Kit](https://api.slack.com/block-k
 
 When a tool call needs approval, netclaw posts a Block Kit prompt right in the thread:
 
-![Tool approval prompt in Slack showing Approve once, Approve for this chat, Approve always, and Deny buttons](/assets/approval-prompt.png)
+![Tool approval prompt in a Slack thread, with approve and deny buttons](/assets/approval-prompt.png)
 
 Shows the tool name, the exact command, and the approval buttons. Only the user who triggered the request can approve. System-initiated tool calls (`VerifiedAutomation`) can be approved by anyone in the thread.
 
-The full prompt offers five choices: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** -- "Always anywhere" is the broadest grant, so reach for it sparingly. A risky or compound command is pruned to just **Once** and **Deny**. Typing the option's letter in the thread works too (`A`--`E`, matching the order above).
+The full prompt offers five choices: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** -- "Always anywhere" is the broadest grant, so reach for it sparingly. netclaw shows fewer when some don't apply -- a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. You can reply with the letter shown next to each option instead of clicking.
 
 ### Proactive messaging
 

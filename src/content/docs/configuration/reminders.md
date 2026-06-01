@@ -129,12 +129,12 @@ For more detail on creating reminders with each schedule type, see [`netclaw rem
 |------|-------------|--------------|
 | `None` | Agent runs silently. Results recorded in history only. | Nothing |
 | `Channel` | Agent posts results to a channel or DM via the transport's proactive tool (`send_slack_message`, `send_discord_message`, or `send_mattermost_message`) | `transport` + `address`, with that channel configured |
-| `CurrentSession` | Re-enters the originating conversation (the Slack/Discord/Mattermost thread or TUI session it was created in) | Active session context at creation time |
+| `CurrentSession` | Re-enters the originating conversation (a Slack/Discord thread, or a TUI/SignalR session) it was created in | Active session at creation; Slack, Discord, TUI, or SignalR only |
 
 When `deliveryRequired` is `true` (the default) and delivery kind is `Channel`, the execution is marked **failed** if the agent doesn't post to the target channel. Each failed execution emits a `ReminderExecutionFailed` warning alert. After 5 consecutive failures, the reminder is auto-disabled and a `ReminderAutoDisabled` critical alert fires.
 
 :::caution
-Mattermost is the exception. Channel delivery posts correctly (the agent calls `send_mattermost_message`), but the daemon doesn't yet track that call as a named delivery the way it does for Slack and Discord — so `deliveryRequired: true` can mark a Mattermost channel reminder failed even after it posted. Set `deliveryRequired: false` for Mattermost channel reminders, or use `CurrentSession` delivery.
+Mattermost is the exception. Channel delivery posts correctly (the agent calls `send_mattermost_message`), but the daemon doesn't yet track that call as a named delivery the way it does for Slack and Discord — so `deliveryRequired: true` can mark a Mattermost channel reminder failed even after it posted. Set `deliveryRequired: false` for Mattermost channel reminders. (`CurrentSession` isn't an option here: `set_reminder` only accepts it for Slack, Discord, TUI, and SignalR sessions.)
 :::
 
 For `CurrentSession` delivery, the daemon waits up to 1 hour to confirm the reminder posted back to its originating session. If that session is gone, or delivery is never confirmed within the hour, the execution is marked failed.
@@ -145,15 +145,15 @@ To create a channel reminder, use `netclaw reminder create --delivery channel` o
 
 The delivery kind decides whether a reminder talks back to a live conversation or starts a fresh one — usually the choice an agent is making when it schedules one for you.
 
-**In-session (`CurrentSession`).** The reminder re-enters the conversation it was created in and replies there, like a deferred turn. "Remind me in this thread to follow up after lunch" is a `CurrentSession` reminder. It needs that session to still exist when it fires — if the thread is long gone, the delivery can't land.
+**In-session (`CurrentSession`).** The reminder re-enters the conversation it was created in and replies there, like a deferred turn. "Remind me in this thread to follow up after lunch" is a `CurrentSession` reminder. It needs that session to still exist when it fires — if the thread is long gone, the delivery can't land. `set_reminder` accepts it only from Slack, Discord, TUI, and SignalR sessions (not Mattermost).
 
 **Out-of-session (`Channel`).** The reminder runs on its own, with no originating conversation, and proactively posts to a target you name. "Every weekday at 9am, post a standup summary to #ops" is a `Channel` reminder. It depends on no live session, so it's the right choice for anything recurring or unattended.
 
-For `Channel` delivery, the target format depends on the transport — both the agent and the daemon validate it when the reminder is created:
+For `Channel` delivery, the target format depends on the transport, and `set_reminder` validates it when the reminder is created:
 
 | Transport | Channel target | User / DM target |
 |-----------|----------------|------------------|
-| `slack` | `#channel-name` or a `C…` channel ID | `@username` or a `U…` user ID |
+| `slack` | `#channel-name` or a `C…`/`G…` channel ID | `@username` or a `U…` user ID |
 | `discord` | `channel:<channelId>` or `<#channelId>` | Not supported — guild channels only |
 | `mattermost` | `channel:<channelId>` | `@<userId>` (delivers to that user's DM) |
 

@@ -35,7 +35,7 @@ function cmp(a, b) {
 let latest;
 try {
   latest = execSync(
-    `gh release list --repo ${sourceRepo} --limit 1 --json tagName --jq '.[0].tagName'`,
+    `gh release list --repo ${sourceRepo} --exclude-pre-releases --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName'`,
     { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
   ).trim();
 } catch {

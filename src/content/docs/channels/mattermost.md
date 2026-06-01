@@ -162,9 +162,9 @@ Each thread is its own isolated session, keyed by `{channelId}/{rootPostId}`, an
 When a tool call needs approval, how netclaw asks depends on `CallbackUrl`:
 
 - **`CallbackUrl` set** -- netclaw posts interactive buttons. The full prompt offers five choices, in order: **Once**, **This chat**, **Always here**, **Always anywhere**, **Deny**. Clicks come back over an inbound HTTP POST to `/api/mattermost/actions`, which the daemon only exposes when a callback URL is configured. Each button carries a one-time, post-bound token that expires after 12 hours.
-- **`CallbackUrl` unset** -- approvals fall back to text replies. Reply with the option's letter: `A` Once, `B` This chat, `C` Always here, `D` Always anywhere, `E` Deny. No inbound HTTP surface is opened.
+- **`CallbackUrl` unset** -- approvals fall back to text replies: reply with the letter shown next to each option. No inbound HTTP surface is opened.
 
-netclaw prunes the choices to fit the command -- a risky or compound command collapses to just **Once** and **Deny**, and the letters renumber to match. **Always anywhere** is the broadest grant: it approves the command for every session everywhere and persists to `tool-approvals.json`. Reach for **Always here** or narrower unless you really mean it.
+netclaw shows fewer than five when some don't apply -- a command it can't cleanly parse (shell control flow, or unbalanced quotes) collapses to just **Once** and **Deny**, and the reply letters track whatever is shown. **Always anywhere** is the broadest grant: it approves the command's verb for every session everywhere and persists to `tool-approvals.json`. Reach for **Always here** or narrower unless you really mean it.
 
 The token store is in-memory: buttons posted before a daemon restart return "no longer valid" when clicked afterward. The pending request survives on the session, so ask the agent to re-issue the prompt.
 
@@ -178,7 +178,7 @@ The LLM can start a conversation with the `send_mattermost_message` tool. It tak
 
 ### Reminders
 
-[Reminders](/configuration/reminders/) deliver to Mattermost in two ways: `current_session` (in-thread) and `channel` with `delivery_transport: "mattermost"`. Because Mattermost user IDs and channel IDs are both 26-character strings, channel-delivery targets need a prefix:
+[Reminders](/configuration/reminders/) reach Mattermost through `channel` delivery with `delivery_transport: "mattermost"`. (In-thread `current_session` delivery isn't available from a Mattermost session yet -- `set_reminder` only accepts it for Slack, Discord, the TUI, and SignalR.) Because Mattermost user IDs and channel IDs are both 26-character strings, channel-delivery targets need a prefix:
 
 - `@<userId>` -- delivers to that user's DM
 - `channel:<channelId>` -- delivers to that channel
@@ -187,18 +187,17 @@ A bare ID with no prefix is rejected with a disambiguation error. Unlike Discord
 
 ## Verify it works
 
-Restart the daemon and check status:
+Restart the daemon, then @-mention the bot in an allowed channel:
 
 ```bash
 netclaw daemon stop && netclaw daemon start
-netclaw status
 ```
 
-Mattermost should show `connected`. A bad token, an unreachable server, or any connection failure is contained -- the channel degrades on its own and the daemon plus every other channel keeps running. `netclaw status` shows the channel as `disconnected` with a reason.
-
-Then @-mention the bot in an allowed channel. If it replies in a thread, you're set.
+If it replies in a thread, you're set.
 
 ![Netclaw replying to a testuser @-mention in a Mattermost thread](/screenshots/output/mattermost-conversation.png)
+
+`netclaw status` doesn't list Mattermost yet (it covers Slack and Discord), so when something's off, the daemon logs are where to look. A bad token, an unreachable server, or any connection failure is contained there -- the Mattermost channel degrades on its own and the daemon plus every other channel keeps running. See [Troubleshooting](#troubleshooting) below for the common messages.
 
 ## Troubleshooting
 

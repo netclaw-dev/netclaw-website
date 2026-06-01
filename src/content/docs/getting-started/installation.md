@@ -50,8 +50,7 @@ Run the daemon as a container — useful for servers, homelab setups, or if you 
 ```bash
 docker run -d \
   --name netclaw \
-  -v ~/.netclaw:/root/.netclaw \
-  -p 127.0.0.1:5199:5199 \
+  -v netclaw-home:/home/netclaw/.netclaw \
   ghcr.io/netclaw-dev/netclaw
 ```
 
@@ -59,18 +58,18 @@ docker run -d \
 |---------|-------|
 | Image | `ghcr.io/netclaw-dev/netclaw` |
 | Architectures | `linux/amd64`, `linux/arm64` |
-| Port | 5199 |
-| Volume | `/root/.netclaw` (config, identity, sessions, logs) |
+| Runs as | non-root user `netclaw` (UID 1654) |
+| Port | 5199 (loopback inside the container) |
+| Volume | `/home/netclaw/.netclaw` (config, identity, sessions, logs) |
 
-The container runs the daemon only. You still need the CLI installed on whatever machine you're talking to it from — install it with the Linux or Windows script above (`bash -s -- cli`), then [pair](/guides/pairing-remote-devices/) the CLI to the container's daemon.
+The image runs as the non-root `netclaw` user, so persist state in a named volume (a host bind mount has to be `chown`ed to UID 1654 first). The container runs the daemon only, bound to loopback — drive it with `docker exec netclaw netclaw <command>`. To reach it from a host CLI or another machine (including [pairing](/guides/pairing-remote-devices/)), configure a non-local [exposure mode](/deployment/exposure-modes/). See [Docker Deployment](/deployment/docker/) for the full setup.
 
 Pass provider credentials as environment variables:
 
 ```bash
 docker run -d \
   --name netclaw \
-  -v ~/.netclaw:/root/.netclaw \
-  -p 127.0.0.1:5199:5199 \
+  -v netclaw-home:/home/netclaw/.netclaw \
   -e NETCLAW_Providers__openrouter__Type=openrouter \
   -e NETCLAW_Providers__openrouter__ApiKey=sk-or-v1-... \
   -e NETCLAW_Models__Main__Provider=openrouter \

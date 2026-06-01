@@ -35,9 +35,22 @@ Keep `src/version.json` in step with the release you profiled — the
 
 ## Mattermost capture (web setup + live conversation)
 
-The Mattermost integration shots aren't a VHS tape — they're browser screenshots
-driven by Playwright against the netclaw repo's Aspire demo
-(`samples/Netclaw.Demo.AppHost`), which auto-bootstraps a full Mattermost workspace
-(admin, team, bot + token, channel, test user) and runs the daemon. Inference is
-pointed at a real endpoint so the bot's replies look production-grade. See
-`playwright/README.md` for the runner. *(Added in the Mattermost docs phase.)*
+The Mattermost shots aren't a VHS tape — they're browser screenshots driven by
+Playwright. Everything lives in `mattermost/`:
+
+| File | Role |
+|------|------|
+| `docker-compose.mattermost.yml` | the Mattermost (`mattermost-preview`) container |
+| `bootstrap.mjs` | seeds admin / team / bot + token / channel / test user via the REST API → `.bootstrap.json` |
+| `run.sh` | orchestrator: compose up → bootstrap → start the pinned netclaw image (inference pointed at an OpenAI-compatible endpoint) → post an `@netclaw` message → run `capture.mjs` → tear down |
+| `capture.mjs` | Playwright: the System Console bot-accounts setting, the bot + its token, and the live `@netclaw` thread |
+
+Regenerate them with:
+
+```bash
+./screenshots/mattermost/run.sh
+```
+
+Point inference at your own endpoint/model with `SPARK_ENDPOINT` and `SPARK_MODEL_ID`
+(the defaults match the local netclaw instance). `.bootstrap.json` holds a short-lived
+bot token and is gitignored.

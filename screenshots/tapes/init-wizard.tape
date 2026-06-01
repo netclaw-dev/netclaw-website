@@ -36,7 +36,9 @@ Sleep 3s
 Screenshot screenshots/output/init-01-provider-list.png
 Sleep 300ms
 
-# Move to Ollama and capture
+# Move to Ollama and capture (0.22 provider list: Anthropic, GitHub Copilot, Ollama)
+Down
+Sleep 300ms
 Down
 Sleep 300ms
 Screenshot screenshots/output/init-01-provider-ollama.png

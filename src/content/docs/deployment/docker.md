@@ -3,38 +3,44 @@ title: "Docker Deployment"
 description: "Run the netclaw daemon in a Docker container with persistent config, health checks, and zero-downtime upgrades."
 ---
 
-The netclaw Docker image runs the daemon (`netclawd`) in a supervised container. The CLI can stay on your host or run inside the container with `docker exec`. By default the local control-plane endpoint is `127.0.0.1:5199` when you publish it that way; non-local exposure modes add more auth and proxy rules.
+The netclaw Docker image runs the daemon (`netclawd`) in a supervised container as the non-root user `netclaw` (UID 1654). The daemon binds loopback inside the container, so you drive it with `docker exec`. Reaching it from the host or the network is a non-local exposure mode — see [Exposure Modes](/deployment/exposure-modes/).
 
 ## Before you begin
 
 - [Docker Engine](https://docs.docker.com/engine/install/) 20.10+ or Docker Desktop
 - A provider API key (OpenRouter, Anthropic, OpenAI, etc.) or a reachable [Ollama](https://ollama.com/) instance
-- An initialized `~/.netclaw` directory — run `netclaw init` on the host first, or bind-mount a pre-configured one. If you don't have the CLI yet, see [Installation](/getting-started/installation/).
+- Either provider/model config to pass as `NETCLAW_*` env vars, or an initialized config you run with [`netclaw init`](/cli/init/) inside the container
+
+:::caution
+Don't add `-e NETCLAW_Daemon__Host=0.0.0.0`. The default `local` exposure mode binds loopback and **rejects** a non-loopback host — the daemon aborts on startup if you force `0.0.0.0` without switching exposure modes. To reach the daemon from outside the container, use a non-local exposure mode (see [Exposure Modes](/deployment/exposure-modes/)), not a raw bind override.
+:::
 
 ## Quick start
 
-This path assumes you already have an initialized `~/.netclaw` directory.
+Use a named volume — Docker creates it with the right ownership for the non-root `netclaw` user. (Bind-mounting a host directory works too, but you must `chown` it to UID 1654 first, or the daemon can't write to it.)
 
 ```bash
 docker run -d \
   --name netclaw \
-  -v ~/.netclaw:/root/.netclaw \
-  -p 127.0.0.1:5199:5199 \
-  -e NETCLAW_Daemon__Host=0.0.0.0 \
+  -v netclaw-home:/home/netclaw/.netclaw \
+  -e NETCLAW_Providers__openrouter__Type=openrouter \
+  -e NETCLAW_Providers__openrouter__ApiKey=sk-or-v1-... \
+  -e NETCLAW_Models__Main__Provider=openrouter \
+  -e NETCLAW_Models__Main__ModelId=anthropic/claude-sonnet-4 \
   ghcr.io/netclaw-dev/netclaw
 ```
 
-The port binding is loopback-only (`127.0.0.1:5199`) because the health check endpoint is unauthenticated — don't expose it to the network. `NETCLAW_Daemon__Host=0.0.0.0` makes the daemon listen on the container interface so Docker's published port can reach it. The volume mount persists identity, config, credentials, session state, and logs across restarts. Self-update is disabled in the image. Use the image tag as the version. Update availability checks still run, so you'll know when a new release exists.
+The volume persists identity, config, credentials, session state, and logs across restarts. Self-update is disabled in the image — the image tag is the version, though update-availability checks still run so you'll know when a new release exists.
 
 **Tags:** `:latest` tracks the most recent release. Pin to a version tag (e.g., `:1.2.3`) in production.
 
-Verify from the host:
+Verify the daemon is healthy:
 
 ```bash
-netclaw status
+docker exec netclaw netclaw status
 ```
 
-The CLI defaults to `http://127.0.0.1:5199`, so no configuration is needed for local Docker. For remote daemons, see [Exposure Modes](/deployment/exposure-modes/).
+The CLI inside the container talks to the daemon over loopback, so no endpoint config is needed. To run the CLI from your host instead, point a daemon at a non-local exposure mode — see [Exposure Modes](/deployment/exposure-modes/).
 
 ### First run with Docker only
 
@@ -55,9 +61,7 @@ Pass provider credentials and model config as `NETCLAW_`-prefixed environment va
 ```bash
 docker run -d \
   --name netclaw \
-  -v ~/.netclaw:/root/.netclaw \
-  -p 127.0.0.1:5199:5199 \
-  -e NETCLAW_Daemon__Host=0.0.0.0 \
+  -v netclaw-home:/home/netclaw/.netclaw \
   -e NETCLAW_Providers__openrouter__Type=openrouter \
   -e NETCLAW_Providers__openrouter__ApiKey=sk-or-v1-... \
   -e NETCLAW_Models__Main__Provider=openrouter \
@@ -69,7 +73,7 @@ Keep secrets out of config files — inject them at runtime. The `ModelId` value
 
 ## Docker Compose
 
-For anything beyond quick testing, use Compose. This example pairs netclaw with a local Ollama instance and uses named volumes (unlike the bind mount in the quick start) for easier lifecycle management:
+For anything beyond quick testing, use Compose. This example pairs netclaw with a local Ollama instance on a private Compose network. The daemon stays in `local` mode (loopback); you reach it with `docker exec`, so there's no `Host` override and no published control-plane port:
 
 ```yaml
 services:
@@ -79,12 +83,9 @@ services:
     restart: unless-stopped
     depends_on:
       - ollama
-    ports:
-      - "127.0.0.1:5199:5199"
     volumes:
-      - netclaw-home:/root/.netclaw
+      - netclaw-home:/home/netclaw/.netclaw
     environment:
-      NETCLAW_Daemon__Host: 0.0.0.0
       NETCLAW_Providers__local-ollama__Type: ollama
       NETCLAW_Providers__local-ollama__Endpoint: http://ollama:11434
       NETCLAW_Models__Main__Provider: local-ollama
@@ -93,8 +94,6 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
-    ports:
-      - "127.0.0.1:11434:11434"
     volumes:
       - ollama-data:/root/.ollama
 
@@ -106,6 +105,8 @@ volumes:
 ```bash
 docker compose up -d
 ```
+
+The daemon comes up reporting `healthy`. Drive it with `docker exec netclaw netclaw status` (or `docker exec -it netclaw netclaw chat`).
 
 Pull the model into Ollama before netclaw can use it:
 
@@ -131,10 +132,10 @@ Treat this as host-level access. A process that can talk to the Docker socket ca
 
 ## Volume layout
 
-Everything the daemon persists lives under `/root/.netclaw`:
+Everything the daemon persists lives under `/home/netclaw/.netclaw`:
 
 ```
-/root/.netclaw/
+/home/netclaw/.netclaw/
 ├── client/config.json       # CLI endpoint state
 ├── config/
 │   ├── netclaw.json         # Daemon settings
@@ -142,7 +143,7 @@ Everything the daemon persists lives under `/root/.netclaw`:
 ├── identity/                # Agent personality (SOUL.md, AGENTS.md, TOOLING.md)
 ├── sessions/                # Conversation history
 ├── keys/                    # Key material
-├── projects/
+├── workspaces/              # Agent project workspaces (git repos with AGENTS.md)
 ├── environment/
 ├── schedules/
 └── logs/                    # crash-*.log, session logs
@@ -189,16 +190,14 @@ docker pull ghcr.io/netclaw-dev/netclaw:latest
 # Stop the old container (volume stays)
 docker stop netclaw && docker rm netclaw
 
-# Start with the new image
+# Start with the new image (same flags you launched it with)
 docker run -d \
   --name netclaw \
-  -v ~/.netclaw:/root/.netclaw \
-  -p 127.0.0.1:5199:5199 \
-  -e NETCLAW_Daemon__Host=0.0.0.0 \
+  -v netclaw-home:/home/netclaw/.netclaw \
   ghcr.io/netclaw-dev/netclaw:latest
 
 # Wait for readiness
-until curl -sf http://127.0.0.1:5199/api/health/ready; do sleep 2; done
+until [ "$(docker inspect --format='{{.State.Health.Status}}' netclaw)" = "healthy" ]; do sleep 2; done
 echo "Daemon is ready"
 ```
 
@@ -219,27 +218,32 @@ To rollback, stop the container and start with the previous image tag. If the ne
 | Base | `ubuntu:24.04` |
 | Architectures | `linux/amd64`, `linux/arm64` |
 | Port | `5199` |
-| Volume | `/root/.netclaw` |
+| Volume | `/home/netclaw/.netclaw` |
 | License | Apache-2.0 |
 
 Built on Ubuntu 24.04 (not a minimal runtime), the image ships with `git`, `jq`, `sqlite3`, `python3`, `curl`, `wget`, `gh`, and more. Operators can `apt-get install` additional tools if the agent needs them.
 
 ## Troubleshooting
 
-### Container starts but CLI can't connect
+### CLI can't connect
 
-Confirm the port mapping binds to `127.0.0.1` and nothing else is on port 5199:
+Run the CLI inside the container, where it reaches the daemon over loopback:
 
 ```bash
-ss -tlnp | grep 5199
-docker logs netclaw
+docker exec netclaw netclaw status
 ```
 
-If the container is configured for `reverse-proxy`, also check whether the daemon is still bound to loopback. Reverse-proxy mode rejects loopback final-hop topologies.
+A host CLI (or `curl`) hitting a published port won't reach a `local`-mode daemon — it binds loopback inside the container, and `local` mode refuses to bind `0.0.0.0`. For host or network access, configure a non-local exposure mode (see [Exposure Modes](/deployment/exposure-modes/)); reverse-proxy mode additionally needs `Daemon.TrustedProxies` set to the proxy's address or CIDR.
 
-### Container keeps restarting
+### Container keeps restarting (crash loop)
 
-The entrypoint restarts the daemon on every exit, and that's by design. If it's a crash loop, check `docker logs netclaw` for the cause. Common culprits: missing provider config, invalid API key, or a required field missing from `netclaw.json`.
+The entrypoint restarts the daemon on every exit by design, so a misconfiguration shows up as a restart loop. Check `docker logs netclaw` for the fatal error. The most common one:
+
+```
+Invalid local topology: Daemon.Host '0.0.0.0' is not a loopback address.
+```
+
+That means `NETCLAW_Daemon__Host=0.0.0.0` was set while the exposure mode is still `local` — remove the host override (the default loopback bind is correct) or switch to a non-local exposure mode. Other culprits: missing provider config, an invalid API key, or a required `netclaw.json` field.
 
 ### Health check failing
 

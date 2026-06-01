@@ -302,6 +302,7 @@ Before declaring the page done:
 - [ ] At least 2 external links to relevant resources
 - [ ] No robotic phrasing or unnecessary hedging
 - [ ] `npm run build` passes with no errors
+- [ ] **Every runnable example actually runs.** Any `docker run`, `docker compose`, or shell snippet a reader is told to execute MUST be run locally against the current release first and verified crash-free — the container reaches `healthy` and `docker logs` shows no fatal error / `Aborted (core dumped)`. Never ship a command you haven't executed. (This is how the stale `Daemon.Host=0.0.0.0` Docker example shipped a guaranteed startup crash.)
 
 ## Autonomous Doc Writing Mode
 

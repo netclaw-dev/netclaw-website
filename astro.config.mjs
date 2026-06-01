@@ -132,6 +132,8 @@ export default defineConfig({
           label: 'Guides',
           items: [
             { label: 'MCP Tool Permissions', slug: 'guides/mcp-tool-permissions' },
+            { label: 'Custom Subagents', slug: 'guides/custom-subagents' },
+            { label: 'Images, Audio, and Other File Types', slug: 'guides/multimodal-files' },
             { label: 'Pairing Remote Devices', slug: 'guides/pairing-remote-devices' },
             { label: 'Scripting Headless Sessions', slug: 'guides/scripting-sessions' },
           ],

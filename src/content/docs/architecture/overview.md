@@ -129,7 +129,7 @@ The daemon keeps a [SQLite](https://www.sqlite.org/docs.html)-backed memory stor
 
 **Skills** are markdown files in `~/.netclaw/skills/` that extend what the agent knows how to do. Built-ins ship as embedded resources; extras sync from a CDN feed at startup.
 
-For delegated work — research, code analysis, summarization — a session spawns a **subagent** as a child actor. Definitions live in `~/.netclaw/agents/*.md` with YAML frontmatter (built-ins: research-assistant, code-analyst, summarizer). Max 10 tool iterations per subagent.
+For delegated work — research, code analysis, summarization — a session spawns a **subagent** as a child actor. Definitions live in `~/.netclaw/agents/*.md` with YAML frontmatter (built-ins: research-assistant, code-analyst, summarizer), and each subagent run gets up to 30 tool iterations. See [Custom Subagents](/guides/custom-subagents/).
 
 Scheduled tasks go through `ReminderManagerActor`. See [Reminders](/configuration/reminders/).
 

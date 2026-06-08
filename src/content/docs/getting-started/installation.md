@@ -107,6 +107,36 @@ netclaw init
 
 The [`init` wizard](/cli/init/) walks you through provider setup, security posture, channels, identity, and network exposure — then starts the daemon. See the [Quickstart](/getting-started/quickstart/) for the full walkthrough.
 
+## Switching release channels
+
+By default, the install script and daemon pull from the **stable** channel — release builds only. To opt into beta (prerelease) builds:
+
+**Linux:**
+
+```bash
+curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --channel beta
+```
+
+**Windows:**
+
+```powershell
+.\install.ps1 --channel beta
+```
+
+**Docker:**
+
+Use the `ghcr.io/netclaw-dev/netclaw:beta` image tag instead of the default `ghcr.io/netclaw-dev/netclaw` (which resolves to the latest stable).
+
+After switching, set `Daemon.UpdateChannel: "beta"` in your config so the daemon checks the beta feed for self-updates.
+
+> **Note:** The install script is idempotent — running it on an existing install will update the binaries without breaking your configuration. If the daemon is running, stop it first:
+>
+> ```bash
+> sudo systemctl stop netclawd
+> curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --channel beta
+> sudo systemctl start netclawd
+> ```
+
 ## Updating
 
 ```bash
@@ -115,6 +145,11 @@ netclaw update --check  # check only, don't install
 ```
 
 Self-update is disabled in the Docker image — update by pulling a new image tag instead.
+
+| Channel | Description |
+|---------|-------------|
+| `stable` | Official releases only. The default. |
+| `beta` | Prereleases. Resolves to the newest of {stable, prerelease}, so a stable release that supersedes a beta is still offered. |
 
 ## Resources
 

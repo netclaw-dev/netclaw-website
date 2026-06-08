@@ -39,7 +39,7 @@ Select a provider to view details (type, auth, endpoint, model count) or take ac
 
 The sentinel row `+ Add new provider...` starts an interactive add flow. Netclaw validates connectivity with a 20-second timeout and reports how many models it found.
 
-OpenAI OAuth is only available through this TUI flow — select Add, choose OpenAI, then pick "ChatGPT Subscription" to authenticate with your existing account.
+The TUI supports OAuth for OpenAI (ChatGPT subscription) and GitHub Copilot — select **Add**, choose the provider, then pick the OAuth option.
 
 ## Subcommands
 
@@ -60,15 +60,16 @@ This shows static config only — no live health probing. Open the TUI to see re
 ### `provider add`
 
 ```bash
-netclaw provider add <name> <type> [--api-key <key>] [--endpoint <url>]
+netclaw provider add <name> <type> [--api-key <key>] [--endpoint <url>] [--auth <method>]
 ```
 
 | Flag | Description | Default |
 |------|-------------|---------|
 | `--api-key <key>` | API key for the provider | Prompted if required |
 | `--endpoint <url>` | Custom endpoint URL | Provider default |
+| `--auth <method>` | Auth method: `oauth-device`, `oauth-pkce`, or `api-key` | Prompted if required |
 
-Provider type and endpoint are stored in `~/.netclaw/config/netclaw.json`. Credentials are encrypted in [`secrets.json`](/cli/secrets/). Restart the daemon after adding a provider so it picks up the new config.
+OAuth flows (`oauth-device` and `oauth-pkce`) open a browser window for the user to authenticate — on headless servers, use `--api-key` instead. Provider type and endpoint are stored in `~/.netclaw/config/netclaw.json`. Credentials are encrypted in [`secrets.json`](/cli/secrets/). Restart the daemon after adding a provider so it picks up the new config.
 
 ### `provider remove`
 
@@ -108,6 +109,12 @@ netclaw provider add my-anthropic anthropic --api-key sk-ant-...
 
 # OpenAI with an API key
 netclaw provider add my-openai openai --api-key sk-proj-...
+
+# OpenAI via ChatGPT subscription (OAuth)
+netclaw provider add my-openai openai --auth oauth-device
+
+# GitHub Copilot (OAuth device flow)
+netclaw provider add copilot github-copilot --auth oauth-device
 
 # OpenRouter
 netclaw provider add my-openrouter openrouter --api-key sk-or-...

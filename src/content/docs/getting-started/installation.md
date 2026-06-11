@@ -117,7 +117,7 @@ If Netclaw is already installed, switch channels with the CLI:
 netclaw update --channel beta
 ```
 
-This installs the newest build on that channel right away and saves `Daemon.UpdateChannel` to your config, so later update checks and self-updates follow the beta feed. Pass `--channel stable` to switch back. (`dev` is an alias for `beta`.)
+This installs the newest build on that channel right away and saves to your config, so later update checks and self-updates follow the beta feed. Pass `--channel stable` to switch back.
 
 To choose a channel at first install instead, pass `--channel` to the install script:
 

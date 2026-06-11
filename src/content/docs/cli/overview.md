@@ -68,7 +68,7 @@ See [Configuration](/configuration/managed-providers/) for field references and 
 
 | Command | Description |
 |---------|-------------|
-| `update` | Check for and install CLI updates; `--check` to check only |
+| `update` | Check for and install CLI updates; `--check` to check only, `--channel <stable\|beta>` to switch release channel (saved to config) |
 | `version` / `--version` / `-V` | Print version, commit hash, and build timestamp |
 
 ## First Run

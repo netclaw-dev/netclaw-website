@@ -109,7 +109,17 @@ The [`init` wizard](/cli/init/) walks you through provider setup, security postu
 
 ## Switching release channels
 
-By default, the install script and daemon pull from the **stable** channel — release builds only. To opt into beta (prerelease) builds:
+By default, the install script and daemon pull from the **stable** channel — release builds only.
+
+If Netclaw is already installed, switch channels with the CLI:
+
+```bash
+netclaw update --channel beta
+```
+
+This installs the newest build on that channel right away and saves to your config, so later update checks and self-updates follow the beta feed. Pass `--channel stable` to switch back.
+
+To choose a channel at first install instead, pass `--channel` to the install script:
 
 **Linux:**
 
@@ -127,7 +137,7 @@ curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --channel beta
 
 Use the `ghcr.io/netclaw-dev/netclaw:beta` image tag instead of the default `ghcr.io/netclaw-dev/netclaw` (which resolves to the latest stable).
 
-After switching, set `Daemon.UpdateChannel: "beta"` in your config so the daemon checks the beta feed for self-updates.
+The install script only swaps which binaries it pulls. Also set `Daemon.UpdateChannel: "beta"` in your config so the daemon checks the beta feed for self-updates. (Switching with `netclaw update --channel` does this for you.)
 
 > **Note:** The install script is idempotent — running it on an existing install will update the binaries without breaking your configuration. If the daemon is running, stop it first:
 >
@@ -140,8 +150,9 @@ After switching, set `Daemon.UpdateChannel: "beta"` in your config so the daemon
 ## Updating
 
 ```bash
-netclaw update          # check for and install updates
-netclaw update --check  # check only, don't install
+netclaw update                 # check for and install updates
+netclaw update --check         # check only, don't install
+netclaw update --channel beta  # switch channel (saved to config), then update
 ```
 
 Self-update is disabled in the Docker image — update by pulling a new image tag instead.

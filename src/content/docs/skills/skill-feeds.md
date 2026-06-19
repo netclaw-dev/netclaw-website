@@ -3,7 +3,7 @@ title: "Skill Feeds"
 description: "Subscribing to private skill server feeds."
 ---
 
-Skill feeds connect your netclaw daemon to private skill servers. The daemon discovers available skills via the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) protocol, downloads them, verifies integrity via SHA-256 digests, and makes them available to the agent — all automatically.
+Skill feeds connect your netclaw daemon to private skill servers. The daemon discovers available skills via the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) protocol, downloads them, verifies integrity via SHA-256 digests, and makes them available to the agent — all automatically.
 
 Skills follow the [AgentSkills.io](https://agentskills.io) open standard format. Both standards are vendor-neutral and supported across multiple agent platforms, so skills published to a feed work anywhere that speaks the protocol.
 
@@ -206,5 +206,5 @@ The content scanner flagged prompt injection patterns in the skill body. Run `ne
 ## External Resources
 
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-spec) — the discovery protocol behind skill feeds
+- [Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc) — the discovery protocol behind skill feeds
 - [netclaw-dev/skill-server](https://github.com/netclaw-dev/skill-server) — reference implementation of a private skill server

@@ -275,7 +275,7 @@ The display name is derived from the first `#` heading in the markdown body, fal
 ## Resources
 
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) — discovery protocol for skill feeds
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) — discovery protocol for skill feeds
 - [netclaw skill-server](https://github.com/netclaw-dev/skill-server) — self-hosted skill registry for organizations
 - [Skills Overview](/skills/overview/) — how skills work at runtime
 - [Skill Feeds](/skills/skill-feeds/) — server-synced skill repositories

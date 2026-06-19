@@ -9,7 +9,7 @@ SkillServer is a self-hosted skill registry — a private NuGet feed or npm regi
 
 It implements two open standards:
 
-- **[Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-spec)** — discovery via `/.well-known/agent-skills/index.json`
+- **[Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc)** — discovery via `/.well-known/agent-skills/index.json`
 - **[AgentSkills.io](https://agentskills.io)** — the SKILL.md format for skill definitions
 
 Any agent that supports these standards can consume skills from your server, not just netclaw.
@@ -311,6 +311,6 @@ The daemon syncs on a periodic interval. Skills land in `~/.netclaw/skills/.serv
 ## External resources
 
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format spec
-- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) — the discovery protocol
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) — the discovery protocol
 - [netclaw-dev/skill-server on GitHub](https://github.com/netclaw-dev/skill-server) — source, issues, releases
 - [Tailscale GitHub Action](https://github.com/tailscale/github-action) — CI/CD access to private network servers

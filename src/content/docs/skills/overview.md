@@ -105,7 +105,7 @@ Well-known aliases expand to standard paths:
 | `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/plugins/marketplaces/*/skills/` |
 | `open-code` | `~/.open-code/skills/` |
 
-Server feed skills sync from private [skill servers](/skills/skill-server/) that implement the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec). These are self-hosted registries that distribute skills across your organization. Configure them in `netclaw config` → Skill Sources or add them later via `netclaw skill feed add`. See the [netclaw skill-server](https://github.com/netclaw-dev/skill-server) reference implementation for setting up your own.
+Server feed skills sync from private [skill servers](/skills/skill-server/) that implement the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc). These are self-hosted registries that distribute skills across your organization. Configure them in `netclaw config` → Skill Sources or add them later via `netclaw skill feed add`. See the [netclaw skill-server](https://github.com/netclaw-dev/skill-server) reference implementation for setting up your own.
 
 ## Precedence
 
@@ -181,5 +181,5 @@ Run [`netclaw stats skills`](/cli/stats/) to see which skills the agent loads mo
 ## Resources
 
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) — the protocol behind skill feeds and server-based distribution
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) — the protocol behind skill feeds and server-based distribution
 - [netclaw skill-server](https://github.com/netclaw-dev/skill-server) — reference implementation of a self-hosted skill registry

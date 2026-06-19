@@ -66,7 +66,7 @@ export NETCLAW_Mattermost__Enabled="true"
 
 ### How channel IDs are stored
 
-Enter channel names or IDs (comma-separated) in `netclaw config` → Channels. Netclaw resolves each entry against the Mattermost REST API to its canonical channel ID **before saving**. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Entries that cannot be resolved are rejected — they are not silently saved.
+Add channels one at a time in `netclaw config` → Channels. Netclaw resolves each entry against the Mattermost REST API to its canonical channel ID before adding it to the list. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Entries that cannot be resolved are flagged with a warning but saved verbatim in `AllowedChannelIds` — an unresolved name is inert at runtime because the ACL matches against canonical IDs only, so the name grants access to no channel until it resolves.
 
 :::caution
 **Breaking change (pre-0.24.0 → 0.24.0+):** If you previously placed display names in `AllowedChannelIds` by hand in `netclaw.json`, those names no longer match any channel ID, so those channels are silently denied. Re-enter them via `netclaw config` → Channels so they resolve to canonical IDs. (`DefaultChannelId` already holds a canonical ID, so it's unaffected.)
@@ -184,7 +184,7 @@ Reach `/api/mattermost/actions` over TLS. The callback trusts the user ID in the
 
 ### Proactive messaging
 
-The LLM can start a conversation with the `send_mattermost_message` tool. It takes a `channel_id` or a `user_id` (one or the other), posts a new thread root, and routes replies in that thread back to a live session. ACL rules still apply — DMing a `user_id` also requires `AllowDirectMessages: true`.
+The LLM can start a conversation with the generic `send_channel_message` tool — pass `channel_key: mattermost` and a `destination` resolved via `lookup_channel_user` or `lookup_channel_destination`. It posts a new thread root and routes replies in that thread back to a live session. ACL rules still apply — DMing a user also requires `AllowDirectMessages: true`.
 
 ### Reminders
 

@@ -19,7 +19,7 @@ It opens a **Settings Areas** menu with a live status summary for each area, so 
 
 The Settings Areas screen lists each configuration domain with a live status summary. Rows appear in this order:
 
-| Area | Example status |
+| Area | Possible status values |
 | --- | --- |
 | Inference Providers | `2 configured` |
 | Models | `claude-sonnet-4-5` |
@@ -31,10 +31,8 @@ The Settings Areas screen lists each configuration domain with a live status sum
 | Telemetry & Alerting | `OTLP on · 2 webhooks` |
 | Security & Access | `Team · 4/6 enabled` |
 | Workspaces Directory | `~/netclaw-workspaces` |
-| Run Full Doctor | *(terminal — exits and runs `netclaw doctor`)* |
-| Quit | *(terminal — exits without changes)* |
 
-Selecting an area opens its editor. **Changes autosave on completion** — there is no separate save step. Press Esc to back out of any area and return to the Settings Areas screen.
+Selecting an area opens its editor. **Changes autosave on completion** — there is no separate save step. Press Esc or Ctrl+Q at the Settings Areas screen to quit without changes. Press Esc inside any area to back out and return to the Settings Areas screen.
 
 **Inference Providers** and **Models** route out to [`netclaw provider`](/cli/provider/) and [`netclaw model`](/cli/model/), which own those surfaces. Backing out of either returns you to the Settings Areas screen.
 
@@ -46,7 +44,7 @@ Structurally invalid input (wrong type, out-of-range value) **blocks save with n
 
 Channels (Slack, Discord, Mattermost) are configured here, not in `netclaw init`. Each adapter is independently enabled, has its credentials entered, and has its channel allow-list managed from the Channels area.
 
-Channel entry is **resolve-before-add**: you type channel names or IDs (comma-separated), and netclaw resolves each against the platform API to its **canonical channel ID before saving**. The stored allow-list holds IDs, not display names; display names are shown dynamically in the editor.
+Channel entry is **resolve-before-add**: you type a channel name or ID, and netclaw resolves it against the platform API to its **canonical channel ID before saving**. The stored allow-list holds IDs, not display names; display names are shown dynamically in the editor.
 
 When saving an adapter, any names or IDs that can't be resolved at save time are kept as inert allow-list entries and flagged with a non-blocking `Could not resolve: #name — flagged below; fix or remove them.` warning. The adapter itself saves successfully.
 
@@ -56,9 +54,9 @@ When saving an adapter, any names or IDs that can't be resolved at save time are
 
 See the per-platform guides for token setup: [Slack](/channels/slack/), [Discord](/channels/discord/), [Mattermost](/channels/mattermost/).
 
-![The Channels area with Slack connected and its channels resolved to IDs](/screenshots/output/config-channels-menu.png)
+![The Channels area showing adapter selection — Slack is enabled with 2 channels and 1 user configured](/screenshots/output/config-channels-menu.png)
 
-Each adapter shows its live state — here Slack is connected with `2 channels, 1 user` resolved and stored as canonical IDs.
+The Channels adapter list — Slack is enabled and shows 2 channels, 1 user; Discord and Mattermost are available but not yet configured.
 
 ## Other areas
 

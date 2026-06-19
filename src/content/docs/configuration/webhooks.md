@@ -110,7 +110,7 @@ Every route requires a verification secret. Two modes:
 | `Hmac` | HMAC-SHA256 of the request body, compared with constant-time equality | `X-Webhook-Signature` |
 | `HeaderSecret` | Plain shared secret sent in a header | `X-Webhook-Secret` |
 
-> **CLI vs. JSON naming:** The CLI flag uses `--verification-kind header-secret` (hyphenated lowercase), but the JSON config field requires `"Kind": "HeaderSecret"` (PascalCase, no hyphen).
+> **CLI vs. JSON naming:** The JSON config field uses `"Kind": "HeaderSecret"` (PascalCase). The CLI flag `--verification-kind` accepts `hmac` or `headersecret` (no hyphen, case-insensitive). Using `header-secret` with a hyphen will fail at runtime — the CLI's own help text says `header-secret` but that form doesn't match the enum and prints a parse error.
 
 Only SHA-256 is supported for HMAC. Both modes share these default headers:
 
@@ -166,7 +166,7 @@ When `NotificationTarget` is set, the agent posts results to that channel. Only 
 
 To find your Slack channel ID, see [Locate your Slack URL or ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID).
 
-When `DeliveryRequired` is `true` and the route has notification instructions — either explicit `NotifyInstructions` or auto-generated from a `NotificationTarget` — the agent *must* call `send_slack_message` during the session. If it doesn't, the run is marked failed. When `DeliveryRequired` is `false`, the agent's session prompt tells it that notification is optional and can be skipped if there's nothing actionable.
+When `DeliveryRequired` is `true` and the route has notification instructions — either explicit `NotifyInstructions` or auto-generated from a `NotificationTarget` — the agent *must* call `send_channel_message` during the session. If it doesn't, the run is marked failed. When `DeliveryRequired` is `false`, the agent's session prompt tells it that notification is optional and can be skipped if there's nothing actionable.
 
 Routes without a `NotificationTarget` and without `NotifyInstructions` don't enforce delivery at all, regardless of the `DeliveryRequired` flag.
 
@@ -243,7 +243,7 @@ Route files contain plaintext secrets. Treat `~/.netclaw/config/webhooks/` the s
 1. Enable webhooks in `netclaw config` → Inbound Webhooks. The config editor shows a live summary of route counts (total, enabled, disabled, invalid). If you enable webhooks with no valid routes, a non-blocking advisory directs you to create a route with `netclaw webhooks set`.
 2. Create a route: `netclaw webhooks set <name> --prompt "..." --secret-env SECRET_VAR`
 3. Restart the daemon to pick up the `Webhooks.Enabled` change: `netclaw daemon stop && netclaw daemon start`
-4. Copy the webhook URL from [`netclaw status`](/cli/status/) and paste it into your external service
+4. Construct your webhook URL from your external hostname (Tailscale or Cloudflare): `<your-external-hostname>/api/webhooks/<route-name>`. Paste it into your external service.
 5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts
 
 <!-- TODO(screenshots): add config-inbound-webhooks.png showing the editor with route summary and advisory — capture via screenshots/tapes/config.tape after stable release; tracked in epic #55 -->
@@ -270,13 +270,13 @@ The request body exceeds the route's `MaxBodyBytes` (default 1 MB). Increase it 
 
 ## Finding your webhook URL
 
-Run [`netclaw status`](/cli/status/) to see the webhook base URL. Your route's full endpoint is:
+Your webhook URL is constructed from the external hostname you've configured for the daemon:
 
 ```
-<webhook-base-url>/api/webhooks/<route-name>
+<your-external-hostname>/api/webhooks/<route-name>
 ```
 
-The base URL depends on how you expose the daemon. [Tailscale Serve](https://tailscale.com/kb/1312/serve) and [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) are the two supported ingress options.
+The external hostname is set by whichever ingress option you use — [Tailscale Serve](https://tailscale.com/kb/1312/serve) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/). Find it in your Tailscale or Cloudflare dashboard. `netclaw status` shows the daemon's local endpoint (e.g. `http://localhost:PORT`) — that's not the externally reachable address.
 
 ## Limitations
 

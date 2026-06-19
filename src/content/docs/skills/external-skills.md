@@ -68,7 +68,7 @@ External sources live under `ExternalSkills.Sources` in `netclaw.json`:
 | `Path` | string | null | Absolute path to a skill directory (mutually exclusive with `WellKnown`) |
 | `WellKnown` | string | null | Well-known alias (mutually exclusive with `Path`) |
 | `Enabled` | bool | `true` | Whether the source is active |
-| `AllowSymlinks` | bool | `false` | Follow symlinks within the directory. Well-known sources like `claude-code` default to `true` when added via CLI or init wizard. |
+| `AllowSymlinks` | bool | `false` | Follow symlinks within the directory. Any well-known alias defaults to `true` when added via CLI (`--well-known`). |
 
 Each source must set either `Path` or `WellKnown`, not both.
 
@@ -100,7 +100,7 @@ All `netclaw skill source` commands work without the daemon running. CLI changes
 
 ## Adding Sources via the Config Menu
 
-`netclaw config` → Skill Sources presents two options: **Add a local skill folder** and **Add a remote skill server**.
+`netclaw config` → Skill Sources presents two options: **+ Add local folder** and **+ Add skill server**.
 
 Local folders are selected via a directory picker (Ctrl+N to create a new folder). After selection, you choose whether to allow symlinks in that folder, then confirm the source name. The source gets added and autosaved immediately.
 
@@ -128,7 +128,7 @@ The daemon logs a warning for missing directories at startup but keeps running.
 
 ## Security
 
-Well-known sources (like `claude-code`) have `AllowSymlinks: true` set automatically because their standard paths include symlinked marketplace plugins. Custom sources default to `AllowSymlinks: false` — opt in per source if you trust the targets.
+All well-known sources have `AllowSymlinks: true` set automatically when added via CLI — their standard paths often include symlinked directories. Custom sources default to `AllowSymlinks: false` — opt in per source if you trust the targets.
 
 External skills loaded from disk go through:
 

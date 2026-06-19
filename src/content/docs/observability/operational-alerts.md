@@ -91,7 +91,7 @@ Each webhook target has:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `Url` | Yes | Endpoint to POST alerts to |
-| `Name` | Yes | Human-readable label for logs |
+| `Name` | No | Human-readable label for logs (falls back to the URL if omitted) |
 | `Format` | No | `Slack` or `Generic` (default). URLs containing `hooks.slack.com` auto-detect as Slack. |
 | `Headers` | No | Custom HTTP headers (auth tokens, API keys) |
 
@@ -151,12 +151,12 @@ Each message includes a `text` fallback for notification previews. The `blocks` 
 
 | Attempt | Base Delay | Range (with ±25% jitter) |
 |---------|-----------|---------------------|
-| 1 | 1s | 0.75s – 1.25s |
-| 2 | 2s | 1.5s – 2.5s |
+| 1 | 2s | 1.5s – 2.5s |
+| 2 | 4s | 3s – 5s |
 
 Backoff caps at 30 seconds for higher retry counts. Netclaw doesn't retry client errors (4xx) — only server errors (5xx) and timeouts trigger retries.
 
-**Bounded queue** — Netclaw buffers alerts in a 256-slot in-memory queue. If the queue fills (all webhook targets are slow or down), new alerts drop rather than applying backpressure to the daemon.
+**Bounded queue** — Netclaw buffers alerts in a 256-slot in-memory queue. When the queue fills, the oldest buffered alert is dropped to make room for the new one, so the daemon always accepts new alerts without blocking.
 
 ## Further Reading
 

@@ -130,14 +130,14 @@ curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --channel beta
 **Windows:**
 
 ```powershell
-.\install.ps1 --channel beta
+.\install.ps1 -Channel beta
 ```
 
 **Docker:**
 
 Use the `ghcr.io/netclaw-dev/netclaw:beta` image tag instead of the default `ghcr.io/netclaw-dev/netclaw` (which resolves to the latest stable).
 
-The install script only swaps which binaries it pulls. Also set `Daemon.UpdateChannel: "beta"` in your config so the daemon checks the beta feed for self-updates. (Switching with `netclaw update --channel` does this for you.)
+The install script only swaps which binaries it pulls. Also set `Daemon.UpdateChannel` to `"beta"` in `netclaw.json` so the daemon checks the beta feed for self-updates. (Switching with `netclaw update --channel` does this for you.)
 
 > **Note:** The install script is idempotent — running it on an existing install will update the binaries without breaking your configuration. If the daemon is running, stop it first:
 >

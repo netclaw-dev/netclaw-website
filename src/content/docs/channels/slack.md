@@ -251,7 +251,7 @@ The `"dm"` key is reserved — it matches every direct message rather than a cha
 
 ### Threads and sessions
 
-Each Slack thread is its own isolated session, and the bot always replies in-thread. Idle sessions are checkpointed and freed from memory after 1 hour.
+Each Slack thread is its own isolated session, and the bot always replies in-thread. Idle threads are freed from memory after 1 hour; the conversation context clears after 2 hours of inactivity.
 
 On daemon restart, thread history is backfilled so in-progress conversations pick up where they left off.
 
@@ -284,7 +284,7 @@ The LLM can initiate conversations through two built-in tools:
 
 | Tool | What it does |
 |------|-------------|
-| `send_slack_message` | Posts a top-level message to a channel or DM. Takes `channel_id` or `user_id`. Respects ACL. |
+| `send_channel_message` | Posts a message to a Slack channel or DM using a resolved destination. Pass `channel_key="slack"` and a `destination` object (with `kind`, `id`) from `lookup_slack_user` or `lookup_channel_destination`. Respects ACL. |
 | `lookup_slack_user` | Searches users by name, display name, or email. Returns up to 10 matches. Filtered to `AllowedUserIds` if set. Cached 5 minutes. |
 
 ### Ignored messages

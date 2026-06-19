@@ -3,7 +3,7 @@ title: "netclaw init"
 description: "First-run setup wizard: provider, identity, security posture, enabled features, and health check."
 ---
 
-`netclaw init` runs the bootstrap wizard — five focused steps that get netclaw from zero to a working chat session. Run it once on a fresh install. If you need to adjust channels, search, exposure mode, or skills after setup, use [`netclaw config`](/cli/config/) instead.
+`netclaw init` runs the bootstrap wizard — four or five steps depending on your security posture — that get netclaw from zero to a working chat session. Run it once on a fresh install. If you need to adjust channels, search, exposure mode, or skills after setup, use [`netclaw config`](/cli/config/) instead.
 
 ## Usage
 
@@ -28,7 +28,7 @@ Pick an LLM provider, enter credentials, and select a default model.
 
 ![Provider selection list](/screenshots/output/init-01-provider-list.png)
 
-Providers are listed alphabetically: Anthropic, GitHub Copilot, Ollama, OpenAI, llama.cpp / vLLM, OpenRouter, and Venice.ai. Self-hosted backends (Ollama, llama.cpp / vLLM) prompt for an endpoint URL next.
+Available providers: Anthropic, GitHub Copilot, Ollama, OpenAI, llama.cpp / vLLM, OpenRouter, and Venice.ai. Self-hosted backends (Ollama, llama.cpp / vLLM) prompt for an endpoint URL next.
 
 ![Endpoint configuration](/screenshots/output/init-01-endpoint.png)
 
@@ -59,10 +59,12 @@ Webhook URLs and workspace directories are **not** collected here — they're po
 
 ![Security posture selection](/screenshots/output/init-02-security-posture.png)
 
+Three postures are listed with a brief annotation; the hint line below explains the shell-access implications of each.
+
 | Posture | Who uses it | Shell access | Enabled Features step |
 |---------|------------|--------------|----------------------|
 | **Personal** | Single user, high trust | Enabled with approval gates | Skipped (all features on by default) |
-| **Team** | Multiple users, medium trust | Off by default | Shown (all features on by default) |
+| **Team** | Multiple users, medium trust | Off | Shown (all features on by default) |
 | **Public** | Untrusted users, low trust | Off | Shown (all features off by default) |
 
 You can tighten or loosen per-channel behavior later in `netclaw config`.
@@ -83,6 +85,8 @@ Six toggles that control what's available across all audiences:
 Space to toggle, Enter to continue. Personal posture skips this step entirely — all features are on by default.
 
 ![Feature selection on Team posture](/screenshots/output/init-04-enabled-features.png)
+
+All six features default to enabled on Team posture; Public posture defaults them all off.
 
 ### Step 5 — Health Check
 

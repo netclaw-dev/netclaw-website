@@ -261,10 +261,10 @@ PR builds validate with `--dry-run`. Pushes to master publish for real. Existing
 
 ## Connecting netclaw instances
 
-Add a skill server as a feed source:
+Add a skill server as a feed source through `netclaw config` → Skill Sources (select **+ Add skill server** and enter the base URL), or by adding it to the `SkillFeeds.Feeds` array in `~/.netclaw/config/netclaw.json`:
 
-```bash
-netclaw skill feed add my-server --url http://skills.internal.example.com/manifest.json
+```json
+{ "SkillFeeds": { "Feeds": [ { "Name": "my-server", "Url": "http://skills.internal.example.com", "Enabled": true } ] } }
 ```
 
 The daemon syncs on a periodic interval. Skills land in `~/.netclaw/skills/.server-feeds/` (read-only). See [Skill Feeds](/skills/skill-feeds/) for sync intervals, authentication, and selective sync options.

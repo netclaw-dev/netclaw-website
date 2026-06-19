@@ -109,7 +109,7 @@ export NETCLAW_Discord__Enabled="true"
 
 ### How channel IDs are stored
 
-Enter channel names or IDs (comma-separated) in `netclaw config` → Channels. Netclaw resolves each entry against the Discord API to its canonical channel ID **before saving**. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Entries that cannot be resolved and are not id-shaped (17–20 digit snowflakes) are rejected and flagged — they are not silently saved. Well-formed channel IDs are kept even when the bot can't enumerate them at save time.
+Enter channel names or IDs (comma-separated) in `netclaw config` → Channels. Netclaw resolves each entry against the Discord API to its canonical channel ID before saving. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Names that cannot be resolved remain in `AllowedChannelIds` verbatim and are flagged with a warning — they are inert until the bot can see the channel, at which point a background refresh rewrites them to canonical IDs. Entries added one-at-a-time via the add-channel flow are rejected at entry time if they do not resolve. A genuine auth or network failure blocks the entire save.
 
 :::caution
 **Breaking change (pre-0.24.0 → 0.24.0+):** If you previously placed display names in `AllowedChannelIds`, those values no longer match incoming channel IDs and messages will be silently dropped. Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs. `DefaultChannelId` is already a canonical channel ID and is not affected.
@@ -227,7 +227,7 @@ Discord natively renders markdown — bold, italic, code blocks, headers, lists,
 
 ### Tool approval
 
-When a tool call needs approval, netclaw posts an interactive button prompt in the thread. The prompt shows the tool name, action, and pattern(s). The full set is five buttons: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** — "Always anywhere" grants the command everywhere, so use it sparingly. netclaw shows fewer when some don't apply — a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. Only the user who triggered the request can approve.
+When a tool call needs approval, netclaw posts an interactive button prompt in the thread. The prompt shows the tool name, action, and pattern(s). The full set is five buttons: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** — though **Always here** is omitted when the working directory is a session scratch path or too shallow for a folder-scoped grant. **Always anywhere** grants the command everywhere, so use it sparingly. netclaw shows fewer buttons when some don't apply — a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. Only the user who triggered the request can approve.
 
 If posting the button prompt fails, netclaw falls back to a text prompt where you reply with the letter shown next to each option.
 
@@ -235,16 +235,14 @@ After a decision, netclaw updates the original message in-place with a checkmark
 
 ### Reminders
 
-Reminder targets for Discord users accept several formats:
+Discord reminders deliver to guild text channels only — user DMs are not supported as reminder targets. Accepted formats:
 
-- `<@123456789012345678>` or `<@!123456789012345678>` — standard Discord mention
-- `@123456789012345678` — shorthand
-- `123456789012345678` — raw user ID
-- `dm:123456789012345678` — explicit DM channel
+- `<#123456789012345678>` — Discord channel mention
+- `channel:123456789012345678` — explicit channel prefix
 
 ### Proactive messaging
 
-Discord does not have proactive messaging tools yet. Unlike Slack's `send_slack_message` and `lookup_slack_user`, there are no equivalent tools for initiating conversations in Discord channels or looking up users by name. Reminders work, but the bot can't start new threads on its own.
+The LLM can start a conversation with the generic `send_channel_message` tool — pass `channel_key: discord` and a `destination` (a guild text channel or a DM) resolved via `lookup_channel_user` or `lookup_channel_destination`. ACL rules still apply.
 
 ### Ignored messages
 

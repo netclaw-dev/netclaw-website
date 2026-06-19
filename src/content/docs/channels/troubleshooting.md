@@ -146,7 +146,7 @@ Add the user's ID to `AllowedUserIds`, or clear the list to allow all users:
 
 ### DMs Not Working
 
-Direct messages to the bot get no response, but channel messages work fine. Logs show `DmNotAllowed`.
+Direct messages to the bot get no response, but channel messages work fine. Logs show `event_filtered ... reason=routing_policy_ignore ignoreReason=DmNotAllowed`.
 
 `AllowDirectMessages` defaults to `false`. Turn it on:
 
@@ -178,7 +178,7 @@ After editing, restart the daemon: `netclaw daemon stop && netclaw daemon start`
 
 ### Bot Not Responding to Messages (MentionOnly)
 
-Bot is connected and healthy but only responds to some messages. Logs show `ChannelMentionRequired`.
+Bot is connected and healthy but only responds to some messages. Logs show `event_filtered ... reason=routing_policy_ignore ignoreReason=ChannelMentionRequired`.
 
 `MentionOnly` defaults to `true`, so the bot ignores messages that don't @-mention it. Either @-mention the bot every time, or turn it off:
 
@@ -283,13 +283,13 @@ Still stuck? Turn on debug logging in `~/.netclaw/config/netclaw.json`:
 Restart the daemon, trigger the failing interaction, and look for these patterns:
 
 **Healthy message flow (Slack):**
-1. `Routing Slack event ... to conversation ...`
-2. `Routing Slack event ... to session thread actor`
-3. `Accepted inbound Slack message for session queue`
-4. `Received user message`
-5. `Posted Slack reply message`
+1. `Routing Slack event {id} to conversation {channelId}` — [SlackGatewayActor, Debug]
+2. `turn_routed event={EventId} hasFiles=... textChars=...` — [SlackConversationActor]
+3. `turn_received textChars=... fileCount=...` — [SlackThreadBindingActor]
+4. `turn_enqueued contentItems=...` — [SlackThreadBindingActor]
+5. `Posted Slack reply message` — [SlackThreadBindingActor]
 
-If the chain stalls at step 3, something in ACL config is rejecting the message. If it stalls at step 5, the reply couldn't be posted. Check the error tables above.
+If step 1 never appears, the message was dropped before routing — check ACL config (`channel_not_allowed`, `user_not_allowed`). If step 1 appears but step 2 does not, the routing policy filtered it (look for `event_filtered reason=routing_policy_ignore`). If step 4 appears but step 5 does not, the reply couldn't be posted — check the error tables above.
 
 **Quick triage commands:**
 

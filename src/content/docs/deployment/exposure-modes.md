@@ -24,7 +24,7 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 
 Configure the exposure mode via `netclaw config` — navigate to **Security & Access → Exposure Mode** — or set `Daemon.ExposureMode` directly in `netclaw.json`.
 
-<!-- TODO(screenshots): config-exposure.png — netclaw config → Security & Access → Exposure Mode selection screen; capture from tests/smoke/tapes/config-exposure.tape after release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+<!-- TODO(screenshots): embed config-exposure.png here — screenshot exists in screenshots/output/config-exposure.png; blocked on netclaw-dev/netclaw#1368 (tracked in epic #55) -->
 
 Options marked with a warning triangle expose the daemon to the public internet. Tailscale Serve is the recommended remote mode: tailnet-only access, no public exposure.
 
@@ -179,18 +179,13 @@ netclaw daemon pair
 If the mode requires `tailscaled` or `cloudflared` and that process isn't running, you'll see this in the daemon logs (`~/.netclaw/logs/daemon.log` or `journalctl --user -u netclaw` for systemd):
 
 ```
-Daemon startup aborted: ExposureMode is 'tailscale-serve' but the required
-tunnel process 'tailscaled' is not running. Start 'tailscaled' before starting
-Netclaw, or set ExposureMode to 'local' in netclaw.json.
+Daemon startup aborted: Tunnel prerequisite not met: ExposureMode='tailscale-serve' requires 'tailscaled' to be running unless Daemon.SkipTunnelProcessCheck=true is explicitly set for a sidecar or host-managed tunnel topology. Remediation: Start 'tailscaled' locally, or set Daemon.SkipTunnelProcessCheck=true only when the tunnel is intentionally managed outside the Netclaw process namespace.
 ```
 
 If no paired devices exist and no alternative auth scheme is configured:
 
 ```
-Daemon startup aborted: ExposureMode is 'tailscale-serve' but no paired devices
-exist and no alternative remote authentication scheme is configured. Pair a device
-with 'netclaw daemon pair' or configure another remote auth scheme before starting
-Netclaw.
+Daemon startup aborted: No remote authentication available: ExposureMode='tailscale-serve' requires either at least one paired device or an alternative remote auth scheme. Remediation: Run 'netclaw daemon pair' to pair a device, or check your auth configuration before exposing the daemon remotely.
 ```
 
 Both are fatal. The daemon won't start until you fix the underlying issue.

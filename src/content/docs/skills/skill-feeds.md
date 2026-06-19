@@ -36,19 +36,13 @@ Each feed syncs independently. A failing server never blocks other feeds or daem
 
 ## Add a Feed via netclaw config
 
-The `netclaw config` → Skill Sources screen lets you add remote skill servers. Select "Add a remote skill server," enter the base URL, and the daemon probes for `/.well-known/agent-skills/index.json`, reports the skill count (or shows the error), and suggests a name based on the hostname. If the server requires authentication, you'll be prompted for a bearer token. Add as many feeds as you need.
+The `netclaw config` → Skill Sources screen lets you add remote skill servers. Select "+ Add skill server," enter the base URL, and the daemon probes for `/.well-known/agent-skills/index.json`, reports the skill count (or shows the error), and suggests a name based on the hostname. If the server requires authentication, you'll be prompted for a bearer token. Add as many feeds as you need.
 
 <!-- TODO(screenshots): config-skills.png — capture the "Add a remote skill server" flow (URL prompt + discovery probe + optional bearer token) via screenshots/tapes/config.tape after release; tracked in epic #55 -->
 
 ## Manual Configuration
 
-Add a feed after init:
-
-```bash
-netclaw skill feed add corp-skills --url https://skills.corp.com
-```
-
-Or edit `~/.netclaw/config/netclaw.json` directly:
+Remote feeds can only be added through `netclaw config` → Skill Sources, or by editing `~/.netclaw/config/netclaw.json` directly:
 
 ```json
 {
@@ -181,7 +175,7 @@ Two related config keys control broader skill behavior:
 
 ### Feed shows 0 skills after adding
 
-Run `netclaw skill feed list` to confirm the feed is enabled. Then check the daemon logs — the most common cause is the server not serving `/.well-known/agent-skills/index.json` at the expected path. Verify with:
+Open `netclaw config` → Skill Sources to confirm the feed is enabled, or check `~/.netclaw/config/netclaw.json` under the `SkillFeeds.Feeds` array. Then check the daemon logs — the most common cause is the server not serving `/.well-known/agent-skills/index.json` at the expected path. Verify with:
 
 ```bash
 curl -s https://skills.corp.com/.well-known/agent-skills/index.json | head

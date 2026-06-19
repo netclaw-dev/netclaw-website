@@ -33,9 +33,9 @@ Use [`netclaw provider`](/cli/provider/) to add more providers later.
 
 ### Set your identity
 
-![Identity step](/screenshots/output/init-02-identity.png)
+![Identity step — communication style substep](/screenshots/output/init-02-identity.png)
 
-Four substeps in order: agent name → communication style → your name → timezone. All four fields pre-fill when you re-run `netclaw init` on an existing install.
+The identity step has four substeps in order: agent name → communication style → your name → timezone. The screenshot above shows the communication style substep. All four fields pre-fill when you re-run `netclaw init` on an existing install.
 
 ### Set your security posture
 
@@ -56,7 +56,7 @@ The wizard validates provider connectivity, writes config, and starts the daemon
 If the health check finishes with warnings, the wizard displays: "Setup complete with warnings. Run `netclaw daemon start`, then `netclaw chat`. Adjust settings with `netclaw config`." Fix the flagged issue and retry.
 
 :::note
-Channels (Slack, Discord, Mattermost), search providers, and network exposure are configured after init via [`netclaw config`](/cli/config/). Run `netclaw config` any time — it autosaves on completion.
+Channels (Slack, Discord, Mattermost), search providers, and network exposure are configured after init via [`netclaw config`](/cli/config/). Run `netclaw config` any time — changes save as you make them.
 :::
 
 ## 3. First chat session

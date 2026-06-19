@@ -77,6 +77,20 @@ Instructions for the agent go here...
 
 The display name shown in `netclaw skill list` comes from the first `#` heading in the markdown body, falling back to title-casing the skill name.
 
+## Quick setup
+
+To add an external skill directory or connect a skill server, run `netclaw config` → Skill Sources. The TUI opens an interactive picker — no manual JSON editing required.
+
+```bash
+netclaw config
+```
+
+Select **Skill Sources** to add a local folder (e.g., `~/.claude/skills/`) or subscribe to a private [skill server](/skills/skill-server/). Changes take effect on the next scan without a restart.
+
+![Skill Sources editor](/screenshots/output/config-skills.png)
+
+Manual configuration (e.g., for scripted or Docker installs) is covered in [External Skills](/skills/external-skills/) and [Skill Feeds](/skills/skill-feeds/).
+
 ## Where skills come from
 
 Four source types, each with different trust and management:
@@ -94,11 +108,7 @@ System skills ship from a CDN feed and are read-only. Built-in skills like `netc
 
 <!-- TODO: needs user input — What is the full list of built-in system skills that ship from CDN? -->
 
-External skills let netclaw read skill directories from other AI tools. Add a local skill folder via `netclaw config` → Skill Sources (opens an interactive directory picker), or wire up a well-known alias via the CLI.
-
-![Skill Sources editor](/screenshots/output/config-skills.png)
-
-The Skill Sources screen in `netclaw config` — add a local folder or connect a remote skill server.
+External skills let netclaw read skill directories from other AI tools. Add a local folder via `netclaw config` → Skill Sources or wire up a well-known alias via the CLI.
 
 Well-known aliases expand to standard paths:
 
@@ -152,7 +162,7 @@ When `skill_load` hits this skill, it spawns the named subagent with the skill's
 
 ## Configuration
 
-Two config keys in `netclaw.json` control skill loading:
+Run `netclaw config` to manage skill sources interactively. Two keys in `netclaw.json` also control skill loading directly:
 
 | Key | Default | Description |
 |-----|---------|-------------|

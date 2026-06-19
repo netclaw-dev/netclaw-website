@@ -80,11 +80,12 @@ Tool calls and results stream to stdout, then the process exits. Good for script
 
 ## Where to go from here
 
-At this point, Netclaw has your profile and a working tool stack. A few directions worth exploring:
+At this point, netclaw has your profile and a working tool stack. A few directions worth exploring:
 
+- **Connect channels, enable search, set exposure mode** — run [`netclaw config`](/cli/config/) to reach any of these. It's a re-entrant menu-driven TUI; everything `netclaw init` didn't set up lives here.
+- Wire it into Slack or Discord: create your Slack app, then run `netclaw config` → Channels to enter the tokens ([Channels guide](/channels/slack/))
+- Give netclaw more tools via [`netclaw mcp`](/cli/mcp-tools/) — MCP servers for databases, APIs, file systems, whatever you need
 - Resume this session later: `Ctrl+Q` to close, [`netclaw sessions`](/cli/sessions/) to pick it back up
-- Give Netclaw more tools via [`netclaw mcp`](/cli/mcp-tools/) — MCP servers for databases, APIs, file systems, whatever you need
-- Wire it into Slack or Discord so your team can talk to the same agent ([Channels](/channels/slack/))
 - [`netclaw chat`](/cli/chat/) has the full reference: keyboard shortcuts, JSON output, named sessions, scripted multi-turn workflows
 
 ## Resources

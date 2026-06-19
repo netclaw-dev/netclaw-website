@@ -184,6 +184,7 @@ netclaw chat -p --resume "$SESSION" --json "write a summary for the team" | jq -
 
 ## Related commands
 
+- [`netclaw config`](/cli/config/) — Connect Slack/Discord/Mattermost channels, enable web search, set exposure mode, and configure everything `init` doesn't touch
 - [`netclaw sessions`](/cli/sessions/) — Browse and resume previous chat sessions
 - [`netclaw init`](/cli/init/) — First-run setup (configures the daemon that chat connects to)
 - [`netclaw status`](/cli/status/) — Check daemon health before starting a chat

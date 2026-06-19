@@ -141,15 +141,17 @@ Both destructive scopes require **two confirmations**. The default selection at 
 
 ## After init
 
+After init, netclaw responds to you locally via `netclaw chat` — and nothing else. No channels are connected, search is disabled, and the daemon is loopback-only. To wire up Slack, Discord, or Mattermost, enable web search, or expose the daemon to your team, run `netclaw config` next.
+
 ```bash
+# Connect channels, enable search, set exposure mode, configure skills
+netclaw config
+
 # Verify everything is healthy
 netclaw doctor
 
 # Check daemon status
 netclaw status
-
-# Add channels, search, exposure, and skills
-netclaw config
 ```
 
 ## Related commands

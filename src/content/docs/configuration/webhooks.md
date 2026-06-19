@@ -5,15 +5,33 @@ description: "Configure webhook routes for event-driven automation."
 
 Inbound webhook routes let external services POST to your daemon and kick off autonomous agent sessions. The daemon verifies the signature, spawns a session with the route's prompt and the inbound payload, and optionally delivers results to a notification target.
 
+## Quick start
+
+Run `netclaw config`, navigate to **Inbound Webhooks**, and toggle the global endpoint on. Then create your first route:
+
+```bash
+netclaw webhooks set github-issues \
+  --prompt "Triage this GitHub issue." \
+  --secret-env GITHUB_WEBHOOK_SECRET
+```
+
+![Inbound Webhooks editor](/screenshots/output/config-inbound-webhooks.png)
+
+The Inbound Webhooks editor — toggle the global endpoint and set the execution timeout. Route authoring stays in [`netclaw webhooks`](/cli/webhooks/).
+
+Restart the daemon once to activate `Webhooks.Enabled`, then route changes are [hot-reloaded](#hot-reload) on each request. The rest of this page is the full reference.
+
+---
+
 External services POST JSON to `/api/webhooks/<route>`. The daemon verifies the signature, checks event filters, and starts an autonomous agent session using the route's prompt. Each route is a standalone JSON file in `~/.netclaw/config/webhooks/`.
 
 ![netclaw webhooks list showing the route directory path](/screenshots/output/webhooks-list.png)
 
 All CLI route management works offline — no running daemon required. See [`netclaw webhooks`](/cli/webhooks/) for the full CLI reference.
 
-### Global settings
+### Global settings (manual configuration)
 
-Enable inbound webhooks and set the execution timeout in `~/.netclaw/config/netclaw.json`:
+For scripted or headless installs, set `Webhooks.Enabled` directly in `~/.netclaw/config/netclaw.json`. Interactive installs should use `netclaw config` → Inbound Webhooks instead.
 
 ```json
 {
@@ -240,17 +258,13 @@ Route files contain plaintext secrets. Treat `~/.netclaw/config/webhooks/` the s
 
 ## Setup
 
-1. Enable webhooks in `netclaw config` → Inbound Webhooks. The config editor shows a live summary of route counts (total, enabled, disabled, invalid). If you enable webhooks with no valid routes, a non-blocking advisory directs you to create a route with `netclaw webhooks set`.
+1. Run `netclaw config` → **Inbound Webhooks** and toggle the global endpoint on. The editor shows a live summary of route counts (total, enabled, disabled, invalid). If you enable webhooks with no valid routes, a non-blocking advisory directs you to create a route with `netclaw webhooks set`.
 2. Create a route: `netclaw webhooks set <name> --prompt "..." --secret-env SECRET_VAR`
-3. Restart the daemon to pick up the `Webhooks.Enabled` change: `netclaw daemon stop && netclaw daemon start`
+3. Restart the daemon once to pick up the `Webhooks.Enabled` change: `netclaw daemon stop && netclaw daemon start`
 4. Construct your webhook URL from your external hostname (Tailscale or Cloudflare): `<your-external-hostname>/api/webhooks/<route-name>`. Paste it into your external service.
-5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts
+5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts.
 
-![Inbound Webhooks editor](/screenshots/output/config-inbound-webhooks.png)
-
-The Inbound Webhooks editor in `netclaw config` — toggle the global endpoint and set the execution timeout; route authoring stays in [`netclaw webhooks`](/cli/webhooks/).
-
-You only need to restart when first enabling `Webhooks.Enabled`. After that, route changes are [hot-reloaded](#hot-reload) on each request.
+After the first restart, route changes are [hot-reloaded](#hot-reload) on each request — no further restarts needed.
 
 ## Troubleshooting
 

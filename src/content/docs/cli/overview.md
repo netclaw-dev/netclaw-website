@@ -54,6 +54,7 @@ See the [Pairing Remote Devices](/guides/pairing-remote-devices/) guide for the 
 
 | Command | Description | Daemon | TUI |
 |---------|-------------|--------|-----|
+| [`config`](/cli/config/) | Post-init setup: channels, search, network exposure, browser automation, telemetry, skill sources | No | Yes |
 | [`provider`](/cli/provider/) | Manage LLM providers | No | Yes (bare invocation) |
 | [`model`](/cli/model/) | Manage model role assignments | No | Yes (bare invocation) |
 | [`mcp`](/cli/mcp-tools/) | Manage [MCP](https://modelcontextprotocol.io/specification) (Model Context Protocol) server profiles and tool permissions | Optional | Partial |
@@ -61,6 +62,8 @@ See the [Pairing Remote Devices](/guides/pairing-remote-devices/) guide for the 
 | [`secrets`](/cli/secrets/) | Store encrypted secrets via `secrets set <key> <value>`. See [Secrets](/security/secrets/). | No | No |
 | [`reminder`](/cli/reminder/) | Manage scheduled reminders | Required | Yes (`ui` or `tui` subcommand) |
 | [`skill`](/cli/skill/) | Manage skills and external skill sources. See [Skills](/skills/overview/). | No | No |
+
+If you just ran `netclaw init`, `netclaw config` is your next stop — channels (Slack, Discord, Mattermost), search, and network exposure all live there.
 
 See [Configuration](/configuration/managed-providers/) for field references and config file details.
 
@@ -77,6 +80,9 @@ See [Configuration](/configuration/managed-providers/) for field references and 
 # First-time setup (starts the daemon automatically)
 netclaw init
 
+# Connect channels, enable search, set exposure mode
+netclaw config
+
 # Check everything is wired up
 netclaw doctor
 
@@ -84,7 +90,7 @@ netclaw doctor
 netclaw status
 ```
 
-If `status` shows errors, run `netclaw doctor --fix` to auto-repair common issues.
+`netclaw init` is intentionally minimal — it doesn't set up Slack, Discord, web search, or network exposure. Run `netclaw config` immediately after to configure those. If `status` shows errors, run `netclaw doctor --fix` to auto-repair common issues.
 
 ```bash
 # Start chatting

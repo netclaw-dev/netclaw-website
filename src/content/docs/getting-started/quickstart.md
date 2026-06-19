@@ -55,15 +55,19 @@ The wizard validates provider connectivity, writes config, and starts the daemon
 
 If the health check finishes with warnings, the wizard displays: "Setup complete with warnings. Run `netclaw daemon start`, then `netclaw chat`. Adjust settings with `netclaw config`." Fix the flagged issue and retry.
 
-:::note
-Channels (Slack, Discord, Mattermost), search providers, and network exposure are configured after init via [`netclaw config`](/cli/config/). Run `netclaw config` any time — changes save as you make them.
-:::
+## 3. Connect channels and features
 
-## 3. First chat session
+```bash
+netclaw config
+```
+
+Channels (Slack, Discord, Mattermost), web search, network exposure, skill sources, webhooks, and browser automation are all configured here — none of them are set during `netclaw init`. Run `netclaw config` now to connect your first channel or enable search before you do anything else. Changes save as you make them; re-run it any time.
+
+## 4. First chat session
 
 <!-- TODO(screenshots): chat-session-start.png — capture after release; epic #55 -->
 
-On a clean health check, init drops you straight into the chat TUI. The agent introduces itself and kicks off a personality-bootstrapping conversation — it asks about your work, your tools, and what you need help with. This builds your profile so future conversations have context.
+On a clean health check, `netclaw init` drops you straight into the chat TUI. The agent introduces itself and kicks off a personality-bootstrapping conversation — it asks about your work, your tools, and what you need help with. This builds your profile so future conversations have context.
 
 See [Your First Conversation](/getting-started/first-conversation/) for the full walkthrough of what happens next.
 
@@ -79,8 +83,10 @@ Pipe output to other tools with `--json`. See [`netclaw chat`](/cli/chat/) for t
 
 ## What's next
 
+Init gets you to chat. To make netclaw actually useful — connecting it to Slack, enabling web search, or exposing it to your team — run `netclaw config` next.
+
+- [`netclaw config`](/cli/config/) — connect channels, enable web search, set network exposure and skills
 - [Your First Conversation](/getting-started/first-conversation/) — personality bootstrapping and your first real interaction
-- [`netclaw config`](/cli/config/) — connect channels, enable search, set network exposure
+- [Slack](/channels/slack/) / [Discord](/channels/discord/) — full channel setup guides
 - [`netclaw doctor`](/cli/doctor/) — diagnose issues if something didn't work
 - [`netclaw status`](/cli/status/) — check daemon health and connector states
-- [Slack](/channels/slack/) / [Discord](/channels/discord/) — full channel setup guides

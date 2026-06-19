@@ -1395,6 +1395,7 @@ import SiteNav from '../components/SiteNav.astro';
           An AI agent that runs on your hardware, connects to the communications
           tools you and your team use &mdash; Slack, Discord, and more. Built with .NET. Open source.
         </p>
+        <p style="font-size:0.85rem;color:var(--mute);margin-top:-20px;margin-bottom:28px;">Channels, web search, and network exposure are set up after install with <code style="font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">netclaw config</code>.</p>
         <div class="hero-buttons">
           <a href="#get-started" class="btn btn-primary btn-lg">Get Started</a>
           <a href="https://github.com/netclaw-dev" class="btn btn-ghost btn-lg" target="_blank" rel="noopener">
@@ -1430,7 +1431,8 @@ import SiteNav from '../components/SiteNav.astro';
             <div class="terminal-line typing"><span class="prompt">$ </span><span class="cmd">curl</span> <span class="flag">-sSL</span> <span class="url">https://releases.netclaw.dev/install.sh</span> <span class="pipe">|</span> <span class="cmd">bash</span></div>
             <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">init</span></div>
             <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">daemon start</span></div>
-            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">chat</span><span class="terminal-cursor"></span></div>
+            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">chat</span></div>
+            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">config</span>  <span class="flag"># connect Slack, Discord, web search &amp; more</span><span class="terminal-cursor"></span></div>
           </div>
         </div>
       </div>
@@ -1512,6 +1514,16 @@ import SiteNav from '../components/SiteNav.astro';
             </button>
           </div>
           <p class="step-note">On a clean health check, init drops you straight into chat. Run this if the wizard finished with warnings or you need to restart later.</p>
+        </div>
+        <div class="next-step">
+          <span class="next-step-label">Then (to connect channels &amp; enable features)</span>
+          <div class="code-block">
+            <code><span class="code-cmd">netclaw</span> config</code>
+            <button class="copy-btn" aria-label="Copy to clipboard" data-copy="netclaw config">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+          <p class="step-note">Re-entrant menu-driven TUI for everything <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;background:rgba(255,255,255,0.06);padding:2px 5px;border-radius:4px;">init</code> skips: Slack, Discord, and Mattermost channels; web search; network exposure; inbound webhooks; skill sources. Run it any time to change settings.</p>
         </div>
       </div>
     </div>
@@ -1740,6 +1752,10 @@ import SiteNav from '../components/SiteNav.astro';
           </p>
         </div>
 
+      </div>
+      <div class="section-cta">
+        <p style="color:var(--mute-light);font-size:0.95rem;margin-bottom:16px;">All of these are configured after install with <code style="font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">netclaw config</code>.</p>
+        <a href="/getting-started/quickstart/" class="btn btn-ghost">See the quickstart guide &rarr;</a>
       </div>
     </div>
   </section>

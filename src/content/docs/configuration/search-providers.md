@@ -3,9 +3,25 @@ title: Search Providers
 description: Configure the web search backend that powers Netclaw's web_search and web_fetch tools.
 ---
 
-The `web_search` and `web_fetch` tools route through one configured search backend. Netclaw supports three: a self-hosted SearXNG instance, the managed Brave Search API, and DuckDuckGo as a last-resort scraper. You pick one in `~/.netclaw/config/netclaw.json` via the `Search.Backend` key.
+The `web_search` and `web_fetch` tools route through one configured search backend. Netclaw supports three: a self-hosted SearXNG instance, the managed Brave Search API, and DuckDuckGo as a last-resort scraper.
 
-The easiest path is `netclaw config` → Search, which walks you through backend selection and credential entry. The SearXNG endpoint URL is validated by a reachability probe before saving — if the instance is unreachable, the editor raises a warning and offers you a "Save anyway" override. This page covers manual configuration and the supported configuration surface for each backend. The latter matters more than it sounds: a misconfigured SearXNG instance returns errors that look identical to a healthy one to the LLM, so the agent will keep retrying instead of telling you anything's wrong.
+## Quick Start
+
+Run `netclaw config` and select **Search** to pick a backend and enter credentials:
+
+```bash
+netclaw config
+```
+
+![The netclaw config Search menu showing backend selection](/screenshots/output/config-search.png)
+
+The wizard walks you through backend selection and credential entry. For SearXNG, the endpoint URL is validated by a reachability probe before saving — if the instance is unreachable, the editor raises a warning and offers a "Save anyway" override. For Brave, it prompts for your API key and stores it in `secrets.json` (encrypted at rest).
+
+Once you save, restart the daemon to apply the change.
+
+:::note
+A misconfigured SearXNG instance returns errors that look identical to a healthy one to the LLM — the agent keeps retrying instead of surfacing a failure. The most common footgun: JSON output not enabled in `settings.yml`. See [Diagnosing Search Errors](#diagnosing-search-errors).
+:::
 
 ## Provider Summary
 
@@ -19,7 +35,9 @@ The easiest path is `netclaw config` → Search, which walks you through backend
 
 [SearXNG](https://docs.searxng.org/) is a privacy-focused metasearch engine you self-host. It aggregates results from upstream search engines and returns them through a uniform API. Netclaw queries the `/search` endpoint and parses the JSON response.
 
-### Configuration
+### Manual configuration
+
+For scripted installs, Docker deployments, or any environment where `netclaw config` isn't available, set `Search.Backend` and `Search.SearXngEndpoint` directly in `netclaw.json`:
 
 ```json
 // ~/.netclaw/config/netclaw.json
@@ -69,9 +87,11 @@ Netclaw also only parses JSON. HTML and RSS responses are not supported.
 
 ## Brave Search
 
-The [Brave Search API](https://brave.com/search/api/) is a managed search backend. It requires an API key.
+The [Brave Search API](https://brave.com/search/api/) is a managed search backend. It requires an API key. `netclaw config` → Search prompts for the key and stores it encrypted — the recommended path for interactive installs.
 
-### Configuration
+### Manual configuration
+
+For scripted or headless installs, set `Search.Backend` in `netclaw.json` and store the key with [`netclaw secrets`](/cli/secrets/):
 
 ```json
 // ~/.netclaw/config/netclaw.json
@@ -81,8 +101,6 @@ The [Brave Search API](https://brave.com/search/api/) is a managed search backen
   }
 }
 ```
-
-Store the API key with the [`netclaw secrets`](/cli/secrets/) CLI rather than editing `secrets.json` by hand — values are encrypted at rest and the CLI handles that for you:
 
 ```bash
 netclaw secrets set Search.BraveApiKey your-key-here
@@ -96,7 +114,7 @@ Brave returns gzip-compressed JSON, which Netclaw decompresses transparently. On
 
 ## DuckDuckGo
 
-DuckDuckGo is the last-resort backend; it needs no configuration. It scrapes the lite HTML interface, which is fragile by design: DuckDuckGo's bot detection regularly trips on automated traffic.
+DuckDuckGo is the last-resort backend; it needs no configuration. It scrapes the lite HTML interface, which is fragile by design — DuckDuckGo's bot detection regularly trips on automated traffic. Select it via `netclaw config` → Search, or set it directly in `netclaw.json`:
 
 ```json
 // ~/.netclaw/config/netclaw.json

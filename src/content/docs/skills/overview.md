@@ -96,7 +96,9 @@ System skills ship from a CDN feed and are read-only. Built-in skills like `netc
 
 External skills let netclaw read skill directories from other AI tools. Add a local skill folder via `netclaw config` → Skill Sources (opens an interactive directory picker), or wire up a well-known alias via the CLI.
 
-<!-- TODO(screenshots): config-skills.png — capture via screenshots/tapes/config-skill-picker.tape after the release; epic #55 -->
+![Skill Sources editor](/screenshots/output/config-skills.png)
+
+The Skill Sources screen in `netclaw config` — add a local folder or connect a remote skill server.
 
 Well-known aliases expand to standard paths:
 

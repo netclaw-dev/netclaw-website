@@ -104,7 +104,9 @@ All `netclaw skill source` commands work without the daemon running. CLI changes
 
 Local folders are selected via a directory picker (Ctrl+N to create a new folder). After selection, you choose whether to allow symlinks in that folder, then confirm the source name. The source gets added and autosaved immediately.
 
-<!-- TODO(screenshots): config-skills.png — capture the Skill Sources menu, directory picker, and symlink choice; use tests/smoke/tapes/config-skill-picker.tape for reference -->
+![Skill Sources editor](/screenshots/output/config-skills.png)
+
+The Skill Sources screen — **+ Add local folder** opens a directory picker; **+ Add skill server** connects a remote feed.
 
 Leave symlinks off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
 

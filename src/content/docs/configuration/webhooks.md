@@ -246,7 +246,9 @@ Route files contain plaintext secrets. Treat `~/.netclaw/config/webhooks/` the s
 4. Construct your webhook URL from your external hostname (Tailscale or Cloudflare): `<your-external-hostname>/api/webhooks/<route-name>`. Paste it into your external service.
 5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts
 
-<!-- TODO(screenshots): add config-inbound-webhooks.png showing the editor with route summary and advisory — capture via screenshots/tapes/config.tape after stable release; tracked in epic #55 -->
+![Inbound Webhooks editor](/screenshots/output/config-inbound-webhooks.png)
+
+The Inbound Webhooks editor in `netclaw config` — toggle the global endpoint and set the execution timeout; route authoring stays in [`netclaw webhooks`](/cli/webhooks/).
 
 You only need to restart when first enabling `Webhooks.Enabled`. After that, route changes are [hot-reloaded](#hot-reload) on each request.
 

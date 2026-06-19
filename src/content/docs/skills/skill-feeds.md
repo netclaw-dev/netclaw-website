@@ -38,7 +38,9 @@ Each feed syncs independently. A failing server never blocks other feeds or daem
 
 The `netclaw config` → Skill Sources screen lets you add remote skill servers. Select "+ Add skill server," enter the base URL, and the daemon probes for `/.well-known/agent-skills/index.json`, reports the skill count (or shows the error), and suggests a name based on the hostname. If the server requires authentication, you'll be prompted for a bearer token. Add as many feeds as you need.
 
-<!-- TODO(screenshots): config-skills.png — capture the "Add a remote skill server" flow (URL prompt + discovery probe + optional bearer token) via screenshots/tapes/config.tape after release; tracked in epic #55 -->
+![Skill Sources editor](/screenshots/output/config-skills.png)
+
+The Skill Sources screen — choose **+ Add skill server** to add a remote feed by base URL.
 
 ## Manual Configuration
 

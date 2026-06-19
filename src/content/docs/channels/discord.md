@@ -81,7 +81,9 @@ If you want others to install via a link you control, use **Discord Provided Lin
 
 Easiest path: `netclaw config` → Channels — enter your bot token; Netclaw resolves and saves.
 
-<!-- TODO(screenshots): replace with config-channels-menu.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)
+
+The Channels area in `netclaw config` — enable Discord and enter its bot token here (the adapter list also shows Slack and Mattermost).
 
 For manual setup, store the token with [`netclaw secrets`](/cli/secrets/):
 

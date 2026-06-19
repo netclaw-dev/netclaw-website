@@ -16,7 +16,7 @@ You've installed Netclaw, run `netclaw init`, and the daemon is up. Open a chat.
 netclaw chat
 ```
 
-![Netclaw Chat TUI on startup](/screenshots/output/chat-session-start.png)
+<!-- TODO(screenshots): chat-session-start.png — first-run chat TUI; needs a live model. Tracked in netclaw-dev/netclaw-website#71 -->
 
 The TUI launches into a new session. The status bar shows your active model and "Generating..." because Netclaw is already composing its opening message.
 

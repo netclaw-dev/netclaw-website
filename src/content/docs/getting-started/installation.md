@@ -99,13 +99,25 @@ netclaw --version
 
 You should see the version, commit hash, and build timestamp.
 
-## Next step
+## Next steps
+
+**1. Run `netclaw init`**
 
 ```bash
 netclaw init
 ```
 
-The [`init` wizard](/cli/init/) walks you through provider setup, identity, security posture, and feature selection (Team/Public only) — then runs a health check and drops you into chat. Run `netclaw config` afterward to connect channels, set up search, and configure network exposure. See the [Quickstart](/getting-started/quickstart/) for the full walkthrough.
+The [`init` wizard](/cli/init/) covers provider setup, identity, security posture, and feature selection — then runs a health check and drops you into chat. It is intentionally minimal: channels, search, and network exposure are not configured here.
+
+**2. Run `netclaw config`**
+
+```bash
+netclaw config
+```
+
+[`netclaw config`](/cli/config/) is the menu-driven dashboard for everything else. Connect Slack, Discord, or Mattermost; enable web search; set your exposure mode; configure inbound webhooks and skill sources. Run it right after `init` — nothing beyond a basic chat session works until you do.
+
+See the [Quickstart](/getting-started/quickstart/) for a guided walkthrough of both steps.
 
 ## Switching release channels
 

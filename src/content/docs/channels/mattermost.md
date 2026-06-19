@@ -35,13 +35,17 @@ A bot only sees channels it belongs to. Add it to the target team, then invite i
 
 ## Configure netclaw
 
-Easiest path: `netclaw config` → Channels — enter your server URL and bot token; Netclaw resolves and saves. The config UI now shows channel display names dynamically, so you no longer need to look up opaque IDs by hand (closes [#1324](https://github.com/netclaw-dev/netclaw/issues/1324)).
+:::tip
+Run [`netclaw config`](/cli/config/) → Channels. Enable Mattermost, enter your server URL and bot token — netclaw resolves channel names to canonical IDs and saves. You no longer need to look up opaque IDs by hand.
+:::
 
 ![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)
 
 The Channels area in `netclaw config` — enable Mattermost and enter its server URL and token here (the adapter list also shows Slack and Discord).
 
-For manual setup, store the token with [`netclaw secrets`](/cli/secrets/):
+### Manual setup
+
+For scripted deployments or Docker installs where a TUI isn't available, store the token with [`netclaw secrets`](/cli/secrets/):
 
 ```bash
 netclaw secrets set Mattermost.BotToken your-bot-token

@@ -79,13 +79,19 @@ If you want others to install via a link you control, use **Discord Provided Lin
 
 ## Configure netclaw
 
-Easiest path: `netclaw config` → Channels — enter your bot token; Netclaw resolves and saves.
+Run [`netclaw config`](/cli/config/), navigate to **Channels**, and enable Discord. Enter your bot token when prompted — netclaw stores it encrypted and saves the config automatically.
+
+```bash
+netclaw config
+```
 
 ![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)
 
 The Channels area in `netclaw config` — enable Discord and enter its bot token here (the adapter list also shows Slack and Mattermost).
 
-For manual setup, store the token with [`netclaw secrets`](/cli/secrets/):
+### Manual setup
+
+For scripted or headless installs, store the token with [`netclaw secrets`](/cli/secrets/) and edit the config file directly:
 
 ```bash
 netclaw secrets set Discord.BotToken your-bot-token
@@ -102,7 +108,7 @@ Then enable Discord in `~/.netclaw/config/netclaw.json`:
 }
 ```
 
-Environment variables work too:
+Environment variables work too — useful for Docker and CI:
 
 ```bash
 export NETCLAW_Discord__BotToken="your-bot-token"

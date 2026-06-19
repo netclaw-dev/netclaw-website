@@ -54,9 +54,9 @@ Channel connectors (Slack, Discord) report: `healthy`, `degraded`, `disconnected
 
 MCP connectors — keyed as `mcp:<server-name>` from your configured [MCP tool servers](/cli/mcp-tools/) — add: `auth-required` and `auth-failed`.
 
-Disabled connectors still appear in the list with `(disabled)` so you can tell they're intentionally off, not broken.
+Disabled connectors still appear in the list with `(disabled)` so you can tell they're intentionally off, not broken. To enable them, run [`netclaw config`](/cli/config/) — channels, search, exposure mode, and webhooks all live there.
 
-If any connector shows `degraded` or worse, run [`netclaw doctor --fix`](/cli/doctor/) to auto-repair common issues. If that doesn't resolve it, check the specific connector's configuration.
+If any connector shows `degraded` or worse, run [`netclaw doctor --fix`](/cli/doctor/) to auto-repair common issues. If that doesn't resolve it, check the specific connector's configuration in [`netclaw config`](/cli/config/).
 
 ## Exit codes
 
@@ -133,6 +133,7 @@ If you're not sure the process is alive, start with `daemon status`. Once it's u
 
 ## Related commands
 
+- [`netclaw config`](/cli/config/) — Enable and configure connectors, search, exposure mode, and more
 - [`netclaw doctor`](/cli/doctor/) — Diagnostics with auto-repair (`--fix`)
 - [`netclaw stats`](/cli/stats/) — Token usage, session counts, and memory metrics
 - [`netclaw chat`](/cli/chat/) — Start a conversation (check status first if connections fail)

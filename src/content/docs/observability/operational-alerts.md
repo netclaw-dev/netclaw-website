@@ -7,23 +7,11 @@ Netclaw emits operational alerts when something happens that you or your ops too
 
 ## Quick Start
 
-Add a `Notifications` block to `~/.netclaw/config/netclaw.json` and restart the daemon:
+1. Run [`netclaw config`](/cli/config/) → **Telemetry & Alerting**.
+2. Add a webhook URL and choose `Slack` or `Generic` format.
+3. Restart the daemon — you'll get a `daemon.started` alert confirming delivery works.
 
-```json
-{
-  "Notifications": {
-    "Webhooks": [
-      {
-        "Url": "https://hooks.slack.com/services/T00/B00/xxx",
-        "Name": "ops-slack",
-        "Format": "Slack"
-      }
-    ]
-  }
-}
-```
-
-You'll get a `daemon.started` alert on the next restart, which doubles as confirmation that delivery works.
+That's it for most installs. For scripted deployments or headless servers, see [Manual configuration](#manual-configuration) below.
 
 ## Alert Types
 
@@ -53,11 +41,11 @@ All configured destinations receive all alert types — there's no per-destinati
 
 ## Configuring Alert Destinations
 
-:::tip
-The easiest way to add and remove alert webhooks is `netclaw config` → Telemetry & Alerting, which provides a multi-webhook list editor.
-:::
+Use `netclaw config` → **Telemetry & Alerting** to add, edit, or remove webhook targets at any time.
 
-Add outbound webhook targets in `~/.netclaw/config/netclaw.json`. Merge the `Notifications` block into your existing config if one is already there.
+### Manual configuration
+
+For scripted or headless installs, add outbound webhook targets directly in `~/.netclaw/config/netclaw.json`. Merge the `Notifications` block into your existing config if one is already there.
 
 ```json
 {

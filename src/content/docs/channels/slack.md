@@ -10,6 +10,8 @@ Netclaw talks to Slack over [Socket Mode](https://api.slack.com/apis/socket-mode
 - Netclaw installed and initialized ([`netclaw init`](/cli/init/))
 - A Slack workspace where you can install apps (some orgs restrict this to workspace admins)
 
+Connecting Slack is a two-part process: create a Slack app to get your tokens, then enter them in [`netclaw config`](/cli/config/) → Channels. The steps below walk through both.
+
 ## Create a Slack app
 
 The fastest path: create from a manifest. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App**.
@@ -112,13 +114,15 @@ Then invite the bot to each channel where it should respond: `/invite @YourBotNa
 
 ## Configure netclaw
 
-Easiest path: `netclaw config` → Channels — enter your tokens; Netclaw resolves and saves.
+Run `netclaw config` → Channels, enable Slack, and paste your tokens. Netclaw resolves channel names to IDs and saves everything — no JSON editing required.
 
 ![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)
 
 The Channels area — enable an adapter and manage its allow-list; here Slack is connected with 2 channels and 1 user.
 
-For manual setup, store tokens with [`netclaw secrets`](/cli/secrets/):
+### Manual configuration
+
+For scripted or headless installs, store tokens with [`netclaw secrets`](/cli/secrets/):
 
 ```bash
 netclaw secrets set Slack.BotToken xoxb-your-bot-token

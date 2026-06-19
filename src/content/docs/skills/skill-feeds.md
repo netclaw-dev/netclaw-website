@@ -36,9 +36,9 @@ Each feed syncs independently. A failing server never blocks other feeds or daem
 
 ## Add a Feed via netclaw config
 
-The `netclaw config` → Skill Sources screen includes a skill feeds step. It probes the URL, fetches the RFC index, reports the skill count (or shows the error), and suggests a name based on the hostname. Add as many feeds as you need.
+The `netclaw config` → Skill Sources screen lets you add remote skill servers. Select "Add a remote skill server," enter the base URL, and the daemon probes for `/.well-known/agent-skills/index.json`, reports the skill count (or shows the error), and suggests a name based on the hostname. If the server requires authentication, you'll be prompted for a bearer token. Add as many feeds as you need.
 
-<!-- TODO(screenshots): replace with config-skills.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+<!-- TODO(screenshots): config-skills.png — capture the "Add a remote skill server" flow (URL prompt + discovery probe + optional bearer token) via screenshots/tapes/config.tape after release; tracked in epic #55 -->
 
 ## Manual Configuration
 
@@ -74,6 +74,7 @@ Or edit `~/.netclaw/config/netclaw.json` directly:
 | `Url` | string | — | Base URL; daemon appends `/.well-known/agent-skills/index.json` |
 | `Enabled` | bool | `true` | Toggle without removing the entry |
 | `TimeoutSeconds` | int | `30` | HTTP timeout for this feed |
+| `ApiKey` | string | `null` | Optional bearer token for authenticated feeds; supports the `ENC:` prefix for encrypted storage |
 
 Top-level `SkillFeeds` settings:
 
@@ -174,7 +175,7 @@ Two related config keys control broader skill behavior:
 | Key | Effect |
 |-----|--------|
 | `SkillSync.Enabled: false` | Blocks the agent from loading *any* skills via `skill_load` |
-| `SkillSync.DisableSystemSkillSync: false` | Controls the built-in CDN feed (separate from private feeds) |
+| `SkillSync.DisableSystemSkillSync: false` | Set `true` to disable the built-in CDN feed; the default `false` keeps it enabled (separate from private feeds) |
 
 ## Troubleshooting
 

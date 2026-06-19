@@ -5,7 +5,7 @@ description: Configure the web search backend that powers Netclaw's web_search a
 
 The `web_search` and `web_fetch` tools route through one configured search backend. Netclaw supports three: a self-hosted SearXNG instance, the managed Brave Search API, and DuckDuckGo as a last-resort scraper. You pick one in `~/.netclaw/config/netclaw.json` via the `Search.Backend` key.
 
-The easiest path is `netclaw config` → Search, which walks you through backend selection and credential entry. The SearXNG endpoint URL is validated by a reachability probe before saving — the save is blocked if the instance is unreachable. This page covers manual configuration and the supported configuration surface for each backend. The latter matters more than it sounds: a misconfigured SearXNG instance returns errors that look identical to a healthy one to the LLM, so the agent will keep retrying instead of telling you anything's wrong.
+The easiest path is `netclaw config` → Search, which walks you through backend selection and credential entry. The SearXNG endpoint URL is validated by a reachability probe before saving — if the instance is unreachable, the editor raises a warning and offers you a "Save anyway" override. This page covers manual configuration and the supported configuration surface for each backend. The latter matters more than it sounds: a misconfigured SearXNG instance returns errors that look identical to a healthy one to the LLM, so the agent will keep retrying instead of telling you anything's wrong.
 
 ## Provider Summary
 

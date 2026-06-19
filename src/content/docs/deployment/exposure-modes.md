@@ -7,7 +7,7 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 
 ## Before you begin
 
-- Netclaw installed and initialized (`netclaw init`). See [Installation](/getting-started/installation/) if needed.
+- Netclaw installed (see [Installation](/getting-started/installation/) if needed). Exposure mode is configured after install via `netclaw config`, not during `netclaw init`.
 - For reverse proxy: a working proxy already configured, a non-loopback internal IP for the daemon, and the proxy source IP or CIDR ready for `TrustedProxies`.
 - For Tailscale modes: [`tailscaled` installed and running](https://tailscale.com/download).
 - For Cloudflare Tunnel: [`cloudflared` installed and configured](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/).
@@ -22,9 +22,9 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 | **Tailscale Funnel** | `tailscale-funnel` | `tailscaled` | Public internet via Tailscale | High |
 | **Cloudflare Tunnel** | `cloudflare-tunnel` | `cloudflared` | Public internet via Cloudflare | High |
 
-Configure the exposure mode in `netclaw config`, or set it directly in `netclaw.json`.
+Configure the exposure mode via `netclaw config` — navigate to **Security & Access → Exposure Mode** — or set `Daemon.ExposureMode` directly in `netclaw.json`.
 
-<!-- TODO(screenshots): replace with config-exposure.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+<!-- TODO(screenshots): config-exposure.png — netclaw config → Security & Access → Exposure Mode selection screen; capture from tests/smoke/tapes/config-exposure.tape after release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 Options marked with a warning triangle expose the daemon to the public internet. Tailscale Serve is the recommended remote mode: tailnet-only access, no public exposure.
 
@@ -55,7 +55,7 @@ If the proxy runs on the same machine, the final hop into netclaw still needs to
 
 ## Configuration
 
-Set the mode in the `Daemon` section of `~/.netclaw/config/netclaw.json`.
+Set the mode via **`netclaw config` → Security & Access → Exposure Mode**, or directly edit the `Daemon` section of `~/.netclaw/config/netclaw.json`.
 
 ### Local (default)
 

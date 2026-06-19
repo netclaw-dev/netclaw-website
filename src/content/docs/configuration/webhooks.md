@@ -9,7 +9,7 @@ External services POST JSON to `/api/webhooks/<route>`. The daemon verifies the 
 
 ![netclaw webhooks list showing the route directory path](/screenshots/output/webhooks-list.png)
 
-All CLI route management works offline -- no running daemon required. See [`netclaw webhooks`](/cli/webhooks/) for the full CLI reference.
+All CLI route management works offline — no running daemon required. See [`netclaw webhooks`](/cli/webhooks/) for the full CLI reference.
 
 ### Global settings
 
@@ -138,9 +138,9 @@ The `Audience` field controls which tool permissions the webhook session gets:
 
 | Audience | Tool Access |
 |----------|-------------|
-| `Public` | Most restricted -- external untrusted input |
-| `Team` | Moderate -- trusted collaborators |
-| `Personal` | Full access -- your own services |
+| `Public` | Most restricted — external untrusted input |
+| `Team` | Moderate — trusted collaborators |
+| `Personal` | Full access — your own services |
 
 Default is `Public`. Use this for anything internet-facing (GitHub, GitLab). Reserve `Personal` for internal services you fully control.
 
@@ -166,7 +166,7 @@ When `NotificationTarget` is set, the agent posts results to that channel. Only 
 
 To find your Slack channel ID, see [Locate your Slack URL or ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID).
 
-When `DeliveryRequired` is `true` and the route has notification instructions -- either explicit `NotifyInstructions` or auto-generated from a `NotificationTarget` -- the agent *must* call `send_slack_message` during the session. If it doesn't, the run is marked failed. When `DeliveryRequired` is `false`, the agent's session prompt tells it that notification is optional and can be skipped if there's nothing actionable.
+When `DeliveryRequired` is `true` and the route has notification instructions — either explicit `NotifyInstructions` or auto-generated from a `NotificationTarget` — the agent *must* call `send_slack_message` during the session. If it doesn't, the run is marked failed. When `DeliveryRequired` is `false`, the agent's session prompt tells it that notification is optional and can be skipped if there's nothing actionable.
 
 Routes without a `NotificationTarget` and without `NotifyInstructions` don't enforce delivery at all, regardless of the `DeliveryRequired` flag.
 
@@ -186,7 +186,7 @@ Requests to `/api/webhooks/{route}` go through these checks in order:
 | 8 | Rate limit | 429 + `Retry-After` header |
 | 9 | Dispatch | 202 Accepted |
 
-After dispatch, the agent session runs asynchronously -- the 202 response returns immediately without waiting for the session to complete.
+After dispatch, the agent session runs asynchronously — the 202 response returns immediately without waiting for the session to complete.
 
 Accepted response body:
 
@@ -226,7 +226,7 @@ No daemon restart needed for route changes. Global `Webhooks.Enabled` and `Execu
 | `MaxBodyBytes` | Less than 1 |
 | `RateLimitPerMinute` | Less than 1 |
 | `Events` entries | Contains blank strings |
-| `DeliveryRequired` + `NotifyInstructions` | `DeliveryRequired` is `true` AND `NotifyInstructions` is non-empty AND `NotificationTarget` is `null` (all three conditions simultaneously) |
+| `NotifyInstructions` without target | `NotifyInstructions` is non-empty AND `NotificationTarget` is `null` |
 | `NotificationTarget.Kind = Slack` | Missing `ChannelId` |
 
 ### Security
@@ -240,23 +240,23 @@ Route files contain plaintext secrets. Treat `~/.netclaw/config/webhooks/` the s
 
 ## Setup
 
-1. Enable webhooks in `netclaw.json`, or via `netclaw config` → Inbound Webhooks.
+1. Enable webhooks in `netclaw config` → Inbound Webhooks. The config editor shows a live summary of route counts (total, enabled, disabled, invalid). If you enable webhooks with no valid routes, a non-blocking advisory directs you to create a route with `netclaw webhooks set`.
 2. Create a route: `netclaw webhooks set <name> --prompt "..." --secret-env SECRET_VAR`
 3. Restart the daemon to pick up the `Webhooks.Enabled` change: `netclaw daemon stop && netclaw daemon start`
 4. Copy the webhook URL from [`netclaw status`](/cli/status/) and paste it into your external service
-5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts -- look for the `webhook.received` counter
+5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts
 
-<!-- TODO(screenshots): replace with config-inbound-webhooks.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+<!-- TODO(screenshots): add config-inbound-webhooks.png showing the editor with route summary and advisory — capture via screenshots/tapes/config.tape after stable release; tracked in epic #55 -->
 
 You only need to restart when first enabling `Webhooks.Enabled`. After that, route changes are [hot-reloaded](#hot-reload) on each request.
 
 ## Troubleshooting
 
-### 401 Unauthorized -- secret mismatch
+### 401 Unauthorized — secret mismatch
 
 The HMAC signature or header secret doesn't match. Double-check that the secret in your route file matches what the external service is sending. For HMAC, also verify `SignaturePrefix` matches (e.g., GitHub sends `sha256=` before the hex digest).
 
-### 401 Unauthorized -- wrong signature header
+### 401 Unauthorized — wrong signature header
 
 The daemon is reading the signature from a different header than the one your service sends. Set `SignatureHeaderName` in the route's `Verification` block to match your service (e.g., `X-Hub-Signature-256` for GitHub).
 
@@ -287,17 +287,17 @@ The base URL depends on how you expose the daemon. [Tailscale Serve](https://tai
 
 ## Related pages
 
-- [`netclaw webhooks`](/cli/webhooks/) -- CLI reference for route management (list, show, set, delete, validate)
-- [Secrets Management](/security/secrets/) -- encrypted credential storage and agent isolation
-- [Security Model](/security/security-model/) -- audience definitions and trust levels
-- [`netclaw doctor`](/cli/doctor/) -- validates all webhook route files
-- [`netclaw stats`](/cli/stats/) -- delivery counts and rejection breakdowns
+- [`netclaw webhooks`](/cli/webhooks/) — CLI reference for route management (list, show, set, delete, validate)
+- [Secrets Management](/security/secrets/) — encrypted credential storage and agent isolation
+- [Security Model](/security/security-model/) — audience definitions and trust levels
+- [`netclaw doctor`](/cli/doctor/) — validates all webhook route files
+- [`netclaw stats`](/cli/stats/) — delivery counts and rejection breakdowns
 
 ## Resources
 
-- [GitHub webhook documentation](https://docs.github.com/en/webhooks) -- setting up webhooks on the GitHub side
-- [GitLab webhook documentation](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html) -- setting up webhooks on the GitLab side
-- [HMAC signature verification](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) -- how GitHub's `X-Hub-Signature-256` works
-- [Tailscale Serve](https://tailscale.com/kb/1312/serve) -- expose your webhook endpoint without a public IP
-- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) -- alternative to Tailscale for public webhook ingress
-- [Locate your Slack channel ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID) -- find the channel ID for notification targets
+- [GitHub webhook documentation](https://docs.github.com/en/webhooks) — setting up webhooks on the GitHub side
+- [GitLab webhook documentation](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html) — setting up webhooks on the GitLab side
+- [HMAC signature verification](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) — how GitHub's `X-Hub-Signature-256` works
+- [Tailscale Serve](https://tailscale.com/kb/1312/serve) — expose your webhook endpoint without a public IP
+- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — alternative to Tailscale for public webhook ingress
+- [Locate your Slack channel ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID) — find the channel ID for notification targets

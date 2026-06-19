@@ -29,8 +29,8 @@
       "imageUrl": "https://hcti.io/v1/image/7a98355b1c4fffeb154e5d6e628a478a187e330783077350176a1d43651c7d72"
     },
     "cli/init": {
-      "hash": "3e3ab9b8a5fe0e0414918f2351c3aa9c000db9faaf481d0f79b7065aaf53bbcc",
-      "imageUrl": "https://hcti.io/v1/image/4cb7d919bf544b4ce895b664dd8bf1a04991e2a883f8c4cc755daf325ae77837"
+      "hash": "36b6f8a5e58f529eecbe4ad7cea46851c3bf8266372650aa8f9cc7be2d5d1837",
+      "imageUrl": "https://hcti.io/v1/image/8bc913dc23d4f9768b57eaf9d6a1f40164cb823146f4688e8a1a7c4d2477b1e8"
     },
     "cli/mcp-tools": {
       "hash": "ac3a2a3cbc67ac7faa8eb29123b085f739130df4344285d0fd9a2f18c991bf85",

@@ -35,14 +35,17 @@ You'll get a `daemon.started` alert on the next restart, which doubles as confir
 | `update.available` | Info | A newer netclaw binary exists in the release feed. |
 | `provider.failover` | Warning | Primary LLM provider failed; traffic moved to fallback. |
 | `provider.unreachable` | Critical | All configured LLM providers are unavailable. |
-| `channel.disconnected` | Warning | Slack or Discord connection lost. |
+| `channel.disconnected` | Warning | Slack, Discord, or Mattermost connection lost. |
 | `mcp.auth.expired` | Warning | MCP OAuth token expired and refresh was rejected. |
 | `mcp.server.disconnected` | Warning | Connection to an MCP server dropped. |
+| `mcp.server.reconnected` | Info | MCP server reconnected successfully after a previous disconnect. |
 | `webhook.received` | Info | A valid inbound webhook delivery was accepted and queued. |
 | `webhook.route.invalid` | Warning | A webhook route file is missing or invalid. |
 | `reminder.execution.failed` | Warning | A scheduled reminder failed to execute. |
-| `reminder.auto.disabled` | Critical | Reminder disabled after repeated consecutive failures. |
-| `reminder.schema.dropped` | Warning | Invalid reminder definitions were dropped at startup. |
+| `reminder.auto_disabled` | Critical | Reminder disabled after repeated consecutive failures. |
+| `reminder.schema.invalid_dropped` | Warning | Invalid reminder definitions were dropped at startup. |
+| `reminder.schema.legacy_rejected` | Warning | Legacy reminder definitions missing trust fields were rejected at startup. |
+| `background-job.schema.legacy_rejected` | Warning | Legacy background job definitions missing trust fields were rejected at startup. |
 
 `provider.auth.expired` is defined but not currently emitted.
 

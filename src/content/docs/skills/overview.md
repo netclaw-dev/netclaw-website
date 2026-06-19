@@ -94,9 +94,9 @@ System skills ship from a CDN feed and are read-only. Built-in skills like `netc
 
 <!-- TODO: needs user input — What is the full list of built-in system skills that ship from CDN? -->
 
-External skills let netclaw read skill directories from other AI tools. Detection of well-known directories (Claude Code, Open Code) happens in `netclaw config` → Skill Sources, which offers to wire them up as external sources automatically.
+External skills let netclaw read skill directories from other AI tools. Add a local skill folder via `netclaw config` → Skill Sources (opens an interactive directory picker), or wire up a well-known alias via the CLI.
 
-<!-- TODO(screenshots): replace with config-skills.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+<!-- TODO(screenshots): config-skills.png — capture via screenshots/tapes/config-skill-picker.tape after the release; epic #55 -->
 
 Well-known aliases expand to standard paths:
 

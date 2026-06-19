@@ -9,13 +9,15 @@ Skills must follow the [SKILL.md format](https://agentskills.io) (frontmatter wi
 
 ## Quick Start
 
-Already have Claude Code installed? `netclaw config` → Skill Sources detects it and configures the source automatically. To add it manually:
+To add Claude Code's skills, use the CLI:
 
 ```bash
 netclaw skill source add claude-code --well-known claude-code
 ```
 
 That's it. The daemon picks up the change via its file watcher — no restart needed.
+
+Alternatively, run `netclaw config` → Skill Sources, then choose **Add a local skill folder** to browse and select a directory manually.
 
 ## Before You Begin
 
@@ -96,13 +98,15 @@ netclaw skill source remove team-skills
 
 All `netclaw skill source` commands work without the daemon running. CLI changes are picked up by a running daemon automatically via its file watcher.
 
-## Auto-Detection via netclaw config
+## Adding Sources via the Config Menu
 
-`netclaw config` → Skill Sources detects Claude Code and Open Code installations automatically.
+`netclaw config` → Skill Sources presents two options: **Add a local skill folder** and **Add a remote skill server**.
 
-<!-- TODO(screenshots): replace with config-skills.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+Local folders are selected via a directory picker (Ctrl+N to create a new folder). After selection, you choose whether to allow symlinks in that folder, then confirm the source name. The source gets added and autosaved immediately.
 
-Detected sources get enabled by default. The screen also prompts for custom paths. A symlink toggle follows. Leave it off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
+<!-- TODO(screenshots): config-skills.png — capture the Skill Sources menu, directory picker, and symlink choice; use tests/smoke/tapes/config-skill-picker.tape for reference -->
+
+Leave symlinks off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
 
 ## Precedence
 

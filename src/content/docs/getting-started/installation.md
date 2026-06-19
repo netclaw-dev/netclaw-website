@@ -105,7 +105,7 @@ You should see the version, commit hash, and build timestamp.
 netclaw init
 ```
 
-The [`init` wizard](/cli/init/) walks you through provider setup, identity, security posture, and feature selection — then starts the daemon. Run `netclaw config` afterward to connect channels, set up search, and configure network exposure. See the [Quickstart](/getting-started/quickstart/) for the full walkthrough.
+The [`init` wizard](/cli/init/) walks you through provider setup, identity, security posture, and feature selection (Team/Public only) — then runs a health check and drops you into chat. Run `netclaw config` afterward to connect channels, set up search, and configure network exposure. See the [Quickstart](/getting-started/quickstart/) for the full walkthrough.
 
 ## Switching release channels
 

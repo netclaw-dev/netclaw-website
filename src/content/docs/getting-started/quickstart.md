@@ -23,8 +23,9 @@ The wizard covers four steps for Personal posture (five for Team/Public — more
 
 ### Pick a provider
 
-<!-- TODO(screenshots): init-step1-provider-endpoint.png — capture after release; epic #55 -->
-<!-- TODO(screenshots): init-step1-provider-model.png — capture after release; epic #55 -->
+![Provider selection](/screenshots/output/init-01-provider-list.png)
+
+![Model selection](/screenshots/output/init-01-model-select.png)
 
 Choose an LLM provider and enter credentials. Self-hosted providers like Ollama need an endpoint URL. Once credentials pass a connectivity check, you pick a default model.
 
@@ -32,14 +33,13 @@ Use [`netclaw provider`](/cli/provider/) to add more providers later.
 
 ### Set your identity
 
-<!-- TODO(screenshots): init-step7-your-name.png — capture after release; epic #55 -->
-<!-- TODO(screenshots): init-step7-communication-style.png — capture after release; epic #55 -->
+![Identity step](/screenshots/output/init-02-identity.png)
 
 Four substeps in order: agent name → communication style → your name → timezone. All four fields pre-fill when you re-run `netclaw init` on an existing install.
 
 ### Set your security posture
 
-<!-- TODO(screenshots): init-step2-security-posture.png — capture after release; epic #55 -->
+![Security posture selection](/screenshots/output/init-02-security-posture.png)
 
 Pick how much you trust the environment. **Personal** is single-user with full tool access. **Team** and **Public** are progressively more restrictive. See [Security Model](/security/security-model/) for details.
 
@@ -49,7 +49,7 @@ If you chose Team or Public posture, the wizard adds a step to select which feat
 
 ### Health check
 
-<!-- TODO(screenshots): init-step10-healthcheck.png — capture after release; epic #55 -->
+![Health check](/screenshots/output/init-05-health-check.png)
 
 The wizard validates provider connectivity, writes config, and starts the daemon. When all checks pass, netclaw launches chat automatically — you land in the chat TUI without running anything else.
 

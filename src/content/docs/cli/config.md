@@ -13,7 +13,7 @@ If netclaw hasn't been initialized yet, `netclaw config` exits non-zero and tell
 
 It opens a **Settings Areas** menu with a live status summary for each area, so you can see the state of every domain at a glance.
 
-<!-- TODO(screenshots): add config-dashboard.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+![Settings Areas dashboard](/screenshots/output/config-dashboard.png)
 
 ## Dashboard areas
 

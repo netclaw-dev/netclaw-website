@@ -28,11 +28,9 @@ Pick an LLM provider, enter credentials, and select a default model.
 
 ![Provider selection list](/screenshots/output/init-01-provider-list.png)
 
-Providers are listed alphabetically: `anthropic`, `github-copilot`, `ollama`, `openai`, `openai-compatible`, `openrouter`. Self-hosted providers (Ollama, openai-compatible) prompt for an endpoint URL next.
+Providers are listed alphabetically: Anthropic, GitHub Copilot, Ollama, OpenAI, llama.cpp / vLLM, OpenRouter, and Venice.ai. Self-hosted backends (Ollama, llama.cpp / vLLM) prompt for an endpoint URL next.
 
 ![Endpoint configuration](/screenshots/output/init-01-endpoint.png)
-
-![Ollama provider configuration](/screenshots/output/init-01-provider-ollama.png)
 
 After credentials pass a connectivity check, you pick a default model from the discovered list.
 
@@ -51,7 +49,7 @@ Four substeps in order: **agent name → communication style → your name → t
 | Your name | `Your name:` | Optional — used to personalize responses |
 | Timezone | `Your timezone:` | Defaults to local system timezone |
 
-<!-- TODO(screenshots): init-identity-agent-name.png — capture after release; epic #55 -->
+![Identity step — communication style](/screenshots/output/init-02-identity.png)
 
 :::note
 Webhook URLs and workspace directories are **not** collected here — they're post-install settings in `netclaw config`.
@@ -84,17 +82,15 @@ Six toggles that control what's available across all audiences:
 
 Space to toggle, Enter to continue. Personal posture skips this step entirely — all features are on by default.
 
-<!-- TODO(screenshots): init-enabled-features.png — capture after release; epic #55 -->
+![Feature selection on Team posture](/screenshots/output/init-04-enabled-features.png)
 
 ### Step 5 — Health Check
 
 Press Enter to run the health checks. The wizard validates config files, tests provider connectivity, and starts the daemon.
 
-![Health check running](/screenshots/output/init-10-health-check.png)
+![Health check running](/screenshots/output/init-05-health-check.png)
 
 On a clean pass — all probes green — the wizard writes config and launches `netclaw chat` automatically. No extra confirmation needed.
-
-![Health check complete](/screenshots/output/init-10-health-check-complete.png)
 
 If any check fails, the wizard stays on the summary screen and shows:
 

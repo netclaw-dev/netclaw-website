@@ -61,6 +61,10 @@ If the health check finishes with warnings, the wizard displays: "Setup complete
 netclaw config
 ```
 
+![The netclaw config Settings Areas menu](/screenshots/output/config-dashboard.png)
+
+Each row is a configuration area with its live status — select one to set it up.
+
 Channels (Slack, Discord, Mattermost), web search, network exposure, skill sources, webhooks, and browser automation are all configured here — none of them are set during `netclaw init`. Run [`netclaw config`](/cli/config/) now to connect your first channel or enable search before you do anything else. Changes save as you make them; re-run it any time.
 
 ## 4. First chat session

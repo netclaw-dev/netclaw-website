@@ -36,7 +36,7 @@ A bot only sees channels it belongs to. Add it to the target team, then invite i
 ## Configure netclaw
 
 :::tip
-Run `netclaw config` → Channels. Enable Mattermost, enter your server URL and bot token — netclaw resolves channel names to canonical IDs and saves. You no longer need to look up opaque IDs by hand.
+Run [`netclaw config`](/cli/config/) → Channels. Enable Mattermost, enter your server URL and bot token — netclaw resolves channel names to canonical IDs and saves. You no longer need to look up opaque IDs by hand.
 :::
 
 ![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)

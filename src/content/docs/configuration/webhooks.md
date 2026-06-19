@@ -7,7 +7,7 @@ Inbound webhook routes let external services POST to your daemon and kick off au
 
 ## Quick start
 
-Run `netclaw config`, navigate to **Inbound Webhooks**, and toggle the global endpoint on. Then create your first route:
+Run [`netclaw config`](/cli/config/), navigate to **Inbound Webhooks**, and toggle the global endpoint on. Then create your first route:
 
 ```bash
 netclaw webhooks set github-issues \

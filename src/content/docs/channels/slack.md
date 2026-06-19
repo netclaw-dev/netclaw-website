@@ -10,7 +10,7 @@ Netclaw talks to Slack over [Socket Mode](https://api.slack.com/apis/socket-mode
 - Netclaw installed and initialized ([`netclaw init`](/cli/init/))
 - A Slack workspace where you can install apps (some orgs restrict this to workspace admins)
 
-Connecting Slack is a two-part process: create a Slack app to get your tokens, then enter them in `netclaw config` → Channels. The steps below walk through both.
+Connecting Slack is a two-part process: create a Slack app to get your tokens, then enter them in [`netclaw config`](/cli/config/) → Channels. The steps below walk through both.
 
 ## Create a Slack app
 

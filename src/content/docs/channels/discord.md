@@ -79,7 +79,7 @@ If you want others to install via a link you control, use **Discord Provided Lin
 
 ## Configure netclaw
 
-Run `netclaw config`, navigate to **Channels**, and enable Discord. Enter your bot token when prompted — netclaw stores it encrypted and saves the config automatically.
+Run [`netclaw config`](/cli/config/), navigate to **Channels**, and enable Discord. Enter your bot token when prompted — netclaw stores it encrypted and saves the config automatically.
 
 ```bash
 netclaw config

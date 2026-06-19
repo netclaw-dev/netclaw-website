@@ -7,7 +7,7 @@ Netclaw emits operational alerts when something happens that you or your ops too
 
 ## Quick Start
 
-1. Run `netclaw config` → **Telemetry & Alerting**.
+1. Run [`netclaw config`](/cli/config/) → **Telemetry & Alerting**.
 2. Add a webhook URL and choose `Slack` or `Generic` format.
 3. Restart the daemon — you'll get a `daemon.started` alert confirming delivery works.
 

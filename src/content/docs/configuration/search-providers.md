@@ -7,7 +7,7 @@ The `web_search` and `web_fetch` tools route through one configured search backe
 
 ## Quick Start
 
-Run `netclaw config` and select **Search** to pick a backend and enter credentials:
+Run [`netclaw config`](/cli/config/) and select **Search** to pick a backend and enter credentials:
 
 ```bash
 netclaw config

@@ -79,7 +79,7 @@ The display name shown in `netclaw skill list` comes from the first `#` heading 
 
 ## Quick setup
 
-To add an external skill directory or connect a skill server, run `netclaw config` → Skill Sources. The TUI opens an interactive picker — no manual JSON editing required.
+To add an external skill directory or connect a skill server, run [`netclaw config`](/cli/config/) → Skill Sources. The TUI opens an interactive picker — no manual JSON editing required.
 
 ```bash
 netclaw config

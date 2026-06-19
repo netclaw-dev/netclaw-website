@@ -9,7 +9,7 @@ Skills must follow the [SKILL.md format](https://agentskills.io) (frontmatter wi
 
 ## Quick Start
 
-Already have Claude Code installed? The [`netclaw init`](/cli/init/) wizard detects it and configures the source automatically. To add it manually:
+Already have Claude Code installed? `netclaw config` → Skill Sources detects it and configures the source automatically. To add it manually:
 
 ```bash
 netclaw skill source add claude-code --well-known claude-code
@@ -19,7 +19,7 @@ That's it. The daemon picks up the change via its file watcher — no restart ne
 
 ## Before You Begin
 
-- Netclaw is installed and `netclaw init` has been run (or you're comfortable editing `netclaw.json` directly — it lives at `~/.netclaw/config/netclaw.json` by default)
+- Netclaw is installed and initialized (or you're comfortable editing `netclaw.json` directly — it lives at `~/.netclaw/config/netclaw.json` by default)
 - The external directory you want to add exists on disk (netclaw logs a warning for missing paths but still configures the source)
 
 ## Well-Known Sources
@@ -96,17 +96,13 @@ netclaw skill source remove team-skills
 
 All `netclaw skill source` commands work without the daemon running. CLI changes are picked up by a running daemon automatically via its file watcher.
 
-## Auto-Detection During Init
+## Auto-Detection via netclaw config
 
-The [`netclaw init`](/cli/init/) wizard detects Claude Code and Open Code installations automatically:
+`netclaw config` → Skill Sources detects Claude Code and Open Code installations automatically.
 
-![External skills configuration during init](/screenshots/output/init-07-external-skills.png)
+<!-- TODO(screenshots): replace with config-skills.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
-Detected sources get enabled by default. Next, the wizard prompts for custom paths:
-
-![Custom skills path input](/screenshots/output/init-07-custom-skills-path.png)
-
-A symlink toggle follows. Leave it off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
+Detected sources get enabled by default. The screen also prompts for custom paths. A symlink toggle follows. Leave it off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
 
 ## Precedence
 

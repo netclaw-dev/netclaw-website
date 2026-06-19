@@ -53,7 +53,7 @@ netclaw daemon stop && netclaw daemon start
 
 Doctor reports "Slack is enabled but no bot token found."
 
-Run [`netclaw init`](/cli/init/) or set the token directly:
+Run `netclaw config` → Channels → Slack, or set the token directly:
 
 ```bash
 netclaw secrets set Slack.BotToken xoxb-your-token
@@ -159,6 +159,22 @@ Direct messages to the bot get no response, but channel messages work fine. Logs
 ```
 
 Doctor warns if you enable DMs with an empty `AllowedUserIds` list, since any workspace member can then DM the bot.
+
+### Channel Messages Silently Dropped After Upgrading from Pre-0.24.0
+
+Bot is connected and the channel is in `AllowedChannelIds`, but every message is dropped. Logs show `channel_not_allowed`. Started after upgrading to 0.24.0 or later.
+
+**Cause:** Before 0.24.0, `AllowedChannelIds` accepted display names (e.g. `"general"`) or manually entered values that were never resolved to canonical IDs. As of 0.24.0, incoming message channel IDs are matched against stored IDs only — display names no longer match.
+
+**Fix:** Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs and are saved correctly. This is the easiest path — the config UI does the resolution automatically.
+
+If you prefer to fix it manually in `~/.netclaw/config/netclaw.json`, replace any display names in `AllowedChannelIds` with the canonical channel ID for each platform:
+
+- **Slack:** right-click a channel name → "View channel details" → scroll to the bottom for the `C...` ID. See [Slack: Finding IDs](https://slack.com/help/articles/221769328).
+- **Discord:** enable Developer Mode in Settings > App Settings > Advanced, then right-click any channel → "Copy Channel ID."
+- **Mattermost:** find IDs in the System Console or via the [REST API](https://api.mattermost.com/).
+
+After editing, restart the daemon: `netclaw daemon stop && netclaw daemon start`
 
 ### Bot Not Responding to Messages (MentionOnly)
 
@@ -309,7 +325,7 @@ Channel metrics use the namespace `netclaw.channel.slack.*` and `netclaw.channel
 - [`netclaw doctor`](/cli/doctor/) — offline diagnostics
 - [`netclaw status`](/cli/status/) — live connector health and message counters
 - [`netclaw secrets`](/cli/secrets/) — manage encrypted tokens
-- [`netclaw init`](/cli/init/) — first-run wizard for channel setup
+- [`netclaw config`](/cli/config/) — Channels
 - [OpenTelemetry](/observability/opentelemetry/) — OTLP metrics reference
 
 ## External Resources

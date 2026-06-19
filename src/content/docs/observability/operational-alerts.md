@@ -50,6 +50,10 @@ All configured destinations receive all alert types — there's no per-destinati
 
 ## Configuring Alert Destinations
 
+:::tip
+The easiest way to add and remove alert webhooks is `netclaw config` → Telemetry & Alerting, which provides a multi-webhook list editor.
+:::
+
 Add outbound webhook targets in `~/.netclaw/config/netclaw.json`. Merge the `Notifications` block into your existing config if one is already there.
 
 ```json

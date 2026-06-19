@@ -94,11 +94,9 @@ System skills ship from a CDN feed and are read-only. Built-in skills like `netc
 
 <!-- TODO: needs user input — What is the full list of built-in system skills that ship from CDN? -->
 
-External skills let netclaw read skill directories from other AI tools. The [`netclaw init`](/cli/init/) wizard detects well-known directories automatically:
+External skills let netclaw read skill directories from other AI tools. Detection of well-known directories (Claude Code, Open Code) happens in `netclaw config` → Skill Sources, which offers to wire them up as external sources automatically.
 
-![External skills configuration during init](/screenshots/output/init-07-external-skills.png)
-
-The init wizard detects Claude Code's skill directory and offers to wire it up as an external source.
+<!-- TODO(screenshots): replace with config-skills.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 Well-known aliases expand to standard paths:
 
@@ -107,11 +105,7 @@ Well-known aliases expand to standard paths:
 | `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/plugins/marketplaces/*/skills/` |
 | `open-code` | `~/.open-code/skills/` |
 
-Server feed skills sync from private [skill servers](/skills/skill-server/) that implement the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec). These are self-hosted registries that distribute skills across your organization. Configure them during init or add them later:
-
-![Skill feeds configuration during init](/screenshots/output/init-08-skill-feeds.png)
-
-Configure skill feeds during init or add them later via `netclaw skill feed add`. See the [netclaw skill-server](https://github.com/netclaw-dev/skill-server) reference implementation for setting up your own.
+Server feed skills sync from private [skill servers](/skills/skill-server/) that implement the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec). These are self-hosted registries that distribute skills across your organization. Configure them in `netclaw config` → Skill Sources or add them later via `netclaw skill feed add`. See the [netclaw skill-server](https://github.com/netclaw-dev/skill-server) reference implementation for setting up your own.
 
 ## Precedence
 

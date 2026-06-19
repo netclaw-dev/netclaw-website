@@ -112,11 +112,9 @@ Then invite the bot to each channel where it should respond: `/invite @YourBotNa
 
 ## Configure netclaw
 
-Easiest path: [`netclaw init`](/cli/init/). Step 3 handles channel selection and token entry.
+Easiest path: `netclaw config` → Channels — enter your tokens; Netclaw resolves and saves.
 
-![Channel selection during netclaw init](/screenshots/output/init-03-channels.png)
-
-Pick Slack, paste your tokens, done.
+<!-- TODO(screenshots): replace with config-channels-menu.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 For manual setup, store tokens with [`netclaw secrets`](/cli/secrets/):
 
@@ -142,6 +140,14 @@ Environment variables work too:
 export NETCLAW_Slack__BotToken="xoxb-..."
 export NETCLAW_Slack__AppToken="xapp-..."
 ```
+
+### How channel IDs are stored
+
+Enter channel names or IDs (comma-separated) in `netclaw config` → Channels. Netclaw resolves each entry against the Slack API to its canonical channel ID **before saving**. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Entries that cannot be resolved are rejected — they are not silently saved.
+
+:::caution
+**Breaking change (pre-0.24.0 → 0.24.0+):** If you previously placed display names in `AllowedChannelIds` or set `DefaultChannelName` by hand in `netclaw.json`, those values no longer match incoming channel IDs and messages will be silently dropped. Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs.
+:::
 
 ### All config fields
 
@@ -308,7 +314,7 @@ Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshoo
 
 ## Related pages
 
-- [`netclaw init`](/cli/init/) -- Slack setup at step 3
+- [`netclaw config`](/cli/config/) -- Channels
 - [`netclaw secrets`](/cli/secrets/) -- token management
 - [`netclaw doctor`](/cli/doctor/) -- Slack auth and ACL diagnostics
 - [Security Model](/security/security-model/) -- audiences and approval gates

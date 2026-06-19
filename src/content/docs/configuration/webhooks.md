@@ -240,13 +240,13 @@ Route files contain plaintext secrets. Treat `~/.netclaw/config/webhooks/` the s
 
 ## Setup
 
-1. Enable webhooks in `netclaw.json` (or toggle during [`netclaw init`](/cli/init/))
+1. Enable webhooks in `netclaw.json`, or via `netclaw config` → Inbound Webhooks.
 2. Create a route: `netclaw webhooks set <name> --prompt "..." --secret-env SECRET_VAR`
 3. Restart the daemon to pick up the `Webhooks.Enabled` change: `netclaw daemon stop && netclaw daemon start`
 4. Copy the webhook URL from [`netclaw status`](/cli/status/) and paste it into your external service
 5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts -- look for the `webhook.received` counter
 
-![Init wizard showing the inbound webhooks toggle](/screenshots/output/init-09-webhooks.png)
+<!-- TODO(screenshots): replace with config-inbound-webhooks.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 You only need to restart when first enabling `Webhooks.Enabled`. After that, route changes are [hot-reloaded](#hot-reload) on each request.
 

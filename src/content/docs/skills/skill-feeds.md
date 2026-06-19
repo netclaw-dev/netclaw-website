@@ -34,13 +34,11 @@ flowchart TD
 
 Each feed syncs independently. A failing server never blocks other feeds or daemon startup. On failure, the daemon falls back to on-disk skills from the last successful sync.
 
-## Add a Feed During Init
+## Add a Feed via netclaw config
 
-The [`netclaw init`](/cli/init/) wizard includes a skill feeds step:
+The `netclaw config` → Skill Sources screen includes a skill feeds step. It probes the URL, fetches the RFC index, reports the skill count (or shows the error), and suggests a name based on the hostname. Add as many feeds as you need.
 
-![Skill feeds configuration during init](/screenshots/output/init-step8-skill-feeds-prompt.png)
-
-The wizard probes the URL, fetches the RFC index, reports the skill count (or shows the error), and suggests a name based on the hostname. Add as many feeds as you need.
+<!-- TODO(screenshots): replace with config-skills.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 ## Manual Configuration
 

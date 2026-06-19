@@ -35,7 +35,9 @@ A bot only sees channels it belongs to. Add it to the target team, then invite i
 
 ## Configure netclaw
 
-Easiest path: [`netclaw init`](/cli/init/) walks channel selection and token entry -- pick Mattermost, enter your server URL and bot token, and it writes the config for you.
+Easiest path: `netclaw config` → Channels — enter your server URL and bot token; Netclaw resolves and saves. The config UI now shows channel display names dynamically, so you no longer need to look up opaque IDs by hand (closes [#1324](https://github.com/netclaw-dev/netclaw/issues/1324)).
+
+<!-- TODO(screenshots): replace with config-channels-menu.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 For manual setup, store the token with [`netclaw secrets`](/cli/secrets/):
 
@@ -61,6 +63,14 @@ Environment variables work too:
 export NETCLAW_Mattermost__BotToken="your-bot-token"
 export NETCLAW_Mattermost__Enabled="true"
 ```
+
+### How channel IDs are stored
+
+Enter channel names or IDs (comma-separated) in `netclaw config` → Channels. Netclaw resolves each entry against the Mattermost REST API to its canonical channel ID **before saving**. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Entries that cannot be resolved are rejected — they are not silently saved.
+
+:::caution
+**Breaking change (pre-0.24.0 → 0.24.0+):** If you previously placed display names in `AllowedChannelIds` or set `DefaultChannelId` by hand in `netclaw.json`, those values no longer match incoming channel IDs and messages will be silently dropped. Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs.
+:::
 
 ### All config fields
 
@@ -220,7 +230,7 @@ Running Mattermost in a container on Apple Silicon? The [`mattermost/mattermost-
 
 ## Related pages
 
-- [`netclaw init`](/cli/init/) -- Mattermost setup at step 3
+- [`netclaw config`](/cli/config/) -- Channels
 - [`netclaw secrets`](/cli/secrets/) -- token management
 - [`netclaw status`](/cli/status/) -- primary diagnostic for Mattermost
 - [Security Model](/security/security-model/) -- audiences and approval gates

@@ -22,9 +22,9 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 | **Tailscale Funnel** | `tailscale-funnel` | `tailscaled` | Public internet via Tailscale | High |
 | **Cloudflare Tunnel** | `cloudflare-tunnel` | `cloudflared` | Public internet via Cloudflare | High |
 
-The `netclaw init` wizard covers this at step 9:
+Configure the exposure mode in `netclaw config`, or set it directly in `netclaw.json`.
 
-![Exposure mode selection in the netclaw init wizard, with Local highlighted as the recommended option](/screenshots/output/init-09-exposure.png)
+<!-- TODO(screenshots): replace with config-exposure.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 Options marked with a warning triangle expose the daemon to the public internet. Tailscale Serve is the recommended remote mode: tailnet-only access, no public exposure.
 
@@ -156,9 +156,7 @@ docker restart netclaw
 
 ## Inbound webhooks
 
-Tunnel modes make [inbound webhooks](/configuration/webhooks/) possible. External services like GitHub or CI systems can trigger autonomous runs via HTTP POST. The `netclaw init` wizard asks about this right after exposure mode selection:
-
-![Inbound webhook toggle in the init wizard](/screenshots/output/init-09-webhooks.png)
+Tunnel modes make [inbound webhooks](/configuration/webhooks/) possible. External services like GitHub or CI systems can trigger autonomous runs via HTTP POST.
 
 They do nothing in local mode.
 
@@ -245,11 +243,7 @@ netclaw daemon pair
 
 If the device store was lost after the first successful non-local start and the daemon will not start anymore, temporarily switch `Daemon.ExposureMode` to `local` or restore `devices.json` and `secrets.json` from backup. Then start the daemon, run `netclaw daemon pair`, and switch back.
 
-You can also re-run the init wizard, which still cooperates with the runtime bootstrap path:
-
-```bash
-netclaw init
-```
+You can also run `netclaw init` on an existing install — it shows an action menu with options to open the configuration editor, redo identity, or start over.
 
 ### Reverse proxy bound to loopback
 

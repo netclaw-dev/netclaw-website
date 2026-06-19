@@ -62,7 +62,7 @@ Persistence uses [Akka.Persistence.Sql](https://getakka.net/articles/persistence
 
 ## Three boundaries
 
-Three logical boundaries divide the daemon (from the [runtime spec](https://github.com/netclaw-dev/netclaw/blob/main/docs/spec/SPEC-001-runtime-boundaries.md)):
+Three logical boundaries divide the daemon (from the [runtime spec](https://github.com/netclaw-dev/netclaw/blob/dev/docs/spec/SPEC-001-runtime-boundaries.md)):
 
 At the edge, the **gateway** receives transport events (Slack message, webhook POST, CLI input), runs policy checks, and converts them to actor commands. Nothing reaches the session layer before policy runs.
 

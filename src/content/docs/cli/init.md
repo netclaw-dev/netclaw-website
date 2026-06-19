@@ -108,7 +108,7 @@ If init fails partway through, the files it already wrote stay on disk. Rerun `n
 
 Running `netclaw init` when `~/.netclaw/config/netclaw.json` already exists opens an action menu instead of the bootstrap wizard.
 
-<!-- TODO(screenshots): init-existing-menu.png — capture after release; epic #55 -->
+![Existing-install action menu](/screenshots/output/init-existing-menu.png)
 
 | Option | Effect |
 |--------|--------|
@@ -129,7 +129,7 @@ Selecting "Start over from scratch" opens a scope chooser:
 
 Both destructive scopes require **two confirmations**. The default selection at each confirmation is Cancel — you have to move to the Yes option and confirm twice before anything is deleted.
 
-<!-- TODO(screenshots): init-start-over-scope.png — capture after release; epic #55 -->
+![Start-over scope chooser](/screenshots/output/init-start-over-scope.png)
 
 ## What init creates
 

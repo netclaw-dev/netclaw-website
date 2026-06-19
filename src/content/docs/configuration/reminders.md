@@ -128,13 +128,13 @@ For more detail on creating reminders with each schedule type, see [`netclaw rem
 | Kind | What happens | Requirements |
 |------|-------------|--------------|
 | `None` | Agent runs silently. Results recorded in history only. | Nothing |
-| `Channel` | Agent posts results to a channel or DM via the transport's proactive tool (`send_slack_message`, `send_discord_message`, or `send_mattermost_message`) | `transport` + `address`, with that channel configured |
+| `Channel` | Agent posts results to a channel or DM via the generic `send_channel_message` tool | `transport` + `address`, with that channel configured |
 | `CurrentSession` | Re-enters the originating conversation (a Slack/Discord thread, or a TUI/SignalR session) it was created in | Active session at creation; Slack, Discord, TUI, or SignalR only |
 
 When `deliveryRequired` is `true` (the default) and delivery kind is `Channel`, the execution is marked **failed** if the agent doesn't post to the target channel. Each failed execution emits a `ReminderExecutionFailed` warning alert. After 5 consecutive failures, the reminder is auto-disabled and a `ReminderAutoDisabled` critical alert fires.
 
 :::caution
-Mattermost is the exception. Channel delivery posts correctly (the agent calls `send_mattermost_message`), but the daemon doesn't yet track that call as a named delivery the way it does for Slack and Discord — so `deliveryRequired: true` can mark a Mattermost channel reminder failed even after it posted. Set `deliveryRequired: false` for Mattermost channel reminders. (`CurrentSession` isn't an option here: `set_reminder` only accepts it for Slack, Discord, TUI, and SignalR sessions.)
+Mattermost is the exception. Channel delivery posts correctly (the agent calls `send_channel_message`), but the daemon doesn't yet track that call as a named delivery the way it does for Slack and Discord — so `deliveryRequired: true` can mark a Mattermost channel reminder failed even after it posted. Set `deliveryRequired: false` for Mattermost channel reminders. (`CurrentSession` isn't an option here: `set_reminder` only accepts it for Slack, Discord, TUI, and SignalR sessions.)
 :::
 
 For `CurrentSession` delivery, the daemon waits up to 1 hour to confirm the reminder posted back to its originating session. If that session is gone, or delivery is never confirmed within the hour, the execution is marked failed.

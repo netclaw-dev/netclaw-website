@@ -56,7 +56,7 @@ See the [Pairing Remote Devices](/guides/pairing-remote-devices/) guide for the 
 |---------|-------------|--------|-----|
 | [`provider`](/cli/provider/) | Manage LLM providers | No | Yes (bare invocation) |
 | [`model`](/cli/model/) | Manage model role assignments | No | Yes (bare invocation) |
-| [`mcp`](/cli/mcp-tools/) | Manage [MCP](https://spec.modelcontextprotocol.io/) (Model Context Protocol) server profiles and tool permissions | Optional | Partial |
+| [`mcp`](/cli/mcp-tools/) | Manage [MCP](https://modelcontextprotocol.io/specification) (Model Context Protocol) server profiles and tool permissions | Optional | Partial |
 | [`webhooks`](/cli/webhooks/) | Manage inbound webhook routes | No | No |
 | [`secrets`](/cli/secrets/) | Store encrypted secrets via `secrets set <key> <value>`. See [Secrets](/security/secrets/). | No | No |
 | [`reminder`](/cli/reminder/) | Manage scheduled reminders | Required | Yes (`ui` or `tui` subcommand) |
@@ -134,4 +134,4 @@ netclaw 0.22.1 (commit bc2170d, built 2026-06-01T12:38:11Z)
 - [Docker deployment](/deployment/docker/) — Containerized daemon setup
 - [.NET CLI tools documentation](https://learn.microsoft.com/en-us/dotnet/core/tools/) — Background on .NET global tools, which is how netclaw is distributed
 - [systemd user services](https://wiki.archlinux.org/title/Systemd/User) — Reference for `daemon install` / `daemon uninstall` on Linux
-- [Model Context Protocol spec](https://spec.modelcontextprotocol.io/) — MCP specification
+- [Model Context Protocol spec](https://modelcontextprotocol.io/specification) — MCP specification

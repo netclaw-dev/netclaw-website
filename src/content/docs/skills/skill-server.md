@@ -9,7 +9,7 @@ SkillServer is a self-hosted skill registry — a private NuGet feed or npm regi
 
 It implements two open standards:
 
-- **[Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-spec)** — discovery via `/.well-known/agent-skills/index.json`
+- **[Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc)** — discovery via `/.well-known/agent-skills/index.json`
 - **[AgentSkills.io](https://agentskills.io)** — the SKILL.md format for skill definitions
 
 Any agent that supports these standards can consume skills from your server, not just netclaw.
@@ -261,10 +261,10 @@ PR builds validate with `--dry-run`. Pushes to master publish for real. Existing
 
 ## Connecting netclaw instances
 
-Add a skill server as a feed source:
+Add a skill server as a feed source through `netclaw config` → Skill Sources (select **+ Add skill server** and enter the base URL), or by adding it to the `SkillFeeds.Feeds` array in `~/.netclaw/config/netclaw.json`:
 
-```bash
-netclaw skill feed add my-server --url http://skills.internal.example.com/manifest.json
+```json
+{ "SkillFeeds": { "Feeds": [ { "Name": "my-server", "Url": "http://skills.internal.example.com", "Enabled": true } ] } }
 ```
 
 The daemon syncs on a periodic interval. Skills land in `~/.netclaw/skills/.server-feeds/` (read-only). See [Skill Feeds](/skills/skill-feeds/) for sync intervals, authentication, and selective sync options.
@@ -311,6 +311,6 @@ The daemon syncs on a periodic interval. Skills land in `~/.netclaw/skills/.serv
 ## External resources
 
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format spec
-- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) — the discovery protocol
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) — the discovery protocol
 - [netclaw-dev/skill-server on GitHub](https://github.com/netclaw-dev/skill-server) — source, issues, releases
 - [Tailscale GitHub Action](https://github.com/tailscale/github-action) — CI/CD access to private network servers

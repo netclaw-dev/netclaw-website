@@ -1,9 +1,9 @@
 ---
 title: "netclaw init"
-description: "Interactive setup wizard for providers, channels, security, and network exposure."
+description: "First-run setup wizard: provider, identity, security posture, enabled features, and health check."
 ---
 
-Interactive first-run setup. Configures your provider, security policy, channels, identity, skills, and network exposure in one pass, then starts the daemon.
+`netclaw init` runs the bootstrap wizard — four or five steps depending on your security posture — that get netclaw from zero to a working chat session. Run it once on a fresh install. If you need to adjust channels, search, exposure mode, or skills after setup, use [`netclaw config`](/cli/config/) instead.
 
 ## Usage
 
@@ -11,154 +11,132 @@ Interactive first-run setup. Configures your provider, security policy, channels
 netclaw init
 ```
 
-## Options
-
-| Flag | Description | Default |
-|------|-------------|---------|
-| *(none)* | Launch the interactive wizard | — |
-
 ## Before you begin
 
-Have these ready before starting:
-
 - **LLM provider credentials** — an [OpenRouter](https://openrouter.ai/docs) API key (easiest) or [Ollama](https://ollama.com/download) installed locally
-- **Slack tokens** (if using Slack) — Bot Token (`xoxb-...`) + App Token (`xapp-...`). See the [Slack quickstart](https://api.slack.com/start/quickstart)
-- **Discord bot token** (if using Discord) — from the [Discord developer portal](https://discord.com/developers/docs/getting-started)
+- **Anthropic, OpenAI, or other cloud-provider API key** if not using OpenRouter
 
-For local-only setup, that is enough. For non-local exposure modes, you may also need `tailscaled`, `cloudflared`, or a working reverse proxy depending on the mode you choose.
-
+Channel tokens (Slack, Discord, Mattermost), search providers, browser automation, skill sources, and network exposure are all configured in `netclaw config` after init — you don't need them now.
 
 ## Wizard steps
 
-The wizard skips steps based on your choices, security posture, and feature selections.
+The wizard counts steps dynamically: **4 steps** for Personal posture (the Enabled Features step is skipped), **5 steps** for Team or Public.
 
-### 1. LLM Provider
+### Step 1 — Provider
 
-Pick a provider, enter credentials, select a model.
+Pick an LLM provider, enter credentials, and select a default model.
 
 ![Provider selection list](/screenshots/output/init-01-provider-list.png)
 
-Netclaw supports many providers out of the box — pick one to start with here, and use [`netclaw provider`](/cli/provider/) to add more later. Self-hosted providers like Ollama need an endpoint URL:
+Available providers: Anthropic, GitHub Copilot, Ollama, OpenAI, llama.cpp / vLLM, OpenRouter, and Venice.ai. Self-hosted backends (Ollama, llama.cpp / vLLM) prompt for an endpoint URL next.
 
 ![Endpoint configuration](/screenshots/output/init-01-endpoint.png)
 
-![Ollama provider configuration](/screenshots/output/init-01-provider-ollama.png)
-
-Once credentials pass a connectivity check, you pick a default model:
+After credentials pass a connectivity check, you pick a default model from the discovered list.
 
 ![Model selection](/screenshots/output/init-01-model-select.png)
 
-### 2. Security posture
+Add or swap providers later with [`netclaw provider`](/cli/provider/). Reassign model roles without re-running init with [`netclaw model`](/cli/model/).
+
+### Step 2 — Identity
+
+Four substeps in order: **agent name → communication style → your name → timezone**.
+
+| Substep | Prompt | Notes |
+|---------|--------|-------|
+| Agent name | `Agent name:` | Defaults to `Netclaw` if left blank |
+| Communication style | `Communication style:` | Choose: Concise & casual, Concise & formal, Detailed & casual, Detailed & formal |
+| Your name | `Your name:` | Optional — used to personalize responses |
+| Timezone | `Your timezone:` | Defaults to local system timezone |
+
+![Identity step — communication style](/screenshots/output/init-02-identity.png)
+
+:::note
+Webhook URLs and workspace directories are **not** collected here — they're post-install settings in `netclaw config`.
+:::
+
+### Step 3 — Security Posture
 
 ![Security posture selection](/screenshots/output/init-02-security-posture.png)
 
-| Posture | Trust Level | Shell Access |
-|---------|-------------|--------------|
-| **Personal** | Single-user, high trust | Enabled with approval gates |
-| **Team** | Multi-user, medium trust | Off by default |
-| **Public** | Untrusted users, low trust | Off |
+Three postures are listed with a brief annotation; the hint line below explains the shell-access implications of each.
 
-Every new shell command needs your sign-off the first time. You can override per-channel later.
+| Posture | Who uses it | Shell access | Enabled Features step |
+|---------|------------|--------------|----------------------|
+| **Personal** | Single user, high trust | Enabled with approval gates | Skipped (all features on by default) |
+| **Team** | Multiple users, medium trust | Off | Shown (all features on by default) |
+| **Public** | Untrusted users, low trust | Off | Shown (all features off by default) |
 
-### 3. Feature selection
+You can tighten or loosen per-channel behavior later in `netclaw config`.
 
-Enable or disable memory, search, skills, scheduling, sub-agents, and webhooks. Skipped in Personal mode (everything on by default).
+### Step 4 — Enabled Features *(Team and Public only)*
 
-### 4. Channels
+Six toggles that control what's available across all audiences:
 
-![Channel picker](/screenshots/output/init-03-channels.png)
+| Feature | Config key |
+|---------|-----------|
+| Memory | `Memory.Enabled` |
+| Search | `Search.Enabled` |
+| Skills | `SkillSync.Enabled` |
+| Scheduling | `Scheduling.Enabled` |
+| SubAgents | `SubAgents.Enabled` |
+| Webhooks | `Webhooks.Enabled` |
 
-Slack, Discord, [Mattermost](/channels/mattermost/), or any combination. Each one opens a sub-step for tokens and workspace config.
+Space to toggle, Enter to continue. Personal posture skips this step entirely — all features are on by default.
 
-Slack needs a Bot Token (`xoxb-...`) and App Token (`xapp-...`) for [Socket Mode](https://api.slack.com/apis/socket-mode). It tests connectivity before moving on.
+![Feature selection on Team posture](/screenshots/output/init-04-enabled-features.png)
 
-### 5. Web search
+All six features default to enabled on Team posture; Public posture defaults them all off.
 
-![Search toggle](/screenshots/output/init-04-search.png)
+### Step 5 — Health Check
 
-Enable web search so netclaw can pull live results during conversations.
+Press Enter to run the health checks. The wizard validates config files, tests provider connectivity, and starts the daemon.
 
-### 6. Browser automation
+![Health check running](/screenshots/output/init-05-health-check.png)
 
-![Browser automation toggle](/screenshots/output/init-05-browser.png)
+On a clean pass — all probes green — the wizard writes config and launches `netclaw chat` automatically. No extra confirmation needed.
 
-Activate browser automation — page fetching, screenshots, form interaction.
+If any check fails, the wizard stays on the summary screen and shows:
 
-### 7. Identity
+```
+Setup complete with warnings. Run `netclaw daemon start`, then `netclaw chat`. Adjust settings with `netclaw config`.
+```
 
-![Owner/user identity](/screenshots/output/init-06-identity-user.png)
+If init fails partway through, the files it already wrote stay on disk. Rerun `netclaw init` or inspect the saved config and run `netclaw doctor` before trying again.
 
-The owner identity determines who gets operator-level access.
+## Existing install
 
-![Agent name](/screenshots/output/init-06-identity-name.png)
+Running `netclaw init` when `~/.netclaw/config/netclaw.json` already exists opens an action menu instead of the bootstrap wizard.
 
-![Personality style](/screenshots/output/init-06-identity-style.png)
+<!-- TODO(screenshots): init-existing-menu.png — capture after release; epic #55 -->
 
-![Timezone](/screenshots/output/init-06-identity-timezone.png)
+| Option | Effect |
+|--------|--------|
+| **Redo identity setup** | Re-runs the four-substep identity flow; provider and all other settings are kept |
+| **Open configuration editor** | Launches `netclaw config` |
+| **Start over from scratch** | Destructive reset — see below |
+| **Cancel** | Exits with config untouched |
 
-![Webhook URL](/screenshots/output/init-06-identity-webhook.png)
+### Start over from scratch
 
-![Workspace configuration](/screenshots/output/init-06-identity-workspaces.png)
+Selecting "Start over from scratch" opens a scope chooser:
 
-Give your agent a name, pick a personality style (shapes tone in chat), set a timezone for scheduling, and optionally wire up a webhook URL for outbound notifications. The screenshots walk you through each field.
+| Scope | What's deleted |
+|-------|---------------|
+| **Reset setup only** | Config, secrets, identity, and personality (`~/.netclaw/config/`, `~/.netclaw/identity/`, `~/.netclaw/soul/`). Memory, sessions, and skills are kept. |
+| **Full reset** | Everything under `~/.netclaw/` |
+| **Cancel** | Returns to the action menu |
 
-### 8. External skills
+Both destructive scopes require **two confirmations**. The default selection at each confirmation is Cancel — you have to move to the Yes option and confirm twice before anything is deleted.
 
-![Custom skills path](/screenshots/output/init-07-custom-skills-path.png)
+<!-- TODO(screenshots): init-start-over-scope.png — capture after release; epic #55 -->
 
-Point to a local directory with custom skill definitions.
-
-![External skills](/screenshots/output/init-07-external-skills.png)
-
-Add remote skill servers or additional skill packages.
-
-### 9. Skill feeds
-
-![Skill feeds](/screenshots/output/init-08-skill-feeds.png)
-
-Subscribe to skill feeds — curated skill collections from the community or your org.
-
-### 10. Network exposure
-
-![Exposure mode selection](/screenshots/output/init-09-exposure.png)
-
-| Mode | Reachability | Requires |
-|------|-------------|----------|
-| `local` | Loopback only (this machine) | Nothing |
-| `reverse-proxy` | Whatever your proxy exposes | Reverse proxy + trusted proxy list |
-| `tailscale-serve` | Your [Tailscale](https://tailscale.com/kb/) tailnet | `tailscaled` running |
-| `tailscale-funnel` | Public internet via Tailscale | `tailscaled` running |
-| `cloudflare-tunnel` | Public internet via [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) | `cloudflared` running |
-
-The internet-facing modes (`tailscale-funnel`, `cloudflare-tunnel`) make you type an explicit confirmation because they expose the daemon to the internet.
-
-![Webhook configuration](/screenshots/output/init-09-webhooks.png)
-
-If you enabled webhooks, you'll configure inbound routes here.
-
-### 11. Health check
-
-![Health check running](/screenshots/output/init-10-health-check.png)
-
-Validates config files, tests provider connectivity, verifies channel tokens, and checks tunnel or reverse-proxy prerequisites.
-
-![Health check complete](/screenshots/output/init-10-health-check-complete.png)
-
-If all checks pass, the daemon starts automatically.
-
-If you picked a non-local exposure mode, the first successful daemon start also keeps a bootstrap pairing path available so the local CLI can finish remote-auth setup.
-
-If something fails, the wizard tells you which check broke, shows exposure-mode validation failures directly, and suggests running `netclaw doctor` for detailed diagnostics.
-
-If `netclaw init` fails partway through, the files it already wrote stay on disk. It is safe to rerun `netclaw init`, or inspect the saved config and use `netclaw doctor` before trying again.
-
-## What it creates
+## What init creates
 
 | File | Purpose |
 |------|---------|
-| `~/.netclaw/config/netclaw.json` | Main configuration (includes security posture) |
+| `~/.netclaw/config/netclaw.json` | Main configuration (includes security posture and feature flags) |
 | `~/.netclaw/config/secrets.json` | Encrypted credentials |
-| `~/.netclaw/config/devices.json` | Paired device registry, including first-launch bootstrap device when needed |
 | `~/.netclaw/identity/` | Agent identity and personality |
 
 ## After init
@@ -170,21 +148,21 @@ netclaw doctor
 # Check daemon status
 netclaw status
 
-# Start your first conversation
-netclaw chat
+# Add channels, search, exposure, and skills
+netclaw config
 ```
 
 ## Related commands
 
-- [`netclaw doctor`](/cli/doctor/) — Diagnose config and connectivity issues post-setup
+- [`netclaw config`](/cli/config/) — Post-install configuration for channels, search, exposure, skills, and webhooks
+- [`netclaw doctor`](/cli/doctor/) — Diagnose config and connectivity issues
 - [`netclaw status`](/cli/status/) — Check daemon health and connector states
-- [`netclaw provider`](/cli/provider/) — Change or add providers without re-running init
+- [`netclaw provider`](/cli/provider/) — Add or swap providers without re-running init
 - [`netclaw model`](/cli/model/) — Reassign model roles without re-running init
 
 ## Resources
 
 - [OpenRouter documentation](https://openrouter.ai/docs) — API keys, model catalog, rate limits
-- [Slack Socket Mode](https://api.slack.com/apis/socket-mode) — How netclaw connects to Slack without a public endpoint
-- [Tailscale Funnel documentation](https://tailscale.com/kb/1223/funnel/) — Exposing services to the public internet via Tailscale
-- [Cloudflare Tunnel documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — Exposing services via Cloudflare's network
-- [Traefik reverse proxy docs](https://doc.traefik.io/traefik/routing/routers/) — reverse-proxy option if you're exposing netclaw behind Traefik
+- [Ollama installation](https://ollama.com/download) — Local model runtime setup
+- [Tailscale Funnel documentation](https://tailscale.com/kb/1223/funnel/) — Exposing services to the public internet via Tailscale (configure in `netclaw config` after init)
+- [Cloudflare Tunnel documentation](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — Exposing services via Cloudflare's network (configure in `netclaw config` after init)

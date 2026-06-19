@@ -24,7 +24,7 @@ Daemon logs live at `~/.netclaw/logs/`, or `journalctl -u netclaw` if you're run
 
 ![netclaw doctor running diagnostic checks including Slack Auth and Slack ACL](/screenshots/output/doctor.png)
 
-Doctor only checks Slack right now (Auth and ACL). For Discord, use `netclaw status` and the daemon logs. Mattermost isn't in `netclaw status` yet, so it's daemon logs only.
+Doctor only checks Slack right now (Auth and ACL). For Discord and Mattermost, use `netclaw status` for connector health and the daemon logs for details.
 
 ## Authentication Errors
 
@@ -53,7 +53,7 @@ netclaw daemon stop && netclaw daemon start
 
 Doctor reports "Slack is enabled but no bot token found."
 
-Run [`netclaw init`](/cli/init/) or set the token directly:
+Run `netclaw config` → Channels → Slack, or set the token directly:
 
 ```bash
 netclaw secrets set Slack.BotToken xoxb-your-token
@@ -85,7 +85,7 @@ The bot token may be valid but the bot hasn't been invited to any server, so Dis
 
 ### Mattermost: Invalid Bot Token
 
-The daemon logs show `Mattermost rejected the bot token (HTTP 401)` (Mattermost isn't surfaced in `netclaw status` yet, so the logs are the signal).
+`netclaw status` shows Mattermost as `disconnected`. The daemon logs show `Mattermost rejected the bot token (HTTP 401)` with more detail.
 
 The bot's personal access token is wrong or was revoked. Re-issue it from the System Console (**Integrations > Bot Accounts**) and update the secret:
 
@@ -146,7 +146,7 @@ Add the user's ID to `AllowedUserIds`, or clear the list to allow all users:
 
 ### DMs Not Working
 
-Direct messages to the bot get no response, but channel messages work fine. Logs show `DmNotAllowed`.
+Direct messages to the bot get no response, but channel messages work fine. Logs show `event_filtered ... reason=routing_policy_ignore ignoreReason=DmNotAllowed`.
 
 `AllowDirectMessages` defaults to `false`. Turn it on:
 
@@ -160,9 +160,25 @@ Direct messages to the bot get no response, but channel messages work fine. Logs
 
 Doctor warns if you enable DMs with an empty `AllowedUserIds` list, since any workspace member can then DM the bot.
 
+### Channel Messages Silently Dropped After Upgrading from Pre-0.24.0
+
+Bot is connected and the channel is in `AllowedChannelIds`, but every message is dropped. Logs show `channel_not_allowed`. Started after upgrading to 0.24.0 or later.
+
+**Cause:** Before 0.24.0, `AllowedChannelIds` accepted display names (e.g. `"general"`) or manually entered values that were never resolved to canonical IDs. As of 0.24.0, incoming message channel IDs are matched against stored IDs only — display names no longer match.
+
+**Fix:** Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs and are saved correctly. This is the easiest path — the config UI does the resolution automatically.
+
+If you prefer to fix it manually in `~/.netclaw/config/netclaw.json`, replace any display names in `AllowedChannelIds` with the canonical channel ID for each platform:
+
+- **Slack:** right-click a channel name → "View channel details" → scroll to the bottom for the `C...` ID. See [Slack: Finding IDs](https://slack.com/help/articles/221769328).
+- **Discord:** enable Developer Mode in Settings > App Settings > Advanced, then right-click any channel → "Copy Channel ID."
+- **Mattermost:** find IDs in the System Console or via the [REST API](https://api.mattermost.com/).
+
+After editing, restart the daemon: `netclaw daemon stop && netclaw daemon start`
+
 ### Bot Not Responding to Messages (MentionOnly)
 
-Bot is connected and healthy but only responds to some messages. Logs show `ChannelMentionRequired`.
+Bot is connected and healthy but only responds to some messages. Logs show `event_filtered ... reason=routing_policy_ignore ignoreReason=ChannelMentionRequired`.
 
 `MentionOnly` defaults to `true`, so the bot ignores messages that don't @-mention it. Either @-mention the bot every time, or turn it off:
 
@@ -203,7 +219,7 @@ netclaw daemon stop && netclaw daemon start
 
 If it keeps disconnecting, check the [Slack Status page](https://status.slack.com/) and your network. Make sure the App Token (`xapp-...`) is still valid; Socket Mode requires it.
 
-Only Socket Mode is supported. Setting `SocketMode: false` in config throws an `InvalidOperationException` at startup.
+Only Socket Mode is supported. Setting `SocketMode: false` leaves Slack unable to connect, so it shows as degraded in `netclaw status` and the daemon logs a connection error.
 
 ### Discord Gateway Disconnected
 
@@ -267,13 +283,13 @@ Still stuck? Turn on debug logging in `~/.netclaw/config/netclaw.json`:
 Restart the daemon, trigger the failing interaction, and look for these patterns:
 
 **Healthy message flow (Slack):**
-1. `Routing Slack event ... to conversation ...`
-2. `Routing Slack event ... to session thread actor`
-3. `Accepted inbound Slack message for session queue`
-4. `Received user message`
-5. `Posted Slack reply message`
+1. `Routing Slack event {id} to conversation {channelId}` — [SlackGatewayActor, Debug]
+2. `turn_routed event={EventId} hasFiles=... textChars=...` — [SlackConversationActor]
+3. `turn_received textChars=... fileCount=...` — [SlackThreadBindingActor]
+4. `turn_enqueued contentItems=...` — [SlackThreadBindingActor]
+5. `Posted Slack reply message` — [SlackThreadBindingActor]
 
-If the chain stalls at step 3, something in ACL config is rejecting the message. If it stalls at step 5, the reply couldn't be posted. Check the error tables above.
+If step 1 never appears, the message was dropped before routing — check ACL config (`channel_not_allowed`, `user_not_allowed`). If step 1 appears but step 2 does not, the routing policy filtered it (look for `event_filtered reason=routing_policy_ignore`). If step 4 appears but step 5 does not, the reply couldn't be posted — check the error tables above.
 
 **Quick triage commands:**
 
@@ -302,14 +318,14 @@ If [OpenTelemetry](/observability/opentelemetry/) is enabled, channel metrics te
 | High drop rate | `events.dropped` spiking with `reason=channel_not_allowed` | Channel not in allow list |
 | Suspected loop | High `events.filtered{reason="bot_message"}` + high `events.received` | Bot message filter working, but volume suggests upstream issue |
 
-Channel metrics use the namespace `netclaw.channel.slack.*` and `netclaw.channel.discord.*`.
+Channel metrics use the namespace `netclaw.channel.slack.*`, `netclaw.channel.discord.*`, and `netclaw.channel.mattermost.*`.
 
 ## Related Pages
 
 - [`netclaw doctor`](/cli/doctor/) — offline diagnostics
 - [`netclaw status`](/cli/status/) — live connector health and message counters
 - [`netclaw secrets`](/cli/secrets/) — manage encrypted tokens
-- [`netclaw init`](/cli/init/) — first-run wizard for channel setup
+- [`netclaw config`](/cli/config/) — Channels
 - [OpenTelemetry](/observability/opentelemetry/) — OTLP metrics reference
 
 ## External Resources

@@ -11,7 +11,7 @@ We built netclaw because OpenClaw's execution philosophy — ship everything, in
 
 ## Breadth vs. simplicity
 
-OpenClaw competes on scale — stars, contributor count, lines of code, integration breadth. Their pitch is the ecosystem: 50+ platform integrations, 700+ community skills in [ClawHub](https://clawhub.openclaw.ai/), 1,900+ contributors, 430K+ lines of code.
+OpenClaw competes on scale — stars, contributor count, lines of code, integration breadth. Their pitch is the ecosystem: 50+ platform integrations, 700+ community skills in [ClawHub](https://hub.openclaw.ai/), 1,900+ contributors, 430K+ lines of code.
 
 Netclaw competes on simplicity. Our codebase is deliberately small. Our configuration footprint is minimal. When we're tempted to add a feature, the first question is: can this live in an [MCP server](/architecture/design-philosophy/#mcp-first-tooling) someone else maintains instead?
 
@@ -27,7 +27,7 @@ Netclaw works the other way around. During [`netclaw init`](/cli/init/), you cho
 
 ## The skills marketplace problem
 
-OpenClaw's [ClawHub](https://clawhub.openclaw.ai/) is an open marketplace where anyone can publish agent skills. In February 2026, [Koi Security audited 2,857 ClawHub skills](https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html) and found 341 that were actively malicious — a **12% malware rate**. 335 of those traced to a single coordinated campaign called [ClawHavoc](https://www.antiy.net/p/clawhavoc-analysis-of-large-scale-poisoning-campaign-targeting-the-openclaw-skill-market-for-ai-agents/). A follow-up scan found [824+ malicious skills out of 10,700+](https://www.esecurityplanet.com/threats/hundreds-of-malicious-skills-found-in-openclaws-clawhub/) total.
+OpenClaw's [ClawHub](https://hub.openclaw.ai/) is an open marketplace where anyone can publish agent skills. In February 2026, [Koi Security audited 2,857 ClawHub skills](https://thehackernews.com/2026/02/researchers-find-341-malicious-clawhub.html) and found 341 that were actively malicious — a **12% malware rate**. 335 of those traced to a single coordinated campaign called [ClawHavoc](https://www.antiy.net/p/clawhavoc-analysis-of-large-scale-poisoning-campaign-targeting-the-openclaw-skill-market-for-ai-agents/). A follow-up scan found [824+ malicious skills out of 10,700+](https://www.esecurityplanet.com/threats/hundreds-of-malicious-skills-found-in-openclaws-clawhub/) total.
 
 [Snyk's broader ToxicSkills study](https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/) across agent skill registries found that 36% of skills contain security flaws, with active malicious payloads capable of going [from SKILL.md to shell access in three lines of markdown](https://snyk.io/articles/skill-md-shell-access/).
 

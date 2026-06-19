@@ -5,15 +5,15 @@ description: Configure the web search backend that powers Netclaw's web_search a
 
 The `web_search` and `web_fetch` tools route through one configured search backend. Netclaw supports three: a self-hosted SearXNG instance, the managed Brave Search API, and DuckDuckGo as a last-resort scraper. You pick one in `~/.netclaw/config/netclaw.json` via the `Search.Backend` key.
 
-If [`netclaw init`](/cli/init/) handles your setup, it asks you which backend you want and collects credentials interactively. This page covers manual configuration and the supported configuration surface for each backend. The latter matters more than it sounds: a misconfigured SearXNG instance returns errors that look identical to a healthy one to the LLM, so the agent will keep retrying instead of telling you anything's wrong.
+The easiest path is `netclaw config` → Search, which walks you through backend selection and credential entry. The SearXNG endpoint URL is validated by a reachability probe before saving — if the instance is unreachable, the editor raises a warning and offers you a "Save anyway" override. This page covers manual configuration and the supported configuration surface for each backend. The latter matters more than it sounds: a misconfigured SearXNG instance returns errors that look identical to a healthy one to the LLM, so the agent will keep retrying instead of telling you anything's wrong.
 
 ## Provider Summary
 
 | Backend | Shape | Required config | Notes |
 |---------|-------|-----------------|-------|
-| `SearXng` | Self-hosted | `Search.SearXngEndpoint` | Operator runs the instance. JSON output must be enabled. |
-| `Brave`   | Managed | `Search.BraveApiKey` (in `secrets.json`) | API key from [api.search.brave.com](https://api.search.brave.com/). |
-| `DuckDuckGo` | Scraped | None | No config; least reliable; may hit bot detection. |
+| `searxng` | Self-hosted | `Search.SearXngEndpoint` | Operator runs the instance. JSON output must be enabled. |
+| `brave`   | Managed | `Search.BraveApiKey` (in `secrets.json`) | API key from [api.search.brave.com](https://api.search.brave.com/). |
+| `duckduckgo` | Scraped | None | No config; least reliable; may hit bot detection. |
 
 ## SearXNG
 
@@ -25,7 +25,7 @@ If [`netclaw init`](/cli/init/) handles your setup, it asks you which backend yo
 // ~/.netclaw/config/netclaw.json
 {
   "Search": {
-    "Backend": "SearXng",
+    "Backend": "searxng",
     "SearXngEndpoint": "https://searxng.internal.example/"
   }
 }
@@ -51,7 +51,7 @@ If JSON is not enabled, SearXNG returns either `HTTP 403 Forbidden` or a HTML bo
 
 Most production SearXNG deployments sit behind a reverse proxy (nginx, Caddy, Cloudflare). Two requirements matter for Netclaw's traffic.
 
-First, allow a non-empty `User-Agent`. Netclaw sends `Netclaw/{version} (+https://netclaw.dev)` on every request. Many reverse proxies bot-wall empty-UA traffic before it ever reaches SearXNG; non-empty UAs pass.
+First, allow a non-empty `User-Agent`. Netclaw sends `Netclaw/{version} (+https://netclaw.dev; sha={shortSha})` on every request. Many reverse proxies bot-wall empty-UA traffic before it ever reaches SearXNG; non-empty UAs pass.
 
 Second, use standard HTTP rate-limit semantics. When the upstream throttles, Netclaw expects `HTTP 429 Too Many Requests`, optionally with a `Retry-After` header. Both delta-seconds and HTTP-date forms are honored. Netclaw retries up to 3 times on 429 with exponential backoff (5s, 10s, 20s) when no `Retry-After` is present. Non-standard limiter responses (a redirect to a captcha page, a silent body swap to HTML) are treated as terminal errors.
 
@@ -77,7 +77,7 @@ The [Brave Search API](https://brave.com/search/api/) is a managed search backen
 // ~/.netclaw/config/netclaw.json
 {
   "Search": {
-    "Backend": "Brave"
+    "Backend": "brave"
   }
 }
 ```
@@ -101,7 +101,7 @@ DuckDuckGo is the last-resort backend; it needs no configuration. It scrapes the
 ```json
 // ~/.netclaw/config/netclaw.json
 {
-  "Search": { "Backend": "DuckDuckGo" }
+  "Search": { "Backend": "duckduckgo" }
 }
 ```
 

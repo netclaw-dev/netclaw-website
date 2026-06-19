@@ -296,5 +296,5 @@ The tradeoff is real: with `shell_execute` on `Auto`, a [prompt-injected](#promp
 ## Further Reading
 
 - [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) — common attack vectors for LLM applications
-- [NIST AI Risk Management Framework](https://www.nist.gov/artificial-intelligence/ai-risk-management-framework) — federal guidance on AI system security
-- [Model Context Protocol specification](https://spec.modelcontextprotocol.io/) — the protocol netclaw uses for tool server integration
+- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework) — federal guidance on AI system security
+- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) — the protocol netclaw uses for tool server integration

@@ -19,7 +19,7 @@ The lifecycle has four phases:
 
 3. **Index** — the daemon compresses the merged list into a one-line-per-skill summary and injects it into the agent's system prompt. The agent sees skill names and descriptions but not the full instructions.
 
-4. **Load** — when the agent needs a skill, it calls the `skill_load` tool (an internal tool the agent uses to fetch skill content) to read the full `SKILL.md` body and get a listing of resource files (scripts, references, assets). Users can also invoke skills directly via `/skill-name` slash commands.
+4. **Load** — when the agent needs a skill, it calls the `skill_load` built-in tool to read the full `SKILL.md` body and get a listing of resource files (scripts, references, assets). Users can also invoke skills directly via `/skill-name` slash commands.
 
 Changes to skill files trigger a rescan automatically. A file watcher monitors native and external source directories with a 500ms debounce, so edits take effect without a restart. Server feed directories are not watched — they update on the configured sync interval.
 
@@ -90,15 +90,13 @@ Four source types, each with different trust and management:
 
 Drop a `SKILL.md` into `~/.netclaw/skills/` and it appears on the next scan — that's a native skill. Create, edit, and remove them with [`netclaw skill`](/cli/skill/). Run `netclaw skill validate` to check a skill's frontmatter before using it.
 
-System skills ship from a CDN feed and are read-only. Built-in skills like `netclaw-identity` and `netclaw-diagnostics` land here on first run. For a fully offline setup, set `SkillSync.DisableSystemSkillSync: true` in your `netclaw.json` (see [Configuration](/configuration/models/) for file location).
+System skills ship from a CDN feed and are read-only. Built-in skills like `netclaw-memory` and `netclaw-operations` land here on first run. For a fully offline setup, set `SkillSync.DisableSystemSkillSync: true` in your `netclaw.json` (see [Configuration](/configuration/models/) for file location).
 
 <!-- TODO: needs user input — What is the full list of built-in system skills that ship from CDN? -->
 
-External skills let netclaw read skill directories from other AI tools. The [`netclaw init`](/cli/init/) wizard detects well-known directories automatically:
+External skills let netclaw read skill directories from other AI tools. Add a local skill folder via `netclaw config` → Skill Sources (opens an interactive directory picker), or wire up a well-known alias via the CLI.
 
-![External skills configuration during init](/screenshots/output/init-07-external-skills.png)
-
-The init wizard detects Claude Code's skill directory and offers to wire it up as an external source.
+<!-- TODO(screenshots): config-skills.png — capture via screenshots/tapes/config-skill-picker.tape after the release; epic #55 -->
 
 Well-known aliases expand to standard paths:
 
@@ -107,11 +105,7 @@ Well-known aliases expand to standard paths:
 | `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/plugins/marketplaces/*/skills/` |
 | `open-code` | `~/.open-code/skills/` |
 
-Server feed skills sync from private [skill servers](/skills/skill-server/) that implement the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec). These are self-hosted registries that distribute skills across your organization. Configure them during init or add them later:
-
-![Skill feeds configuration during init](/screenshots/output/init-08-skill-feeds.png)
-
-Configure skill feeds during init or add them later via `netclaw skill feed add`. See the [netclaw skill-server](https://github.com/netclaw-dev/skill-server) reference implementation for setting up your own.
+Server feed skills sync from private [skill servers](/skills/skill-server/) that implement the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc). These are self-hosted registries that distribute skills across your organization. Configure them in `netclaw config` → Skill Sources or add them later via `netclaw skill source add`. See the [netclaw skill-server](https://github.com/netclaw-dev/skill-server) reference implementation for setting up your own.
 
 ## Precedence
 
@@ -187,5 +181,5 @@ Run [`netclaw stats skills`](/cli/stats/) to see which skills the agent loads mo
 ## Resources
 
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) — the protocol behind skill feeds and server-based distribution
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) — the protocol behind skill feeds and server-based distribution
 - [netclaw skill-server](https://github.com/netclaw-dev/skill-server) — reference implementation of a self-hosted skill registry

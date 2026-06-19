@@ -105,6 +105,7 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'cli/overview' },
             { label: 'init', slug: 'cli/init' },
+            { label: 'config', slug: 'cli/config' },
             { label: 'chat', slug: 'cli/chat' },
             { label: 'sessions', slug: 'cli/sessions' },
             { label: 'status', slug: 'cli/status' },

@@ -3,7 +3,7 @@ title: "Slack"
 description: "Connect Netclaw to your Slack workspace."
 ---
 
-Netclaw talks to Slack over [Socket Mode](https://api.slack.com/apis/socket-mode) -- outbound WebSocket connections only. No public URLs, no ingress rules, no reverse proxies. You create a Slack app, give netclaw two tokens, and it shows up in your workspace as a bot.
+Netclaw talks to Slack over [Socket Mode](https://api.slack.com/apis/socket-mode) — outbound WebSocket connections only. No public URLs, no ingress rules, no reverse proxies. You create a Slack app, give netclaw two tokens, and it shows up in your workspace as a bot.
 
 ## Prerequisites
 
@@ -112,11 +112,9 @@ Then invite the bot to each channel where it should respond: `/invite @YourBotNa
 
 ## Configure netclaw
 
-Easiest path: [`netclaw init`](/cli/init/). Step 3 handles channel selection and token entry.
+Easiest path: `netclaw config` → Channels — enter your tokens; Netclaw resolves and saves.
 
-![Channel selection during netclaw init](/screenshots/output/init-03-channels.png)
-
-Pick Slack, paste your tokens, done.
+<!-- TODO(screenshots): replace with config-channels-menu.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
 
 For manual setup, store tokens with [`netclaw secrets`](/cli/secrets/):
 
@@ -143,16 +141,32 @@ export NETCLAW_Slack__BotToken="xoxb-..."
 export NETCLAW_Slack__AppToken="xapp-..."
 ```
 
+### How channel IDs are stored
+
+Enter channel names or IDs (comma-separated) in `netclaw config` → Channels. Netclaw resolves each entry against the Slack API to its canonical channel ID **before saving**. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI.
+
+Resolution rules:
+- **Confirmed ID** — bot finds the channel by ID: kept as-is.
+- **Display name** — resolves to its channel ID and saved as the ID.
+- **ID-shaped but not enumerable** — kept; a channel ID is the stable ACL key and is never dropped, even if the bot can't list it right now.
+- **Unresolvable display name** — dropped and flagged with a Warning in the config UI. Re-open `netclaw config` → Channels after inviting the bot to that channel.
+
+`DefaultChannelName` is Slack-only and is resolved to a channel ID live at daemon startup, so it is unaffected by the ACL matching rules above.
+
+:::caution
+**Breaking change (pre-0.24.0 → 0.24.0+):** If you previously placed channel display names in `AllowedChannelIds` by hand in `netclaw.json`, those names no longer match incoming channel IDs and messages will be silently dropped. Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs. (ID-shaped entries and `DefaultChannelName` are unaffected.)
+:::
+
 ### All config fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `Enabled` | bool | `false` | Turn on Slack |
 | `SocketMode` | bool | `true` | Must be `true`. Only Socket Mode is supported. |
-| `BotToken` | string | -- | Bot User OAuth Token (`xoxb-...`). Store with `netclaw secrets set`. |
-| `AppToken` | string | -- | App-Level Token (`xapp-...`). Required for Socket Mode. Store with `netclaw secrets set`. |
-| `DefaultChannelName` | string | -- | Channel name, resolved to an ID at startup |
-| `DefaultChannelId` | string | -- | Channel ID directly (use instead of name if you prefer) |
+| `BotToken` | string | — | Bot User OAuth Token (`xoxb-...`). Store with `netclaw secrets set`. |
+| `AppToken` | string | — | App-Level Token (`xapp-...`). Required for Socket Mode. Store with `netclaw secrets set`. |
+| `DefaultChannelName` | string | — | Channel name, resolved to an ID at startup |
+| `DefaultChannelId` | string | — | Channel ID directly (use instead of name if you prefer) |
 | `MentionOnly` | bool | `true` | Only respond when @-mentioned |
 | `AllowDirectMessages` | bool | `false` | Accept DMs |
 | `MentionRequiredInDm` | bool | `false` | Require @-mention even in DMs |
@@ -189,8 +203,8 @@ Finding channel IDs: right-click a channel name in Slack, "View channel details,
 
 `AllowedUserIds` restricts who gets responses:
 
-- Empty (default) -- everyone in allowed channels is accepted
-- Non-empty -- only listed user IDs get responses, everyone else is silently dropped
+- Empty (default) — everyone in allowed channels is accepted
+- Non-empty — only listed user IDs get responses, everyone else is silently dropped
 
 Finding user IDs: click a user's profile in Slack, open the three-dot menu, "Copy member ID." [Slack's help article](https://slack.com/help/articles/360003534892) has screenshots.
 
@@ -208,7 +222,7 @@ DMs are off by default:
 }
 ```
 
-With DMs on, users can just type normally -- `MentionRequiredInDm` defaults to `false`, so no @-mention needed.
+With DMs on, users can just type normally — `MentionRequiredInDm` defaults to `false`, so no @-mention needed.
 
 :::caution
 With `AllowDirectMessages: true` and `AllowedUserIds` empty, any workspace member can DM the bot. Lock down `AllowedUserIds` if that's not what you want.
@@ -216,7 +230,7 @@ With `AllowDirectMessages: true` and `AllowedUserIds` empty, any workspace membe
 
 ### Audience overrides
 
-Audience is resolved per-message: `Team` for DMs and channels in your allow-list, `Public` for everything else. Override with `ChannelAudiences`:
+Audience is resolved per-message: `Team` for allow-listed channels and allow-listed users; `Public` for everything else — including unvetted DMs (DMs accepted only because `AllowedUserIds` is empty). To treat all DMs as `Team`, set an explicit `ChannelAudiences "dm"` override. Override with `ChannelAudiences`:
 
 ```json
 {
@@ -229,7 +243,7 @@ Audience is resolved per-message: `Team` for DMs and channels in your allow-list
 }
 ```
 
-The `"dm"` key is reserved -- it matches every direct message rather than a channel ID. A channel-ID entry takes precedence over it. An unrecognized audience value is rejected outright: the message is denied rather than falling back to a default.
+The `"dm"` key is reserved — it matches every direct message rather than a channel ID. A channel-ID entry takes precedence over it. An unrecognized audience value is rejected outright: the message is denied rather than falling back to a default.
 
 [Security Model](/security/security-model/) has the full breakdown on how audiences map to tools and permissions.
 
@@ -237,7 +251,7 @@ The `"dm"` key is reserved -- it matches every direct message rather than a chan
 
 ### Threads and sessions
 
-Each Slack thread is its own isolated session, and the bot always replies in-thread. Idle sessions are checkpointed and freed from memory after 1 hour.
+Each Slack thread is its own isolated session, and the bot always replies in-thread. Idle threads are freed from memory after 1 hour; the conversation context clears after 2 hours of inactivity.
 
 On daemon restart, thread history is backfilled so in-progress conversations pick up where they left off.
 
@@ -245,8 +259,8 @@ On daemon restart, thread history is backfilled so in-progress conversations pic
 
 `MentionOnly: true` (the default) means the bot ignores messages that don't @-mention it. Two exceptions:
 
-- **Thread replies** -- if a thread already has an active session, the bot responds to everything in that thread without needing a mention
-- **File shares** -- attached files bypass the mention check entirely, with or without an active thread
+- **Thread replies** — if a thread already has an active session, the bot responds to everything in that thread without needing a mention
+- **File shares** — attached files bypass the mention check entirely, with or without an active thread
 
 Netclaw strips the @-mention before passing text to the LLM.
 
@@ -262,7 +276,7 @@ When a tool call needs approval, netclaw posts a Block Kit prompt right in the t
 
 Shows the tool name, the exact command, and the approval buttons. Only the user who triggered the request can approve. System-initiated tool calls (`VerifiedAutomation`) can be approved by anyone in the thread.
 
-The full prompt offers five choices: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** -- "Always anywhere" is the broadest grant, so reach for it sparingly. netclaw shows fewer when some don't apply -- a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. You can reply with the letter shown next to each option instead of clicking.
+The full prompt offers five choices: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** — "Always anywhere" is the broadest grant, so reach for it sparingly. netclaw shows fewer when some don't apply — a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. You can reply with the letter shown next to each option instead of clicking.
 
 ### Proactive messaging
 
@@ -270,7 +284,7 @@ The LLM can initiate conversations through two built-in tools:
 
 | Tool | What it does |
 |------|-------------|
-| `send_slack_message` | Posts a top-level message to a channel or DM. Takes `channel_id` or `user_id`. Respects ACL. |
+| `send_channel_message` | Posts a message to a Slack channel or DM using a resolved destination. Pass `channel_key="slack"` and a `destination` object (with `kind`, `id`) from `lookup_slack_user` or `lookup_channel_destination`. Respects ACL. |
 | `lookup_slack_user` | Searches users by name, display name, or email. Returns up to 10 matches. Filtered to `AllowedUserIds` if set. Cached 5 minutes. |
 
 ### Ignored messages
@@ -286,7 +300,7 @@ netclaw daemon stop && netclaw daemon start
 netclaw status
 ```
 
-Slack should show `connected`. If it doesn't, run `netclaw doctor` -- it checks token validity and ACL config.
+Slack should show `connected`. If it doesn't, run `netclaw doctor` — it checks token validity and ACL config.
 
 <!-- TODO: screenshot of netclaw status showing Slack connected to a real workspace -->
 
@@ -296,9 +310,9 @@ Then @-mention the bot in an allowed channel. If it responds, you're set.
 
 Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshooting/). The hits:
 
-- **Connected but silent** -- `AllowedChannelIds` is empty and no default channel is set, so all traffic gets denied
-- **Works in some channels, not others** -- channel missing from `AllowedChannelIds`, or the bot hasn't been invited
-- **Socket Mode keeps disconnecting** -- the `xapp-...` App-Level Token may have expired or been revoked
+- **Connected but silent** — `AllowedChannelIds` is empty and no default channel is set, so all traffic gets denied
+- **Works in some channels, not others** — channel missing from `AllowedChannelIds`, or the bot hasn't been invited
+- **Socket Mode keeps disconnecting** — the `xapp-...` App-Level Token may have expired or been revoked
 
 ## Next steps
 
@@ -308,16 +322,16 @@ Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshoo
 
 ## Related pages
 
-- [`netclaw init`](/cli/init/) -- Slack setup at step 3
-- [`netclaw secrets`](/cli/secrets/) -- token management
-- [`netclaw doctor`](/cli/doctor/) -- Slack auth and ACL diagnostics
-- [Security Model](/security/security-model/) -- audiences and approval gates
-- [Channel Troubleshooting](/channels/troubleshooting/) -- error codes and debug logging
+- [`netclaw config`](/cli/config/) — Channels
+- [`netclaw secrets`](/cli/secrets/) — token management
+- [`netclaw doctor`](/cli/doctor/) — Slack auth and ACL diagnostics
+- [Security Model](/security/security-model/) — audiences and approval gates
+- [Channel Troubleshooting](/channels/troubleshooting/) — error codes and debug logging
 
 ## External resources
 
-- [Slack API: Socket Mode](https://api.slack.com/apis/socket-mode) -- how Socket Mode connections work
-- [Slack API: Bot Token Scopes](https://api.slack.com/scopes) -- scope reference
-- [Slack: Block Kit](https://api.slack.com/block-kit) -- message formatting
-- [Slack: Finding IDs](https://slack.com/help/articles/221769328) -- channel and user IDs for ACL config
-- [Slack: Finding User IDs](https://slack.com/help/articles/360003534892) -- step-by-step for copying member IDs
+- [Slack API: Socket Mode](https://api.slack.com/apis/socket-mode) — how Socket Mode connections work
+- [Slack API: Bot Token Scopes](https://api.slack.com/scopes) — scope reference
+- [Slack: Block Kit](https://api.slack.com/block-kit) — message formatting
+- [Slack: Finding IDs](https://slack.com/help/articles/221769328) — channel and user IDs for ACL config
+- [Slack: Finding User IDs](https://slack.com/help/articles/360003534892) — step-by-step for copying member IDs

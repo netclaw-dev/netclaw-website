@@ -17,8 +17,8 @@
       "imageUrl": "https://hcti.io/v1/image/7601720b39cc350dbea9e7094c2c34cd2987e4458e9b936e1e80ed411219e068"
     },
     "channels/troubleshooting": {
-      "hash": "2e5468fc9ab87f125925bd35646d11dbd18d9783b4be6d80dbd3f2d01e83a2f5",
-      "imageUrl": "https://hcti.io/v1/image/80f49c6b5438a44a15ae35b6e6c38fb47c2a828b8f2cc11cb05fcfbeb55cc9aa"
+      "hash": "ec17cf366763b824a6cf7f1eeaa14bc7a14a6c4586aa2f9b0c848319a0cdce01",
+      "imageUrl": "https://hcti.io/v1/image/a26cd20729a16955e930228f6f408f4ab42f37ab49d9f403837f1734f411144e"
     },
     "cli/chat": {
       "hash": "1724a94909577bfa69ffeab9aba7b64ab3675c9242cbe06a583001e979b9dd13",
@@ -29,8 +29,8 @@
       "imageUrl": "https://hcti.io/v1/image/7a98355b1c4fffeb154e5d6e628a478a187e330783077350176a1d43651c7d72"
     },
     "cli/init": {
-      "hash": "3e3ab9b8a5fe0e0414918f2351c3aa9c000db9faaf481d0f79b7065aaf53bbcc",
-      "imageUrl": "https://hcti.io/v1/image/4cb7d919bf544b4ce895b664dd8bf1a04991e2a883f8c4cc755daf325ae77837"
+      "hash": "36b6f8a5e58f529eecbe4ad7cea46851c3bf8266372650aa8f9cc7be2d5d1837",
+      "imageUrl": "https://hcti.io/v1/image/8bc913dc23d4f9768b57eaf9d6a1f40164cb823146f4688e8a1a7c4d2477b1e8"
     },
     "cli/mcp-tools": {
       "hash": "ac3a2a3cbc67ac7faa8eb29123b085f739130df4344285d0fd9a2f18c991bf85",
@@ -77,8 +77,8 @@
       "imageUrl": "https://hcti.io/v1/image/956ea033c0b26f67cd64a472cbac199c55c203058d163be8857874c94907b78a"
     },
     "configuration/managed-providers": {
-      "hash": "8bc6e9e4544843141c0ca30facc21e0d03b02bee4039d8eba3547a65a6ef243a",
-      "imageUrl": "https://hcti.io/v1/image/23f555b6481e58cbc750cb236b543c0aa2bf2ab0d7f82897899d6d5eebfc3fa8"
+      "hash": "94ff1f259ede46f468a1bf4147c03d01cc14b64a8427fbb371a7806ba7392ed2",
+      "imageUrl": "https://hcti.io/v1/image/a34878ce3cae552c5e4c8f892dc84d54aa34edaf092073cbc991c3f4811c85a8"
     },
     "configuration/mcp-servers": {
       "hash": "1ec08af45f8e99907c444694a7f6eb41d210caa29e9053ce3d97440b07b867ca",
@@ -223,6 +223,22 @@
     "guides/scripting-sessions": {
       "hash": "f1b6abc19df5cc11daca0c7301e46bf4def13c9e71754161bf8a09ffba29d9bb",
       "imageUrl": "https://hcti.io/v1/image/247a22723ef1458ef06052128d19309e01a88bd31e4b8637c26393f4a12edc48"
+    },
+    "channels/mattermost": {
+      "hash": "772db29b2bce23cd24694e0f4e96f18dc31a08ac5054dc26415e2676e9c8738b",
+      "imageUrl": "https://hcti.io/v1/image/0994b102ca51b903343d22cb73a59f92dcac3554af74cd6b508551ca49848446"
+    },
+    "cli/config": {
+      "hash": "b7fe91a97b54bb2f38a564913e327eaf75b332a6df6597ba6c5b8f39eae7d54e",
+      "imageUrl": "https://hcti.io/v1/image/4e4ff4b8cec2ac54ecfe4f069f852f838ea3bafa111ba5898cbddd61b10f6832"
+    },
+    "guides/custom-subagents": {
+      "hash": "be4d323bd35ca558f700ab5368572d505f5435c950216fff04f2836c897ff61e",
+      "imageUrl": "https://hcti.io/v1/image/92bea018c839754cda16377351ad138b43089e354f50e2df96bb9e393f1d2c19"
+    },
+    "guides/multimodal-files": {
+      "hash": "06edd9a20ea7eb980f5a8e9ff130edcbd2a6aa17a7b1e4b5c881791735c2d619",
+      "imageUrl": "https://hcti.io/v1/image/20030b1084b28da47613299165f48fdef9538e8be54ceac208e56bb932430634"
     }
   }
 }

@@ -105,7 +105,7 @@ You should see the version, commit hash, and build timestamp.
 netclaw init
 ```
 
-The [`init` wizard](/cli/init/) walks you through provider setup, security posture, channels, identity, and network exposure — then starts the daemon. See the [Quickstart](/getting-started/quickstart/) for the full walkthrough.
+The [`init` wizard](/cli/init/) walks you through provider setup, identity, security posture, and feature selection (Team/Public only) — then runs a health check and drops you into chat. Run `netclaw config` afterward to connect channels, set up search, and configure network exposure. See the [Quickstart](/getting-started/quickstart/) for the full walkthrough.
 
 ## Switching release channels
 
@@ -130,14 +130,14 @@ curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --channel beta
 **Windows:**
 
 ```powershell
-.\install.ps1 --channel beta
+.\install.ps1 -Channel beta
 ```
 
 **Docker:**
 
 Use the `ghcr.io/netclaw-dev/netclaw:beta` image tag instead of the default `ghcr.io/netclaw-dev/netclaw` (which resolves to the latest stable).
 
-The install script only swaps which binaries it pulls. Also set `Daemon.UpdateChannel: "beta"` in your config so the daemon checks the beta feed for self-updates. (Switching with `netclaw update --channel` does this for you.)
+The install script only swaps which binaries it pulls. Also set `Daemon.UpdateChannel` to `"beta"` in `netclaw.json` so the daemon checks the beta feed for self-updates. (Switching with `netclaw update --channel` does this for you.)
 
 > **Note:** The install script is idempotent — running it on an existing install will update the binaries without breaking your configuration. If the daemon is running, stop it first:
 >

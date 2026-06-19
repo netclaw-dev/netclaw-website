@@ -6,6 +6,8 @@ Astro 6.2 + Starlight 0.38.4 static site. Dark-mode only. Deployed to Cloudflare
 
 Each doc page follows a repeatable process. When asked to write a doc page, execute these steps in order.
 
+**Voice:** this file owns the *process*; the [`netclaw-docs` skill](./.claude/skills/netclaw-docs/SKILL.md) owns *how the page reads* — the house voice, punctuation policy, per-page-type quick reference, and pre-ship checklist. Read it before writing and apply it through Steps 4–8.
+
 ### Step 1: Identify the Page
 
 Read the target markdown stub in `src/content/docs/` to get the title and description. Determine the page type:

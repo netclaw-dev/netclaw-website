@@ -58,11 +58,11 @@ SignalR carries the interactive traffic. The client sends commands (`CreateSessi
 
 Each conversation needs its own state, its own message queue, and crash isolation from other conversations. Actors give you that without thread management. A session actor processes one turn at a time, persists events to SQLite, and recovers its full history on restart. If one conversation crashes, the rest keep running.
 
-Persistence uses [Akka.Persistence.Sql](https://getakka.net/articles/persistence/overview.html) with SQLite. Events: `TurnRecorded`, `SessionTitleSet`, `SessionCompacted`. Serialization is [Google Protobuf](https://protobuf.dev/) via the `NetclawProtobufSerializer`.
+Persistence uses [Akka.Persistence.Sql](https://getakka.net/articles/persistence/event-sourcing.html) with SQLite. Events: `TurnRecorded`, `SessionTitleSet`, `SessionCompacted`. Serialization is [Google Protobuf](https://protobuf.dev/) via the `NetclawProtobufSerializer`.
 
 ## Three boundaries
 
-Three logical boundaries divide the daemon (from the [runtime spec](https://github.com/netclaw-dev/netclaw/blob/main/docs/spec/SPEC-001-runtime-boundaries.md)):
+Three logical boundaries divide the daemon (from the [runtime spec](https://github.com/netclaw-dev/netclaw/blob/dev/docs/spec/SPEC-001-runtime-boundaries.md)):
 
 At the edge, the **gateway** receives transport events (Slack message, webhook POST, CLI input), runs policy checks, and converts them to actor commands. Nothing reaches the session layer before policy runs.
 

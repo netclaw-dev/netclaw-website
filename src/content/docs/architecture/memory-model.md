@@ -183,5 +183,5 @@ SQLite is the only storage backend — no vector database, no external service, 
 
 - [SQLite FTS5](https://www.sqlite.org/fts5.html) — the full-text search engine behind memory recall
 - [Actor model](https://en.wikipedia.org/wiki/Actor_model) — the concurrency model that makes the observation sidecar possible
-- [Akka.NET Persistence](https://getakka.net/articles/persistence/overview.html) — journal and snapshot recovery for the checkpoint queue
+- [Akka.NET Persistence](https://getakka.net/articles/persistence/event-sourcing.html) — journal and snapshot recovery for the checkpoint queue
 - [Write-Ahead Logging](https://www.sqlite.org/wal.html) — how SQLite ensures memory durability

@@ -289,7 +289,7 @@ netclaw status         # shows MCP connector health
 
 ## Resources
 
-- [Model Context Protocol specification](https://spec.modelcontextprotocol.io/) — the protocol netclaw implements
+- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) — the protocol netclaw implements
 - [MCP server registry](https://github.com/modelcontextprotocol/servers) — community-maintained list of MCP servers
 - [uv documentation](https://docs.astral.sh/uv/) — the Python package manager behind `uvx`
 - [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention

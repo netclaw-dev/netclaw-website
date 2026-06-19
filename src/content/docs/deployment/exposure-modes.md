@@ -24,7 +24,9 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 
 Configure the exposure mode via `netclaw config` — navigate to **Security & Access → Exposure Mode** — or set `Daemon.ExposureMode` directly in `netclaw.json`.
 
-<!-- TODO(screenshots): embed config-exposure.png here — screenshot exists in screenshots/output/config-exposure.png; blocked on netclaw-dev/netclaw#1368 (tracked in epic #55) -->
+![Exposure Mode selection](/screenshots/output/config-exposure.png)
+
+The Exposure Mode picker in `netclaw config → Security & Access` — Local, Reverse Proxy, Tailscale Serve/Funnel, or Cloudflare Tunnel.
 
 Options marked with a warning triangle expose the daemon to the public internet. Tailscale Serve is the recommended remote mode: tailnet-only access, no public exposure.
 

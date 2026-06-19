@@ -114,7 +114,9 @@ Then invite the bot to each channel where it should respond: `/invite @YourBotNa
 
 Easiest path: `netclaw config` → Channels — enter your tokens; Netclaw resolves and saves.
 
-<!-- TODO(screenshots): replace with config-channels-menu.png — capture via screenshots/tapes/config.tape after the stable release with netclaw-dev/netclaw#1368; tracked in epic #55 -->
+![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)
+
+The Channels area — enable an adapter and manage its allow-list; here Slack is connected with 2 channels and 1 user.
 
 For manual setup, store tokens with [`netclaw secrets`](/cli/secrets/):
 

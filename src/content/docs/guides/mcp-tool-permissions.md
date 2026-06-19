@@ -259,6 +259,6 @@ You have persistent approvals for an audience or server that's been disabled. Cl
 
 ## External Resources
 
-- [Model Context Protocol specification](https://spec.modelcontextprotocol.io/) -- the wire protocol behind MCP tool servers
+- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) -- the wire protocol behind MCP tool servers
 - [MCP server registry](https://github.com/modelcontextprotocol/servers) -- community-maintained list of available MCP servers
 - [Notion MCP server](https://github.com/makenotion/notion-mcp-server) -- official Notion MCP server for search, fetch, and page management

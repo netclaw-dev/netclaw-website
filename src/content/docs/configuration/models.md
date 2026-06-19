@@ -178,6 +178,6 @@ netclaw status         # shows what the running daemon is using
 ## Resources
 
 - [Ollama model library](https://ollama.com/library) — browse models for local inference
-- [Ollama modelfile parameters](https://github.com/ollama/ollama/blob/main/docs/modelfile.md#parameter) — context window and other model-level settings
+- [Ollama modelfile parameters](https://docs.ollama.com/modelfile) — context window and other model-level settings
 - [OpenRouter model catalog](https://openrouter.ai/models) — compare models across providers with pricing
 - [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention

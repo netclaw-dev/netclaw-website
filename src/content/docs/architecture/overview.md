@@ -58,7 +58,7 @@ SignalR carries the interactive traffic. The client sends commands (`CreateSessi
 
 Each conversation needs its own state, its own message queue, and crash isolation from other conversations. Actors give you that without thread management. A session actor processes one turn at a time, persists events to SQLite, and recovers its full history on restart. If one conversation crashes, the rest keep running.
 
-Persistence uses [Akka.Persistence.Sql](https://getakka.net/articles/persistence/overview.html) with SQLite. Events: `TurnRecorded`, `SessionTitleSet`, `SessionCompacted`. Serialization is [Google Protobuf](https://protobuf.dev/) via the `NetclawProtobufSerializer`.
+Persistence uses [Akka.Persistence.Sql](https://getakka.net/articles/persistence/event-sourcing.html) with SQLite. Events: `TurnRecorded`, `SessionTitleSet`, `SessionCompacted`. Serialization is [Google Protobuf](https://protobuf.dev/) via the `NetclawProtobufSerializer`.
 
 ## Three boundaries
 

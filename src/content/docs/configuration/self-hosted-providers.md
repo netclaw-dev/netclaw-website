@@ -246,6 +246,6 @@ Self-hosted entries show `✓` when reachable with models discovered, or `⚠` w
 - [Ollama](https://ollama.com/) — install and run local models
 - [Ollama model library](https://ollama.com/library) — browse available models
 - [Ollama API reference](https://github.com/ollama/ollama/blob/main/docs/api.md) — model management, tags, and show endpoints
-- [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/examples/server/README.md) — flags, endpoints, performance tuning
+- [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) — flags, endpoints, performance tuning
 - [vLLM OpenAI-compatible serving](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html) — model parallelism and quantization options
 - [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention

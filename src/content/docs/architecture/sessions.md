@@ -99,7 +99,7 @@ After compaction, the session takes a persistence snapshot, resets its token cou
 
 ## Recovery and warm restart
 
-Sessions persist their state to [SQLite](https://www.sqlite.org/docs.html) via [Akka.Persistence](https://getakka.net/articles/persistence/overview.html). Events (`TurnRecorded`, `SessionTitleSet`, `SessionCompacted`) are journaled. Snapshots capture the full session state periodically and after every compaction.
+Sessions persist their state to [SQLite](https://www.sqlite.org/docs.html) via [Akka.Persistence](https://getakka.net/articles/persistence/event-sourcing.html). Events (`TurnRecorded`, `SessionTitleSet`, `SessionCompacted`) are journaled. Snapshots capture the full session state periodically and after every compaction.
 
 Recovery is automatic. When a session actor starts — whether from a daemon restart, a crash, or a lazy activation — it replays its journal from the latest snapshot forward and transitions to Ready.
 
@@ -123,7 +123,7 @@ A new message during the passivation window cancels the shutdown and the session
 ## Resources
 
 - [Actor model](https://en.wikipedia.org/wiki/Actor_model) — the concurrency model behind session actors
-- [Akka.NET Persistence](https://getakka.net/articles/persistence/overview.html) — journal and snapshot recovery
+- [Akka.NET Persistence](https://getakka.net/articles/persistence/event-sourcing.html) — journal and snapshot recovery
 - [SQLite](https://www.sqlite.org/docs.html) — the persistence backend
 - [Slack Socket Mode](https://api.slack.com/apis/socket-mode) — how the Slack adapter connects
 - [Discord.Net](https://discordnet.dev/) — the .NET library behind the Discord adapter

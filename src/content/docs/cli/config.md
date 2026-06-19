@@ -56,7 +56,9 @@ When saving an adapter, any names or IDs that can't be resolved at save time are
 
 See the per-platform guides for token setup: [Slack](/channels/slack/), [Discord](/channels/discord/), [Mattermost](/channels/mattermost/).
 
-<!-- TODO(screenshots): add config-channels-menu.png + config-channels-resolve.png — capture via screenshots/tapes/config.tape after the stable release; tracked in epic #55 -->
+![The Channels area with Slack connected and its channels resolved to IDs](/screenshots/output/config-channels-menu.png)
+
+Each adapter shows its live state — here Slack is connected with `2 channels, 1 user` resolved and stored as canonical IDs.
 
 ## Other areas
 
@@ -68,7 +70,33 @@ See the per-platform guides for token setup: [Slack](/channels/slack/), [Discord
 - **Skill Sources** — local folders (added via an interactive directory picker with Ctrl+N to create inline) and remote skill feeds.
 - **Workspaces Directory** — the directory netclaw uses for project workspaces, set via an interactive directory picker.
 
-<!-- TODO(screenshots): add config-search.png, config-telemetry.png, config-inbound-webhooks.png, config-exposure.png, config-skills.png, config-browser.png, config-workspaces.png — capture via screenshots/tapes/config.tape after the stable release; tracked in epic #55 -->
+![Search backend selection](/screenshots/output/config-search.png)
+
+Search — pick the backend; the active one is marked and SearXNG adds an endpoint field with the reachability probe.
+
+![Telemetry and Alerting editor](/screenshots/output/config-telemetry.png)
+
+Telemetry & Alerting — toggle OTLP export and manage the outbound alert-webhook list.
+
+![Inbound Webhooks editor](/screenshots/output/config-inbound-webhooks.png)
+
+Inbound Webhooks — global enable plus execution timeout; route files stay owned by [`netclaw webhooks`](/cli/webhooks/).
+
+![Exposure Mode selection](/screenshots/output/config-exposure.png)
+
+Exposure Mode (under Security & Access) — Local, Reverse Proxy, Tailscale Serve/Funnel, or Cloudflare Tunnel.
+
+![Skill Sources editor](/screenshots/output/config-skills.png)
+
+Skill Sources — add a local folder or connect a remote skill server; both are manual adds.
+
+![Browser Automation editor](/screenshots/output/config-browser.png)
+
+Browser Automation — toggle the Playwright MCP backend; it flags missing runtime prerequisites.
+
+![Workspaces Directory picker](/screenshots/output/config-workspaces.png)
+
+Workspaces Directory — an interactive directory picker for the project workspaces root.
 
 ## Related pages
 

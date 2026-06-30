@@ -1,0 +1,24 @@
+# Mattermost server for capturing the channels/mattermost.md screenshots.
+# Brought up by run.sh, which then bootstraps it (bootstrap.mjs), starts the
+# pinned netclaw image against it, and drives Playwright (capture.mjs).
+#
+# mattermost-preview is an all-in-one testing image (bundled Postgres). amd64-only.
+services:
+  mattermost:
+    image: mattermost/mattermost-preview:latest
+    ports:
+      - "8065:8065"
+    environment:
+      MM_SERVICESETTINGS_SITEURL: http://localhost:8065
+      MM_TEAMSETTINGS_ENABLEOPENSERVER: "true"
+      MM_SERVICESETTINGS_ENABLETESTING: "true"
+      # NOTE: EnableBotAccountCreation / EnableUserAccessTokens are intentionally
+      # NOT set here. bootstrap.mjs flips them via the System Console config API so
+      # the captured screenshot shows them as editable toggles (an env var would
+      # render them locked: "set through an environment variable").
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8065/api/v4/system/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 48
+      start_period: 20s

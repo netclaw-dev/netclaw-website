@@ -54,13 +54,16 @@ See the [Pairing Remote Devices](/guides/pairing-remote-devices/) guide for the 
 
 | Command | Description | Daemon | TUI |
 |---------|-------------|--------|-----|
+| [`config`](/cli/config/) | Post-init setup: channels, search, network exposure, browser automation, telemetry, skill sources | No | Yes |
 | [`provider`](/cli/provider/) | Manage LLM providers | No | Yes (bare invocation) |
 | [`model`](/cli/model/) | Manage model role assignments | No | Yes (bare invocation) |
-| [`mcp`](/cli/mcp-tools/) | Manage [MCP](https://spec.modelcontextprotocol.io/) (Model Context Protocol) server profiles and tool permissions | Optional | Partial |
+| [`mcp`](/cli/mcp-tools/) | Manage [MCP](https://modelcontextprotocol.io/specification) (Model Context Protocol) server profiles and tool permissions | Optional | Partial |
 | [`webhooks`](/cli/webhooks/) | Manage inbound webhook routes | No | No |
 | [`secrets`](/cli/secrets/) | Store encrypted secrets via `secrets set <key> <value>`. See [Secrets](/security/secrets/). | No | No |
 | [`reminder`](/cli/reminder/) | Manage scheduled reminders | Required | Yes (`ui` or `tui` subcommand) |
 | [`skill`](/cli/skill/) | Manage skills and external skill sources. See [Skills](/skills/overview/). | No | No |
+
+If you just ran `netclaw init`, `netclaw config` is your next stop — channels (Slack, Discord, Mattermost), search, and network exposure all live there.
 
 See [Configuration](/configuration/managed-providers/) for field references and config file details.
 
@@ -68,7 +71,7 @@ See [Configuration](/configuration/managed-providers/) for field references and 
 
 | Command | Description |
 |---------|-------------|
-| `update` | Check for and install CLI updates; `--check` to check only |
+| `update` | Check for and install CLI updates; `--check` to check only, `--channel <stable\|beta>` to switch release channel |
 | `version` / `--version` / `-V` | Print version, commit hash, and build timestamp |
 
 ## First Run
@@ -77,6 +80,9 @@ See [Configuration](/configuration/managed-providers/) for field references and 
 # First-time setup (starts the daemon automatically)
 netclaw init
 
+# Connect channels, enable search, set exposure mode
+netclaw config
+
 # Check everything is wired up
 netclaw doctor
 
@@ -84,7 +90,7 @@ netclaw doctor
 netclaw status
 ```
 
-If `status` shows errors, run `netclaw doctor --fix` to auto-repair common issues.
+`netclaw init` is intentionally minimal — it doesn't set up Slack, Discord, web search, or network exposure. Run `netclaw config` immediately after to configure those. If `status` shows errors, run `netclaw doctor --fix` to auto-repair common issues.
 
 ```bash
 # Start chatting
@@ -122,7 +128,7 @@ Non-TUI commands silently check for updates on startup. TUI commands skip this �
 ## Version Output
 
 ```
-netclaw 0.16.2 (commit 5f3f0ee, built 2026-04-30T03:18:25Z)
+netclaw 0.22.1 (commit bc2170d, built 2026-06-01T12:38:11Z)
 ```
 
 ## Related
@@ -134,4 +140,4 @@ netclaw 0.16.2 (commit 5f3f0ee, built 2026-04-30T03:18:25Z)
 - [Docker deployment](/deployment/docker/) — Containerized daemon setup
 - [.NET CLI tools documentation](https://learn.microsoft.com/en-us/dotnet/core/tools/) — Background on .NET global tools, which is how netclaw is distributed
 - [systemd user services](https://wiki.archlinux.org/title/Systemd/User) — Reference for `daemon install` / `daemon uninstall` on Linux
-- [Model Context Protocol spec](https://spec.modelcontextprotocol.io/) — MCP specification
+- [Model Context Protocol spec](https://modelcontextprotocol.io/specification) — MCP specification

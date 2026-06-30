@@ -29,7 +29,10 @@ services:
       start_period: 5s
 
   netclawd:
-    image: ${NETCLAW_IMAGE:-ghcr.io/netclaw-dev/netclawd:dev}
+    # The published image is `netclaw` (not `netclawd`). Pinned to a release tag
+    # via NETCLAW_VERSION so screenshots track a known build; capture.sh sources
+    # NETCLAW_VERSION from src/version.json. Override NETCLAW_IMAGE to use :dev.
+    image: ${NETCLAW_IMAGE:-ghcr.io/netclaw-dev/netclaw:${NETCLAW_VERSION:-0.22.1}}
     ports:
       - "${NETCLAW_PORT:-5299}:5199"
     depends_on:
@@ -38,7 +41,11 @@ services:
       mcp-demo:
         condition: service_healthy
     environment:
-      NETCLAW_Daemon__Host: "0.0.0.0"
+      # NOTE (Phase 5): 0.22.1's `local` exposure mode binds loopback and aborts on a
+      # non-loopback Daemon.Host. The old host-reachability model here (Host=0.0.0.0 +
+      # published port + host-side `curl`/`netclaw` in capture.sh) crashes under 0.22.1.
+      # The Phase 5 re-shoot must drive the CLI via `docker exec` (loopback-local) or move
+      # to reverse-proxy mode + Daemon.TrustedProxies, and re-validate end to end.
       NETCLAW_Daemon__Port: "5199"
       NETCLAW_Daemon__DisableSelfUpdate: "true"
       NETCLAW_Providers__local-ollama__Type: ollama
@@ -53,7 +60,8 @@ services:
       NETCLAW_McpServers__demo-utilities__Url: http://mcp-demo:8080/mcp
       NETCLAW_McpServers__demo-utilities__Enabled: "true"
     volumes:
-      - screenshot-netclaw-home:/root/.netclaw
+      # 0.22.1 runs as the non-root `netclaw` user; its home is /home/netclaw, not /root.
+      - screenshot-netclaw-home:/home/netclaw/.netclaw
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://127.0.0.1:5199/api/health/ready"]
       interval: 5s

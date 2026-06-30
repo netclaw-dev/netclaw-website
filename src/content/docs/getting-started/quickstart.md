@@ -3,7 +3,7 @@ title: "Quickstart"
 description: "Get Netclaw running in minutes with the init wizard."
 ---
 
-Install netclaw, run the setup wizard, talk to your agent. Takes about 5 minutes.
+Install netclaw, run the setup wizard, and start chatting. Takes about 5 minutes.
 
 ## 1. Install
 
@@ -19,65 +19,59 @@ See [Installation](/getting-started/installation/) for Windows, Docker, and buil
 netclaw init
 ```
 
-The wizard walks you through everything. Here's what to expect.
+The wizard covers four steps for Personal posture (five for Team/Public — more on that below).
 
 ### Pick a provider
 
-![Provider endpoint configuration](/screenshots/output/init-step1-provider-endpoint.png)
+![Provider selection](/screenshots/output/init-01-provider-list.png)
 
-Choose an LLM provider and enter credentials. Self-hosted providers like Ollama need an endpoint URL. Once credentials pass a connectivity check, you pick a default model:
+![Model selection](/screenshots/output/init-01-model-select.png)
 
-![Model selection](/screenshots/output/init-step1-provider-model.png)
+Choose an LLM provider and enter credentials. Self-hosted providers like Ollama need an endpoint URL. Once credentials pass a connectivity check, you pick a default model.
 
 Use [`netclaw provider`](/cli/provider/) to add more providers later.
 
+### Set your identity
+
+![Identity step — communication style substep](/screenshots/output/init-02-identity.png)
+
+The identity step has four substeps in order: agent name → communication style → your name → timezone. The screenshot above shows the communication style substep. All four fields pre-fill when you re-run `netclaw init` on an existing install.
+
 ### Set your security posture
 
-![Security posture selection](/screenshots/output/init-step2-security-posture.png)
+![Security posture selection](/screenshots/output/init-02-security-posture.png)
 
 Pick how much you trust the environment. **Personal** is single-user with full tool access. **Team** and **Public** are progressively more restrictive. See [Security Model](/security/security-model/) for details.
 
-### Connect channels (optional)
+### Enabled features (Team / Public only)
 
-![Channel selection](/screenshots/output/init-step3-channels.png)
-
-Wire up Slack, Discord, or both. Each channel needs a token — the wizard prompts for them and tests connectivity before moving on.
-
-![Slack bot token entry](/screenshots/output/init-step3-slack-bot-token.png)
-
-Tokens are masked and stored encrypted. See the [Slack](/channels/slack/) or [Discord](/channels/discord/) pages for full setup guides including app creation.
-
-### Set your identity
-
-![Your name](/screenshots/output/init-step7-your-name.png)
-
-Tell netclaw who you are. This sets the owner identity for the agent.
-
-![Communication style](/screenshots/output/init-step7-communication-style.png)
-
-Pick a personality style — this shapes how the agent talks to you.
-
-### Choose network exposure
-
-![Exposure mode selection](/screenshots/output/init-step9-exposure-mode.png)
-
-**Local** (default) means the daemon only listens on loopback. Tailscale and Cloudflare Tunnel options make it reachable from other machines. See [Exposure Modes](/deployment/exposure-modes/) and [Pairing Remote Devices](/guides/pairing-remote-devices/).
+If you chose Team or Public posture, the wizard adds a step to select which feature sets are active. Personal posture skips this step and goes straight to the health check.
 
 ### Health check
 
-![Health check results](/screenshots/output/init-step10-healthcheck.png)
+![Health check](/screenshots/output/init-05-health-check.png)
 
-The wizard validates your config — provider connectivity, channel tokens, network setup. All green means the daemon starts automatically.
+The wizard validates provider connectivity, writes config, and starts the daemon. When all checks pass, netclaw launches chat automatically — you land in the chat TUI without running anything else.
 
-## 3. Start chatting
+If the health check finishes with warnings, the wizard displays: "Setup complete with warnings. Run `netclaw daemon start`, then `netclaw chat`. Adjust settings with `netclaw config`." Fix the flagged issue and retry.
+
+## 3. Connect channels and features
 
 ```bash
-netclaw chat
+netclaw config
 ```
 
-![First chat session](/screenshots/output/chat-session-start.png)
+![The netclaw config Settings Areas menu](/screenshots/output/config-dashboard.png)
 
-The agent introduces itself and kicks off a personality bootstrapping conversation — it asks about your work, your tools, and what you need help with. This builds your profile so future conversations have context.
+Each row is a configuration area with its live status — select one to set it up.
+
+Channels (Slack, Discord, Mattermost), web search, network exposure, skill sources, webhooks, and browser automation are all configured here — none of them are set during `netclaw init`. Run [`netclaw config`](/cli/config/) now to connect your first channel or enable search before you do anything else. Changes save as you make them; re-run it any time.
+
+## 4. First chat session
+
+<!-- TODO(screenshots): chat-session-start.png — capture after release; epic #55 -->
+
+On a clean health check, `netclaw init` drops you straight into the chat TUI. The agent introduces itself and kicks off a personality-bootstrapping conversation — it asks about your work, your tools, and what you need help with. This builds your profile so future conversations have context.
 
 See [Your First Conversation](/getting-started/first-conversation/) for the full walkthrough of what happens next.
 
@@ -89,13 +83,14 @@ Don't need the TUI? Send a one-shot prompt from your terminal:
 netclaw chat -p "what's the weather in Chicago?"
 ```
 
-![Headless CLI execution](/screenshots/output/single-shot-cli-execution.png)
-
 Pipe output to other tools with `--json`. See [`netclaw chat`](/cli/chat/) for the full reference.
 
 ## What's next
 
+Init gets you to chat. To make netclaw actually useful — connecting it to Slack, enabling web search, or exposing it to your team — run `netclaw config` next.
+
+- [`netclaw config`](/cli/config/) — connect channels, enable web search, set network exposure and skills
 - [Your First Conversation](/getting-started/first-conversation/) — personality bootstrapping and your first real interaction
+- [Slack](/channels/slack/) / [Discord](/channels/discord/) — full channel setup guides
 - [`netclaw doctor`](/cli/doctor/) — diagnose issues if something didn't work
 - [`netclaw status`](/cli/status/) — check daemon health and connector states
-- [Slack](/channels/slack/) / [Discord](/channels/discord/) — full channel setup guides

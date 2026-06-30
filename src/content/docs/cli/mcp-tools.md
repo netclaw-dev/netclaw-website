@@ -252,7 +252,7 @@ After adding a server and granting permissions, restart the daemon and run [`net
 
 ## Resources
 
-- [Model Context Protocol specification](https://spec.modelcontextprotocol.io/) — the protocol netclaw implements for tool servers
+- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) — the protocol netclaw implements for tool servers
 - [MCP server registry](https://github.com/modelcontextprotocol/servers) — community-maintained list of MCP servers
 - [Notion MCP server](https://github.com/makenotion/notion-mcp-server) — Notion's official MCP integration
 - [MCP TypeScript SDK](https://github.com/modelcontextprotocol/typescript-sdk) — build your own MCP server

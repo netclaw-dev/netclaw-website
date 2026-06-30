@@ -1,9 +1,9 @@
 ---
 title: Managed Providers
-description: Configure cloud-hosted LLM providers like OpenRouter, Anthropic, and OpenAI.
+description: Configure cloud-hosted LLM providers — OpenRouter, Anthropic, OpenAI, GitHub Copilot, and Venice.ai.
 ---
 
-Managed providers are cloud-hosted LLM services that netclaw connects to over HTTPS. Each requires an API key or OAuth token — OpenRouter, Anthropic, and OpenAI are supported.
+Managed providers are cloud-hosted LLM services that netclaw connects to over HTTPS. Each authenticates with an API key or OAuth: OpenRouter, Anthropic, OpenAI, GitHub Copilot, and Venice.ai.
 
 Provider config lives in two files. Non-secret fields (type, endpoint, auth method) go in `~/.netclaw/config/netclaw.json`. Credentials go in `~/.netclaw/config/secrets.json`, which is [encrypted at rest](/security/secrets/) — write plaintext values and netclaw encrypts them on first read. Environment variables override both.
 
@@ -17,7 +17,9 @@ For self-hosted inference (Ollama, llama.cpp, vLLM), see [Self-Hosted Providers]
 |------|-------------|-----------------|------|------------|
 | `openrouter` | OpenRouter | `https://openrouter.ai/api/v1` | API key | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | `anthropic` | Anthropic | `https://api.anthropic.com` | API key | [console.anthropic.com](https://console.anthropic.com/settings/keys) |
-| `openai` | OpenAI | `https://api.openai.com` | OAuth PKCE or API key | [platform.openai.com](https://platform.openai.com/api-keys) |
+| `openai` | OpenAI | `https://api.openai.com` | OAuth or API key | [platform.openai.com](https://platform.openai.com/api-keys) |
+| `github-copilot` | GitHub Copilot | `https://api.githubcopilot.com` | OAuth (device) | GitHub Copilot subscription |
+| `veniceai` | Venice.ai | `https://api.venice.ai/api/v1` | API key | [venice.ai/settings/api](https://venice.ai/settings/api) |
 
 ## Configuration Schema
 
@@ -25,7 +27,7 @@ Each provider is a named entry under the `Providers` section. The key is a name 
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `Type` | string | `"ollama"` | Provider SDK: `openrouter`, `anthropic`, or `openai` for managed providers. Always set this explicitly. |
+| `Type` | string | `"ollama"` | Provider SDK: `openrouter`, `anthropic`, `openai`, `github-copilot`, or `veniceai` for managed providers. Always set this explicitly. |
 | `Endpoint` | string | `""` | Base URL. Leave empty to use the provider's default |
 | `ApiKey` | string? | `null` | API key. Store in `secrets.json`, never `netclaw.json` |
 | `AuthMethod` | enum | `None` | `None`, `ApiKey`, `OAuthDevice`, or `OAuthPkce` |
@@ -63,7 +65,7 @@ Each provider is a named entry under the `Providers` section. The key is a name 
 }
 ```
 
-OpenAI with OAuth doesn't need an entry in `secrets.json` — tokens are managed automatically after the OAuth flow.
+OAuth providers (OpenAI via ChatGPT, GitHub Copilot) don't need an `ApiKey` in `secrets.json` — netclaw manages the tokens automatically after you authenticate.
 
 You can also manage credentials with [`netclaw secrets set`](/cli/secrets/) instead of editing `secrets.json` directly.
 
@@ -129,15 +131,7 @@ OAuth requires a browser — if you're on a headless server over SSH, use the AP
 
 OAuth tokens expire periodically. When they do, open `netclaw provider`, select the unhealthy provider, and re-authenticate.
 
-Because OAuth tokens can't call OpenAI's `/v1/models` endpoint, netclaw uses a curated model list:
-
-| Category | Models |
-|----------|--------|
-| Frontier | gpt-5.4, gpt-5, gpt-5-mini, gpt-5-nano, gpt-4.1, gpt-4.1-mini, gpt-4.1-nano |
-| Reasoning | o3, o3-mini, o4-mini |
-| Codex | gpt-5.3-codex, gpt-5.2-codex, gpt-5-codex |
-
-This list is updated with each netclaw release.
+Since 0.22.1, netclaw discovers your ChatGPT models live — after you authenticate, it probes OpenAI's Codex backend and reads each model's context window and modalities from the response. New models show up as OpenAI ships them, without waiting for a netclaw release.
 
 ### API Key
 
@@ -146,6 +140,41 @@ netclaw provider add my-openai openai --api-key sk-proj-...
 ```
 
 Get your key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). With API key auth, netclaw discovers available models automatically via `/v1/models`.
+
+## GitHub Copilot
+
+Run inference through your GitHub Copilot subscription. There's no API key — auth is GitHub's [OAuth device flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow):
+
+```bash
+netclaw provider add copilot github-copilot --auth oauth-device
+```
+
+netclaw prints a one-time code and a verification URL; enter the code, approve, and you're connected. It stores the GitHub OAuth token in `secrets.json` and exchanges it on demand for a short-lived Copilot token (cached in memory for ~30 minutes) — that short-lived token never touches disk. Models are whatever your subscription exposes (`gpt-4o`, `gpt-5`, `claude-sonnet-4`, and so on), discovered from Copilot's API.
+
+Requires an active [GitHub Copilot](https://github.com/features/copilot) subscription.
+
+## Venice.ai
+
+[Venice.ai](https://venice.ai/) is privacy-focused inference with an OpenAI-compatible API. Auth is an API key:
+
+```bash
+netclaw provider add venice veniceai --api-key vk-...
+```
+
+The endpoint defaults to `https://api.venice.ai/api/v1`. Get a key at [venice.ai/settings/api](https://venice.ai/settings/api).
+
+By default, netclaw tells Venice **not** to prepend its own system prompt (`include_venice_system_prompt = false`), so your [identity grounding](/architecture/design-philosophy/) stays the first system message and the context-budget math stays correct. If you actually want Venice's default prompt, opt in with a vendor option:
+
+```json
+{
+  "Providers": {
+    "venice": {
+      "Type": "veniceai",
+      "VendorOptions": { "IncludeVeniceSystemPrompt": true }
+    }
+  }
+}
+```
 
 ## Provider Manager TUI
 
@@ -218,5 +247,7 @@ To test your configuration right now, run [`netclaw doctor`](/cli/doctor/) for a
 - [OpenRouter API docs](https://openrouter.ai/docs/api-reference/overview) — request format, rate limits, model routing
 - [Anthropic API docs](https://docs.anthropic.com/en/api/getting-started) — authentication, model versions, usage limits
 - [OpenAI API docs](https://platform.openai.com/docs/api-reference) — endpoints, authentication, model capabilities
+- [GitHub Copilot](https://github.com/features/copilot) — subscription details and supported models
+- [Venice.ai API docs](https://docs.venice.ai/) — endpoints, models, and vendor parameters
 - [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention
 - [RFC 7636 — OAuth PKCE](https://datatracker.ietf.org/doc/html/rfc7636) — the code exchange flow OpenAI uses

@@ -5,15 +5,33 @@ description: "Configure webhook routes for event-driven automation."
 
 Inbound webhook routes let external services POST to your daemon and kick off autonomous agent sessions. The daemon verifies the signature, spawns a session with the route's prompt and the inbound payload, and optionally delivers results to a notification target.
 
+## Quick start
+
+Run [`netclaw config`](/cli/config/), navigate to **Inbound Webhooks**, and toggle the global endpoint on. Then create your first route:
+
+```bash
+netclaw webhooks set github-issues \
+  --prompt "Triage this GitHub issue." \
+  --secret-env GITHUB_WEBHOOK_SECRET
+```
+
+![Inbound Webhooks editor](/screenshots/output/config-inbound-webhooks.png)
+
+The Inbound Webhooks editor — toggle the global endpoint and set the execution timeout. Route authoring stays in [`netclaw webhooks`](/cli/webhooks/).
+
+Restart the daemon once to activate `Webhooks.Enabled`, then route changes are [hot-reloaded](#hot-reload) on each request. The rest of this page is the full reference.
+
+---
+
 External services POST JSON to `/api/webhooks/<route>`. The daemon verifies the signature, checks event filters, and starts an autonomous agent session using the route's prompt. Each route is a standalone JSON file in `~/.netclaw/config/webhooks/`.
 
 ![netclaw webhooks list showing the route directory path](/screenshots/output/webhooks-list.png)
 
-All CLI route management works offline -- no running daemon required. See [`netclaw webhooks`](/cli/webhooks/) for the full CLI reference.
+All CLI route management works offline — no running daemon required. See [`netclaw webhooks`](/cli/webhooks/) for the full CLI reference.
 
-### Global settings
+### Global settings (manual configuration)
 
-Enable inbound webhooks and set the execution timeout in `~/.netclaw/config/netclaw.json`:
+For scripted or headless installs, set `Webhooks.Enabled` directly in `~/.netclaw/config/netclaw.json`. Interactive installs should use `netclaw config` → Inbound Webhooks instead.
 
 ```json
 {
@@ -110,7 +128,7 @@ Every route requires a verification secret. Two modes:
 | `Hmac` | HMAC-SHA256 of the request body, compared with constant-time equality | `X-Webhook-Signature` |
 | `HeaderSecret` | Plain shared secret sent in a header | `X-Webhook-Secret` |
 
-> **CLI vs. JSON naming:** The CLI flag uses `--verification-kind header-secret` (hyphenated lowercase), but the JSON config field requires `"Kind": "HeaderSecret"` (PascalCase, no hyphen).
+> **CLI vs. JSON naming:** The JSON config field uses `"Kind": "HeaderSecret"` (PascalCase). The CLI flag `--verification-kind` accepts `hmac` or `headersecret` (no hyphen, case-insensitive). Using `header-secret` with a hyphen will fail at runtime — the CLI's own help text says `header-secret` but that form doesn't match the enum and prints a parse error.
 
 Only SHA-256 is supported for HMAC. Both modes share these default headers:
 
@@ -138,11 +156,13 @@ The `Audience` field controls which tool permissions the webhook session gets:
 
 | Audience | Tool Access |
 |----------|-------------|
-| `Public` | Most restricted -- external untrusted input |
-| `Team` | Moderate -- trusted collaborators |
-| `Personal` | Full access -- your own services |
+| `Public` | Most restricted — external untrusted input |
+| `Team` | Moderate — trusted collaborators |
+| `Personal` | Full access — your own services |
 
 Default is `Public`. Use this for anything internet-facing (GitHub, GitLab). Reserve `Personal` for internal services you fully control.
+
+A webhook session runs autonomously — there's no one in a thread to approve a tool call — so any tool that would otherwise prompt for approval is auto-denied. The audience's non-interactive tools still run: the file tools, within the session's autonomous filesystem zone. `shell_execute` is the exception — it's gated to the `Personal` audience, so the default `Public` (and `Team`) webhooks never get a shell. A `Personal`-audience webhook *can* run shell as of 0.22.0 (earlier builds blocked non-interactive shell outright), but think hard before pointing a `Personal` webhook at the public internet.
 
 ### Notification targets
 
@@ -164,7 +184,7 @@ When `NotificationTarget` is set, the agent posts results to that channel. Only 
 
 To find your Slack channel ID, see [Locate your Slack URL or ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID).
 
-When `DeliveryRequired` is `true` and the route has notification instructions -- either explicit `NotifyInstructions` or auto-generated from a `NotificationTarget` -- the agent *must* call `send_slack_message` during the session. If it doesn't, the run is marked failed. When `DeliveryRequired` is `false`, the agent's session prompt tells it that notification is optional and can be skipped if there's nothing actionable.
+When `DeliveryRequired` is `true` and the route has notification instructions — either explicit `NotifyInstructions` or auto-generated from a `NotificationTarget` — the agent *must* call `send_channel_message` during the session. If it doesn't, the run is marked failed. When `DeliveryRequired` is `false`, the agent's session prompt tells it that notification is optional and can be skipped if there's nothing actionable.
 
 Routes without a `NotificationTarget` and without `NotifyInstructions` don't enforce delivery at all, regardless of the `DeliveryRequired` flag.
 
@@ -184,7 +204,7 @@ Requests to `/api/webhooks/{route}` go through these checks in order:
 | 8 | Rate limit | 429 + `Retry-After` header |
 | 9 | Dispatch | 202 Accepted |
 
-After dispatch, the agent session runs asynchronously -- the 202 response returns immediately without waiting for the session to complete.
+After dispatch, the agent session runs asynchronously — the 202 response returns immediately without waiting for the session to complete.
 
 Accepted response body:
 
@@ -224,7 +244,7 @@ No daemon restart needed for route changes. Global `Webhooks.Enabled` and `Execu
 | `MaxBodyBytes` | Less than 1 |
 | `RateLimitPerMinute` | Less than 1 |
 | `Events` entries | Contains blank strings |
-| `DeliveryRequired` + `NotifyInstructions` | `DeliveryRequired` is `true` AND `NotifyInstructions` is non-empty AND `NotificationTarget` is `null` (all three conditions simultaneously) |
+| `NotifyInstructions` without target | `NotifyInstructions` is non-empty AND `NotificationTarget` is `null` |
 | `NotificationTarget.Kind = Slack` | Missing `ChannelId` |
 
 ### Security
@@ -238,23 +258,21 @@ Route files contain plaintext secrets. Treat `~/.netclaw/config/webhooks/` the s
 
 ## Setup
 
-1. Enable webhooks in `netclaw.json` (or toggle during [`netclaw init`](/cli/init/))
+1. Run `netclaw config` → **Inbound Webhooks** and toggle the global endpoint on. The editor shows a live summary of route counts (total, enabled, disabled, invalid). If you enable webhooks with no valid routes, a non-blocking advisory directs you to create a route with `netclaw webhooks set`.
 2. Create a route: `netclaw webhooks set <name> --prompt "..." --secret-env SECRET_VAR`
-3. Restart the daemon to pick up the `Webhooks.Enabled` change: `netclaw daemon stop && netclaw daemon start`
-4. Copy the webhook URL from [`netclaw status`](/cli/status/) and paste it into your external service
-5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts -- look for the `webhook.received` counter
+3. Restart the daemon once to pick up the `Webhooks.Enabled` change: `netclaw daemon stop && netclaw daemon start`
+4. Construct your webhook URL from your external hostname (Tailscale or Cloudflare): `<your-external-hostname>/api/webhooks/<route-name>`. Paste it into your external service.
+5. Send a test event and check [`netclaw stats`](/cli/stats/) for delivery counts.
 
-![Init wizard showing the inbound webhooks toggle](/screenshots/output/init-09-webhooks.png)
-
-You only need to restart when first enabling `Webhooks.Enabled`. After that, route changes are [hot-reloaded](#hot-reload) on each request.
+After the first restart, route changes are [hot-reloaded](#hot-reload) on each request — no further restarts needed.
 
 ## Troubleshooting
 
-### 401 Unauthorized -- secret mismatch
+### 401 Unauthorized — secret mismatch
 
 The HMAC signature or header secret doesn't match. Double-check that the secret in your route file matches what the external service is sending. For HMAC, also verify `SignaturePrefix` matches (e.g., GitHub sends `sha256=` before the hex digest).
 
-### 401 Unauthorized -- wrong signature header
+### 401 Unauthorized — wrong signature header
 
 The daemon is reading the signature from a different header than the one your service sends. Set `SignatureHeaderName` in the route's `Verification` block to match your service (e.g., `X-Hub-Signature-256` for GitHub).
 
@@ -268,13 +286,13 @@ The request body exceeds the route's `MaxBodyBytes` (default 1 MB). Increase it 
 
 ## Finding your webhook URL
 
-Run [`netclaw status`](/cli/status/) to see the webhook base URL. Your route's full endpoint is:
+Your webhook URL is constructed from the external hostname you've configured for the daemon:
 
 ```
-<webhook-base-url>/api/webhooks/<route-name>
+<your-external-hostname>/api/webhooks/<route-name>
 ```
 
-The base URL depends on how you expose the daemon. [Tailscale Serve](https://tailscale.com/kb/1312/serve) and [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) are the two supported ingress options.
+The external hostname is set by whichever ingress option you use — [Tailscale Serve](https://tailscale.com/kb/1312/serve) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/). Find it in your Tailscale or Cloudflare dashboard. `netclaw status` shows the daemon's local endpoint (e.g. `http://localhost:PORT`) — that's not the externally reachable address.
 
 ## Limitations
 
@@ -285,17 +303,17 @@ The base URL depends on how you expose the daemon. [Tailscale Serve](https://tai
 
 ## Related pages
 
-- [`netclaw webhooks`](/cli/webhooks/) -- CLI reference for route management (list, show, set, delete, validate)
-- [Secrets Management](/security/secrets/) -- encrypted credential storage and agent isolation
-- [Security Model](/security/security-model/) -- audience definitions and trust levels
-- [`netclaw doctor`](/cli/doctor/) -- validates all webhook route files
-- [`netclaw stats`](/cli/stats/) -- delivery counts and rejection breakdowns
+- [`netclaw webhooks`](/cli/webhooks/) — CLI reference for route management (list, show, set, delete, validate)
+- [Secrets Management](/security/secrets/) — encrypted credential storage and agent isolation
+- [Security Model](/security/security-model/) — audience definitions and trust levels
+- [`netclaw doctor`](/cli/doctor/) — validates all webhook route files
+- [`netclaw stats`](/cli/stats/) — delivery counts and rejection breakdowns
 
 ## Resources
 
-- [GitHub webhook documentation](https://docs.github.com/en/webhooks) -- setting up webhooks on the GitHub side
-- [GitLab webhook documentation](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html) -- setting up webhooks on the GitLab side
-- [HMAC signature verification](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) -- how GitHub's `X-Hub-Signature-256` works
-- [Tailscale Serve](https://tailscale.com/kb/1312/serve) -- expose your webhook endpoint without a public IP
-- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) -- alternative to Tailscale for public webhook ingress
-- [Locate your Slack channel ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID) -- find the channel ID for notification targets
+- [GitHub webhook documentation](https://docs.github.com/en/webhooks) — setting up webhooks on the GitHub side
+- [GitLab webhook documentation](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html) — setting up webhooks on the GitLab side
+- [HMAC signature verification](https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries) — how GitHub's `X-Hub-Signature-256` works
+- [Tailscale Serve](https://tailscale.com/kb/1312/serve) — expose your webhook endpoint without a public IP
+- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) — alternative to Tailscale for public webhook ingress
+- [Locate your Slack channel ID](https://slack.com/help/articles/221769328-Locate-your-Slack-URL-or-ID) — find the channel ID for notification targets

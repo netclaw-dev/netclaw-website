@@ -3,7 +3,7 @@ title: "Skill Feeds"
 description: "Subscribing to private skill server feeds."
 ---
 
-Skill feeds connect your netclaw daemon to private skill servers. The daemon discovers available skills via the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-spec) protocol, downloads them, verifies integrity via SHA-256 digests, and makes them available to the agent — all automatically.
+Skill feeds connect your netclaw daemon to private skill servers. The daemon discovers available skills via the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) protocol, downloads them, verifies integrity via SHA-256 digests, and makes them available to the agent — all automatically.
 
 Skills follow the [AgentSkills.io](https://agentskills.io) open standard format. Both standards are vendor-neutral and supported across multiple agent platforms, so skills published to a feed work anywhere that speaks the protocol.
 
@@ -34,23 +34,17 @@ flowchart TD
 
 Each feed syncs independently. A failing server never blocks other feeds or daemon startup. On failure, the daemon falls back to on-disk skills from the last successful sync.
 
-## Add a Feed During Init
+## Add a Feed via netclaw config
 
-The [`netclaw init`](/cli/init/) wizard includes a skill feeds step:
+The `netclaw config` → Skill Sources screen lets you add remote skill servers. Select "+ Add skill server," enter the base URL, and the daemon probes for `/.well-known/agent-skills/index.json`, reports the skill count (or shows the error), and suggests a name based on the hostname. If the server requires authentication, you'll be prompted for a bearer token. Add as many feeds as you need.
 
-![Skill feeds configuration during init](/screenshots/output/init-step8-skill-feeds-prompt.png)
+![Skill Sources editor](/screenshots/output/config-skills.png)
 
-The wizard probes the URL, fetches the RFC index, reports the skill count (or shows the error), and suggests a name based on the hostname. Add as many feeds as you need.
+The Skill Sources screen — choose **+ Add skill server** to add a remote feed by base URL.
 
 ## Manual Configuration
 
-Add a feed after init:
-
-```bash
-netclaw skill feed add corp-skills --url https://skills.corp.com
-```
-
-Or edit `~/.netclaw/config/netclaw.json` directly:
+Remote feeds can only be added through `netclaw config` → Skill Sources, or by editing `~/.netclaw/config/netclaw.json` directly:
 
 ```json
 {
@@ -76,6 +70,7 @@ Or edit `~/.netclaw/config/netclaw.json` directly:
 | `Url` | string | — | Base URL; daemon appends `/.well-known/agent-skills/index.json` |
 | `Enabled` | bool | `true` | Toggle without removing the entry |
 | `TimeoutSeconds` | int | `30` | HTTP timeout for this feed |
+| `ApiKey` | string | `null` | Optional bearer token for authenticated feeds; supports the `ENC:` prefix for encrypted storage |
 
 Top-level `SkillFeeds` settings:
 
@@ -176,13 +171,13 @@ Two related config keys control broader skill behavior:
 | Key | Effect |
 |-----|--------|
 | `SkillSync.Enabled: false` | Blocks the agent from loading *any* skills via `skill_load` |
-| `SkillSync.DisableSystemSkillSync: false` | Controls the built-in CDN feed (separate from private feeds) |
+| `SkillSync.DisableSystemSkillSync: false` | Set `true` to disable the built-in CDN feed; the default `false` keeps it enabled (separate from private feeds) |
 
 ## Troubleshooting
 
 ### Feed shows 0 skills after adding
 
-Run `netclaw skill feed list` to confirm the feed is enabled. Then check the daemon logs — the most common cause is the server not serving `/.well-known/agent-skills/index.json` at the expected path. Verify with:
+Open `netclaw config` → Skill Sources to confirm the feed is enabled, or check `~/.netclaw/config/netclaw.json` under the `SkillFeeds.Feeds` array. Then check the daemon logs — the most common cause is the server not serving `/.well-known/agent-skills/index.json` at the expected path. Verify with:
 
 ```bash
 curl -s https://skills.corp.com/.well-known/agent-skills/index.json | head
@@ -207,5 +202,5 @@ The content scanner flagged prompt injection patterns in the skill body. Run `ne
 ## External Resources
 
 - [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-spec) — the discovery protocol behind skill feeds
+- [Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc) — the discovery protocol behind skill feeds
 - [netclaw-dev/skill-server](https://github.com/netclaw-dev/skill-server) — reference implementation of a private skill server

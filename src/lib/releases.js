@@ -39,7 +39,11 @@ export async function getReleases() {
         url: r.html_url,
         date: r.published_at,
         prerelease: r.prerelease,
-        bodyHtml: marked.parse(r.body || '_No release notes._'),
+        // Older release notes hard-code the pre-transfer org (Aaronontheweb/netclaw),
+        // whose issue/PR paths now 404; rewrite to the current repo so the links resolve.
+        bodyHtml: marked.parse(
+          (r.body || '_No release notes._').replaceAll('Aaronontheweb/netclaw', REPO),
+        ),
       }));
     _cache = { releases, error: null };
   } catch (e) {

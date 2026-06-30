@@ -120,7 +120,7 @@ Requires authentication (bearer token or loopback origin). Returns `401` without
   "memory": {
     "provider": "sqlite",
     "status": "healthy",
-    "databasePath": "/root/.netclaw/memory/netclaw-memory.db",
+    "databasePath": "/home/netclaw/.netclaw/memory/netclaw-memory.db",
     "pendingCheckpoints": 0
   },
   "reminders": {

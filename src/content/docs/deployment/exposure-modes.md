@@ -7,7 +7,7 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 
 ## Before you begin
 
-- Netclaw installed and initialized (`netclaw init`). See [Installation](/getting-started/installation/) if needed.
+- Netclaw installed (see [Installation](/getting-started/installation/) if needed). Exposure mode is configured after install via `netclaw config`, not during `netclaw init`.
 - For reverse proxy: a working proxy already configured, a non-loopback internal IP for the daemon, and the proxy source IP or CIDR ready for `TrustedProxies`.
 - For Tailscale modes: [`tailscaled` installed and running](https://tailscale.com/download).
 - For Cloudflare Tunnel: [`cloudflared` installed and configured](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/get-started/).
@@ -22,11 +22,17 @@ Exposure mode controls how the daemon is reachable over the network. Most setups
 | **Tailscale Funnel** | `tailscale-funnel` | `tailscaled` | Public internet via Tailscale | High |
 | **Cloudflare Tunnel** | `cloudflare-tunnel` | `cloudflared` | Public internet via Cloudflare | High |
 
-The `netclaw init` wizard covers this at step 9:
+Configure the exposure mode via `netclaw config` — navigate to **Security & Access → Exposure Mode** — or set `Daemon.ExposureMode` directly in `netclaw.json`.
 
-![Exposure mode selection in the netclaw init wizard, with Local highlighted as the recommended option](/screenshots/output/init-09-exposure.png)
+![Exposure Mode selection](/screenshots/output/config-exposure.png)
+
+The Exposure Mode picker in `netclaw config → Security & Access` — Local, Reverse Proxy, Tailscale Serve/Funnel, or Cloudflare Tunnel.
 
 Options marked with a warning triangle expose the daemon to the public internet. Tailscale Serve is the recommended remote mode: tailnet-only access, no public exposure.
+
+:::caution
+In every non-local mode (reverse proxy and the three tunnel modes), a loopback connection is **not** trusted as the local operator — the loopback peer is the proxy or tunnel forwarding remote traffic, not a same-host process. You must pair a device or authenticate remotely, even from the daemon's own host, and pairing codes can't be minted from a loopback connection. Only `local` mode auto-trusts loopback. (This closes the SEC-005 tunnel-loopback auth bypass.)
+:::
 
 ### Reverse Proxy
 
@@ -51,7 +57,7 @@ If the proxy runs on the same machine, the final hop into netclaw still needs to
 
 ## Configuration
 
-Set the mode in the `Daemon` section of `~/.netclaw/config/netclaw.json`.
+Set the mode via **`netclaw config` → Security & Access → Exposure Mode**, or directly edit the `Daemon` section of `~/.netclaw/config/netclaw.json`.
 
 ### Local (default)
 
@@ -152,9 +158,7 @@ docker restart netclaw
 
 ## Inbound webhooks
 
-Tunnel modes make [inbound webhooks](/configuration/webhooks/) possible. External services like GitHub or CI systems can trigger autonomous runs via HTTP POST. The `netclaw init` wizard asks about this right after exposure mode selection:
-
-![Inbound webhook toggle in the init wizard](/screenshots/output/init-09-webhooks.png)
+Tunnel modes make [inbound webhooks](/configuration/webhooks/) possible. External services like GitHub or CI systems can trigger autonomous runs via HTTP POST.
 
 They do nothing in local mode.
 
@@ -177,18 +181,13 @@ netclaw daemon pair
 If the mode requires `tailscaled` or `cloudflared` and that process isn't running, you'll see this in the daemon logs (`~/.netclaw/logs/daemon.log` or `journalctl --user -u netclaw` for systemd):
 
 ```
-Daemon startup aborted: ExposureMode is 'tailscale-serve' but the required
-tunnel process 'tailscaled' is not running. Start 'tailscaled' before starting
-Netclaw, or set ExposureMode to 'local' in netclaw.json.
+Daemon startup aborted: Tunnel prerequisite not met: ExposureMode='tailscale-serve' requires 'tailscaled' to be running unless Daemon.SkipTunnelProcessCheck=true is explicitly set for a sidecar or host-managed tunnel topology. Remediation: Start 'tailscaled' locally, or set Daemon.SkipTunnelProcessCheck=true only when the tunnel is intentionally managed outside the Netclaw process namespace.
 ```
 
 If no paired devices exist and no alternative auth scheme is configured:
 
 ```
-Daemon startup aborted: ExposureMode is 'tailscale-serve' but no paired devices
-exist and no alternative remote authentication scheme is configured. Pair a device
-with 'netclaw daemon pair' or configure another remote auth scheme before starting
-Netclaw.
+Daemon startup aborted: No remote authentication available: ExposureMode='tailscale-serve' requires either at least one paired device or an alternative remote auth scheme. Remediation: Run 'netclaw daemon pair' to pair a device, or check your auth configuration before exposing the daemon remotely.
 ```
 
 Both are fatal. The daemon won't start until you fix the underlying issue.
@@ -241,11 +240,7 @@ netclaw daemon pair
 
 If the device store was lost after the first successful non-local start and the daemon will not start anymore, temporarily switch `Daemon.ExposureMode` to `local` or restore `devices.json` and `secrets.json` from backup. Then start the daemon, run `netclaw daemon pair`, and switch back.
 
-You can also re-run the init wizard, which still cooperates with the runtime bootstrap path:
-
-```bash
-netclaw init
-```
+You can also run `netclaw init` on an existing install — it shows an action menu with options to open the configuration editor, redo identity, or start over.
 
 ### Reverse proxy bound to loopback
 

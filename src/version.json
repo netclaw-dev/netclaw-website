@@ -1,0 +1,6 @@
+{
+  "_comment": "Source of truth for the netclaw release these docs are written against. Bump this whenever you do a docs refresh. scripts/check-docs-version.mjs compares it against the latest published release and fails when the product has moved ahead, so docs stop silently drifting (they last drifted 0.16.2 -> 0.22.1 before anyone noticed).",
+  "documentedVersion": "0.24.0",
+  "sourceRepo": "netclaw-dev/netclaw",
+  "lastProfiled": "2026-06-01"
+}

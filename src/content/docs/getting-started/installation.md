@@ -50,8 +50,7 @@ Run the daemon as a container — useful for servers, homelab setups, or if you 
 ```bash
 docker run -d \
   --name netclaw \
-  -v ~/.netclaw:/root/.netclaw \
-  -p 127.0.0.1:5199:5199 \
+  -v netclaw-home:/home/netclaw/.netclaw \
   ghcr.io/netclaw-dev/netclaw
 ```
 
@@ -59,18 +58,18 @@ docker run -d \
 |---------|-------|
 | Image | `ghcr.io/netclaw-dev/netclaw` |
 | Architectures | `linux/amd64`, `linux/arm64` |
-| Port | 5199 |
-| Volume | `/root/.netclaw` (config, identity, sessions, logs) |
+| Runs as | non-root user `netclaw` (UID 1654) |
+| Port | 5199 (loopback inside the container) |
+| Volume | `/home/netclaw/.netclaw` (config, identity, sessions, logs) |
 
-The container runs the daemon only. You still need the CLI installed on whatever machine you're talking to it from — install it with the Linux or Windows script above (`bash -s -- cli`), then [pair](/guides/pairing-remote-devices/) the CLI to the container's daemon.
+The image runs as the non-root `netclaw` user, so persist state in a named volume (a host bind mount has to be `chown`ed to UID 1654 first). The container runs the daemon only, bound to loopback — drive it with `docker exec netclaw netclaw <command>`. To reach it from a host CLI or another machine (including [pairing](/guides/pairing-remote-devices/)), configure a non-local [exposure mode](/deployment/exposure-modes/). See [Docker Deployment](/deployment/docker/) for the full setup.
 
 Pass provider credentials as environment variables:
 
 ```bash
 docker run -d \
   --name netclaw \
-  -v ~/.netclaw:/root/.netclaw \
-  -p 127.0.0.1:5199:5199 \
+  -v netclaw-home:/home/netclaw/.netclaw \
   -e NETCLAW_Providers__openrouter__Type=openrouter \
   -e NETCLAW_Providers__openrouter__ApiKey=sk-or-v1-... \
   -e NETCLAW_Models__Main__Provider=openrouter \
@@ -100,22 +99,80 @@ netclaw --version
 
 You should see the version, commit hash, and build timestamp.
 
-## Next step
+## Next steps
+
+**1. Run `netclaw init`**
 
 ```bash
 netclaw init
 ```
 
-The [`init` wizard](/cli/init/) walks you through provider setup, security posture, channels, identity, and network exposure — then starts the daemon. See the [Quickstart](/getting-started/quickstart/) for the full walkthrough.
+The [`init` wizard](/cli/init/) covers provider setup, identity, security posture, and feature selection — then runs a health check and drops you into chat. It is intentionally minimal: channels, search, and network exposure are not configured here.
+
+**2. Run `netclaw config`**
+
+```bash
+netclaw config
+```
+
+[`netclaw config`](/cli/config/) is the menu-driven dashboard for everything else. Connect Slack, Discord, or Mattermost; enable web search; set your exposure mode; configure inbound webhooks and skill sources. Run it right after `init` — nothing beyond a basic chat session works until you do.
+
+See the [Quickstart](/getting-started/quickstart/) for a guided walkthrough of both steps.
+
+## Switching release channels
+
+By default, the install script and daemon pull from the **stable** channel — release builds only.
+
+If Netclaw is already installed, switch channels with the CLI:
+
+```bash
+netclaw update --channel beta
+```
+
+This installs the newest build on that channel right away and saves to your config, so later update checks and self-updates follow the beta feed. Pass `--channel stable` to switch back.
+
+To choose a channel at first install instead, pass `--channel` to the install script:
+
+**Linux:**
+
+```bash
+curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --channel beta
+```
+
+**Windows:**
+
+```powershell
+.\install.ps1 -Channel beta
+```
+
+**Docker:**
+
+Use the `ghcr.io/netclaw-dev/netclaw:beta` image tag instead of the default `ghcr.io/netclaw-dev/netclaw` (which resolves to the latest stable).
+
+The install script only swaps which binaries it pulls. Also set `Daemon.UpdateChannel` to `"beta"` in `netclaw.json` so the daemon checks the beta feed for self-updates. (Switching with `netclaw update --channel` does this for you.)
+
+> **Note:** The install script is idempotent — running it on an existing install will update the binaries without breaking your configuration. If the daemon is running, stop it first:
+>
+> ```bash
+> sudo systemctl stop netclawd
+> curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --channel beta
+> sudo systemctl start netclawd
+> ```
 
 ## Updating
 
 ```bash
-netclaw update          # check for and install updates
-netclaw update --check  # check only, don't install
+netclaw update                 # check for and install updates
+netclaw update --check         # check only, don't install
+netclaw update --channel beta  # switch channel (saved to config), then update
 ```
 
 Self-update is disabled in the Docker image — update by pulling a new image tag instead.
+
+| Channel | Description |
+|---------|-------------|
+| `stable` | Official releases only. The default. |
+| `beta` | Prereleases. Resolves to the newest of {stable, prerelease}, so a stable release that supersedes a beta is still offered. |
 
 ## Resources
 

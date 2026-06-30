@@ -1,0 +1,57 @@
+name: docs_version_check
+
+# Guards against the docs silently falling behind netclaw releases (which is how
+# they drifted 0.16.2 -> 0.22.1 unnoticed). Compares src/version.json to the latest
+# published release; opens/updates a tracking issue when the product is ahead.
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'   # Mondays 13:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: "Check docs version drift"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Compare documented version to latest release
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if node scripts/check-docs-version.mjs; then
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update drift issue
+        if: steps.check.outputs.drift == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create docs-drift --color FBCA04 \
+            --description "Docs trailing a published netclaw release" --force 2>/dev/null || true
+          documented=$(node -e "process.stdout.write(require('./src/version.json').documentedVersion)")
+          repo=$(node -e "process.stdout.write(require('./src/version.json').sourceRepo)")
+          latest=$(gh release list --repo "$repo" --exclude-pre-releases --exclude-drafts --limit 1 --json tagName --jq '.[0].tagName')
+          title="docs: behind netclaw ${latest} (documented ${documented})"
+          body=$(printf 'The docs are written against **%s** but netclaw **%s** is published.\n\nRun a content pass and bump `src/version.json`.\n\n_Filed automatically by the docs_version_check workflow._' "$documented" "$latest")
+          existing=$(gh issue list --state open --label docs-drift --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --title "$title" --body "$body"
+          else
+            gh issue create --title "$title" --label docs-drift --body "$body"
+          fi

@@ -130,6 +130,6 @@ What it explicitly does **not** protect against:
 ## External Resources
 
 - [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) — the attack taxonomy netclaw's security model is designed against
-- [NIST AI Risk Management Framework](https://www.nist.gov/artificial-intelligence/ai-risk-management-framework) — federal guidance on AI system risk management
+- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework) — federal guidance on AI system risk management
 - [Principle of Least Privilege (POLP)](https://csrc.nist.gov/glossary/term/least_privilege) — the access control philosophy behind default-deny
 - [Defense in Depth (NIST)](https://csrc.nist.gov/glossary/term/defense_in_depth) — the layered-security model behind the four-layer stack

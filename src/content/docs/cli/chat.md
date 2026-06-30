@@ -60,12 +60,13 @@ When a tool needs approval, the input panel swaps the text area for a selection 
 
 | Option | Effect |
 |--------|--------|
-| **Approve once** | This invocation only |
-| **Approve for this chat** | Session-scoped — resets when you quit |
-| **Approve always** | Persists to [`~/.netclaw/config/tool-approvals.json`](/cli/mcp-tools/) |
+| **Once** | This invocation only |
+| **This chat** | Session-scoped — resets when you quit |
+| **Always here** | The command's verb, scoped to the current directory — persists to [`~/.netclaw/config/tool-approvals.json`](/cli/approvals/) |
+| **Always anywhere** | The command's verb everywhere — a global grant in the same file. The broadest option; use it sparingly. |
 | **Deny** | Block this invocation |
 
-Arrow keys to select, `Enter` to confirm.
+Arrow keys to select, `Enter` to confirm. netclaw shows fewer options when some don't apply (e.g. just **Once** and **Deny** for a command it can't cleanly parse).
 
 ### Reconnection
 
@@ -183,6 +184,7 @@ netclaw chat -p --resume "$SESSION" --json "write a summary for the team" | jq -
 
 ## Related commands
 
+- [`netclaw config`](/cli/config/) — Connect Slack/Discord/Mattermost channels, enable web search, set exposure mode, and configure everything `init` doesn't touch
 - [`netclaw sessions`](/cli/sessions/) — Browse and resume previous chat sessions
 - [`netclaw init`](/cli/init/) — First-run setup (configures the daemon that chat connects to)
 - [`netclaw status`](/cli/status/) — Check daemon health before starting a chat

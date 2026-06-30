@@ -7,23 +7,11 @@ Netclaw emits operational alerts when something happens that you or your ops too
 
 ## Quick Start
 
-Add a `Notifications` block to `~/.netclaw/config/netclaw.json` and restart the daemon:
+1. Run [`netclaw config`](/cli/config/) → **Telemetry & Alerting**.
+2. Add a webhook URL and choose `Slack` or `Generic` format.
+3. Restart the daemon — you'll get a `daemon.started` alert confirming delivery works.
 
-```json
-{
-  "Notifications": {
-    "Webhooks": [
-      {
-        "Url": "https://hooks.slack.com/services/T00/B00/xxx",
-        "Name": "ops-slack",
-        "Format": "Slack"
-      }
-    ]
-  }
-}
-```
-
-You'll get a `daemon.started` alert on the next restart, which doubles as confirmation that delivery works.
+That's it for most installs. For scripted deployments or headless servers, see [Manual configuration](#manual-configuration) below.
 
 ## Alert Types
 
@@ -35,14 +23,17 @@ You'll get a `daemon.started` alert on the next restart, which doubles as confir
 | `update.available` | Info | A newer netclaw binary exists in the release feed. |
 | `provider.failover` | Warning | Primary LLM provider failed; traffic moved to fallback. |
 | `provider.unreachable` | Critical | All configured LLM providers are unavailable. |
-| `channel.disconnected` | Warning | Slack or Discord connection lost. |
+| `channel.disconnected` | Warning | Slack, Discord, or Mattermost connection lost. |
 | `mcp.auth.expired` | Warning | MCP OAuth token expired and refresh was rejected. |
 | `mcp.server.disconnected` | Warning | Connection to an MCP server dropped. |
+| `mcp.server.reconnected` | Info | MCP server reconnected successfully after a previous disconnect. |
 | `webhook.received` | Info | A valid inbound webhook delivery was accepted and queued. |
 | `webhook.route.invalid` | Warning | A webhook route file is missing or invalid. |
 | `reminder.execution.failed` | Warning | A scheduled reminder failed to execute. |
-| `reminder.auto.disabled` | Critical | Reminder disabled after repeated consecutive failures. |
-| `reminder.schema.dropped` | Warning | Invalid reminder definitions were dropped at startup. |
+| `reminder.auto_disabled` | Critical | Reminder disabled after repeated consecutive failures. |
+| `reminder.schema.invalid_dropped` | Warning | Invalid reminder definitions were dropped at startup. |
+| `reminder.schema.legacy_rejected` | Warning | Legacy reminder definitions missing trust fields were rejected at startup. |
+| `background-job.schema.legacy_rejected` | Warning | Legacy background job definitions missing trust fields were rejected at startup. |
 
 `provider.auth.expired` is defined but not currently emitted.
 
@@ -50,7 +41,11 @@ All configured destinations receive all alert types — there's no per-destinati
 
 ## Configuring Alert Destinations
 
-Add outbound webhook targets in `~/.netclaw/config/netclaw.json`. Merge the `Notifications` block into your existing config if one is already there.
+Use `netclaw config` → **Telemetry & Alerting** to add, edit, or remove webhook targets at any time.
+
+### Manual configuration
+
+For scripted or headless installs, add outbound webhook targets directly in `~/.netclaw/config/netclaw.json`. Merge the `Notifications` block into your existing config if one is already there.
 
 ```json
 {
@@ -84,7 +79,7 @@ Each webhook target has:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `Url` | Yes | Endpoint to POST alerts to |
-| `Name` | Yes | Human-readable label for logs |
+| `Name` | No | Human-readable label for logs (falls back to the URL if omitted) |
 | `Format` | No | `Slack` or `Generic` (default). URLs containing `hooks.slack.com` auto-detect as Slack. |
 | `Headers` | No | Custom HTTP headers (auth tokens, API keys) |
 
@@ -111,6 +106,12 @@ Every alert arrives as a JSON POST with this envelope:
   "timestamp": "2026-05-02T14:30:00Z",
   "source": "netclaw",
   "hostname": "claw-prod-01",
+  "service": {
+    "name": "netclaw-prod",
+    "namespace": "ops",
+    "instanceId": "claw-prod-01:12345",
+    "version": "0.22.1"
+  },
   "context": {
     "lastProvider": "anthropic",
     "errorCount": "5"
@@ -118,7 +119,7 @@ Every alert arrives as a JSON POST with this envelope:
 }
 ```
 
-The `context` object varies by alert type — it carries whatever extra detail is relevant to that event.
+The `service` object is the [service identity](/observability/opentelemetry/#service-identity) sourced from the OpenTelemetry environment variables. `instanceId` always has a value (it defaults to `{hostname}:{pid}`); `namespace` appears only when you set it. When several netclaw instances post to the same endpoint, that's how you tell which one fired. The `context` object varies by alert type, carrying whatever extra detail is relevant to that event.
 
 ### Slack Block Kit
 
@@ -138,12 +139,12 @@ Each message includes a `text` fallback for notification previews. The `blocks` 
 
 | Attempt | Base Delay | Range (with ±25% jitter) |
 |---------|-----------|---------------------|
-| 1 | 1s | 0.75s – 1.25s |
-| 2 | 2s | 1.5s – 2.5s |
+| 1 | 2s | 1.5s – 2.5s |
+| 2 | 4s | 3s – 5s |
 
 Backoff caps at 30 seconds for higher retry counts. Netclaw doesn't retry client errors (4xx) — only server errors (5xx) and timeouts trigger retries.
 
-**Bounded queue** — Netclaw buffers alerts in a 256-slot in-memory queue. If the queue fills (all webhook targets are slow or down), new alerts drop rather than applying backpressure to the daemon.
+**Bounded queue** — Netclaw buffers alerts in a 256-slot in-memory queue. When the queue fills, the oldest buffered alert is dropped to make room for the new one, so the daemon always accepts new alerts without blocking.
 
 ## Further Reading
 

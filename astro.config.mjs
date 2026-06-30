@@ -59,6 +59,7 @@ export default defineConfig({
           items: [
             { label: 'Slack', slug: 'channels/slack' },
             { label: 'Discord', slug: 'channels/discord' },
+            { label: 'Mattermost', slug: 'channels/mattermost' },
             { label: 'Troubleshooting', slug: 'channels/troubleshooting' },
           ],
         },
@@ -104,6 +105,7 @@ export default defineConfig({
           items: [
             { label: 'Overview', slug: 'cli/overview' },
             { label: 'init', slug: 'cli/init' },
+            { label: 'config', slug: 'cli/config' },
             { label: 'chat', slug: 'cli/chat' },
             { label: 'sessions', slug: 'cli/sessions' },
             { label: 'status', slug: 'cli/status' },
@@ -131,6 +133,8 @@ export default defineConfig({
           label: 'Guides',
           items: [
             { label: 'MCP Tool Permissions', slug: 'guides/mcp-tool-permissions' },
+            { label: 'Custom Subagents', slug: 'guides/custom-subagents' },
+            { label: 'Images, Audio, and Other File Types', slug: 'guides/multimodal-files' },
             { label: 'Pairing Remote Devices', slug: 'guides/pairing-remote-devices' },
             { label: 'Scripting Headless Sessions', slug: 'guides/scripting-sessions' },
           ],

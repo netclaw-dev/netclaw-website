@@ -144,4 +144,4 @@ If counts match across all three layers but a tool call's `arguments` field is c
 - [llama.cpp function-calling docs](https://github.com/ggml-org/llama.cpp/blob/master/docs/function-calling.md) — definitive reference for `--jinja` and tool-call parsing
 - [Qwen llama.cpp guide](https://qwen.readthedocs.io/en/latest/run_locally/llama.cpp.html) — official Qwen deployment guide
 - [Unsloth Qwen3-Coder template fixes](https://huggingface.co/unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/discussions/10) — community-corrected GGUF templates
-- [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/examples/server/README.md) — full flag reference
+- [llama.cpp server docs](https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md) — full flag reference

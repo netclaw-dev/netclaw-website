@@ -3,7 +3,7 @@ title: "Discord"
 description: "Connect Netclaw to your Discord server."
 ---
 
-Netclaw connects to Discord over the [Gateway WebSocket API](https://discord.com/developers/docs/events/gateway) -- outbound connections only, no public URLs needed. You create a Discord bot, give netclaw one token, and it shows up in your server.
+Netclaw connects to Discord over the [Gateway WebSocket API](https://discord.com/developers/docs/events/gateway) — outbound connections only, no public URLs needed. You create a Discord bot, give netclaw one token, and it shows up in your server.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ Click **New Application**, give it a name, and hit Create.
 
 ### 2. Copy the bot token
 
-Go to **Bot** in the left sidebar. Click **Reset Token** to generate a bot token and copy it immediately -- Discord only shows it once.
+Go to **Bot** in the left sidebar. Click **Reset Token** to generate a bot token and copy it immediately — Discord only shows it once.
 
 ![Bot settings page](/screenshots/output/discord-setup-bot-settings.png)
 
@@ -57,7 +57,7 @@ Copy the generated URL at the bottom of the page.
 
 ![Generated OAuth2 URL](/screenshots/output/discord-setup-oauth-url.png)
 
-Open it in your browser. Discord asks which server to add the bot to -- pick yours and click **Continue**.
+Open it in your browser. Discord asks which server to add the bot to — pick yours and click **Continue**.
 
 ![OAuth install approval dialog](/screenshots/output/discord-setup-install-dialog.png)
 
@@ -79,13 +79,19 @@ If you want others to install via a link you control, use **Discord Provided Lin
 
 ## Configure netclaw
 
-Easiest path: [`netclaw init`](/cli/init/). Step 3 handles channel selection and token entry.
+Run [`netclaw config`](/cli/config/), navigate to **Channels**, and enable Discord. Enter your bot token when prompted — netclaw stores it encrypted and saves the config automatically.
 
-![Channel selection during netclaw init](/screenshots/output/init-03-channels.png)
+```bash
+netclaw config
+```
 
-Pick Discord, paste your bot token, done.
+![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)
 
-For manual setup, store the token with [`netclaw secrets`](/cli/secrets/):
+The Channels area in `netclaw config` — enable Discord and enter its bot token here (the adapter list also shows Slack and Mattermost).
+
+### Manual setup
+
+For scripted or headless installs, store the token with [`netclaw secrets`](/cli/secrets/) and edit the config file directly:
 
 ```bash
 netclaw secrets set Discord.BotToken your-bot-token
@@ -102,20 +108,28 @@ Then enable Discord in `~/.netclaw/config/netclaw.json`:
 }
 ```
 
-Environment variables work too:
+Environment variables work too — useful for Docker and CI:
 
 ```bash
 export NETCLAW_Discord__BotToken="your-bot-token"
 export NETCLAW_Discord__Enabled="true"
 ```
 
+### How channel IDs are stored
+
+Enter channel names or IDs (comma-separated) in `netclaw config` → Channels. Netclaw resolves each entry against the Discord API to its canonical channel ID before saving. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Names that cannot be resolved remain in `AllowedChannelIds` verbatim and are flagged with a warning — they are inert until the bot can see the channel, at which point a background refresh rewrites them to canonical IDs. Entries added one-at-a-time via the add-channel flow are rejected at entry time if they do not resolve. A genuine auth or network failure blocks the entire save.
+
+:::caution
+**Breaking change (pre-0.24.0 → 0.24.0+):** If you previously placed display names in `AllowedChannelIds`, those values no longer match incoming channel IDs and messages will be silently dropped. Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs. `DefaultChannelId` is already a canonical channel ID and is not affected.
+:::
+
 ### All config fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `Enabled` | bool | `false` | Turn on Discord |
-| `BotToken` | string | -- | Bot token from the Developer Portal. Store with `netclaw secrets set`. |
-| `DefaultChannelId` | string | -- | Channel ID for the default channel |
+| `BotToken` | string | — | Bot token from the Developer Portal. Store with `netclaw secrets set`. |
+| `DefaultChannelId` | string | — | Channel ID for the default channel |
 | `MentionOnly` | bool | `true` | Only respond when @-mentioned |
 | `AllowDirectMessages` | bool | `false` | Accept DMs |
 | `MentionRequiredInDm` | bool | `false` | Require @-mention even in DMs |
@@ -152,8 +166,8 @@ Finding channel IDs: right-click a channel in Discord with Developer Mode on, cl
 
 `AllowedUserIds` restricts who gets responses:
 
-- Empty (default) -- everyone in allowed channels is accepted
-- Non-empty -- only listed user IDs get responses, everyone else is silently dropped
+- Empty (default) — everyone in allowed channels is accepted
+- Non-empty — only listed user IDs get responses, everyone else is silently dropped
 
 Finding user IDs: right-click a user in Discord with Developer Mode on, click "Copy User ID."
 
@@ -171,7 +185,7 @@ DMs are off by default:
 }
 ```
 
-With DMs on, users can just type normally -- `MentionRequiredInDm` defaults to `false`, so no @-mention needed. Each user gets a single long-running DM session (unlike channels, where each root message starts a new session).
+With DMs on, users can just type normally — `MentionRequiredInDm` defaults to `false`, so no @-mention needed. Each user gets a single long-running DM session (unlike channels, where each root message starts a new session).
 
 :::caution
 With `AllowDirectMessages: true` and `AllowedUserIds` empty, any server member can DM the bot. Lock down `AllowedUserIds` if that's not what you want.
@@ -192,7 +206,7 @@ Override the default audience per-channel with `ChannelAudiences`:
 }
 ```
 
-The `"dm"` key is reserved -- it matches every direct message rather than a channel ID. A channel-ID entry takes precedence over it. An unrecognized audience value is rejected outright: the message is denied rather than falling back to a default.
+The `"dm"` key is reserved — it matches every direct message rather than a channel ID. A channel-ID entry takes precedence over it. An unrecognized audience value is rejected outright: the message is denied rather than falling back to a default.
 
 [Security Model](/security/security-model/) has the full breakdown on how audiences map to tools and permissions.
 
@@ -202,7 +216,7 @@ The `"dm"` key is reserved -- it matches every direct message rather than a chan
 
 When someone messages the bot in a regular channel, netclaw creates a public thread on its first reply and continues the conversation there. The thread starts as "Netclaw" and netclaw renames it once the LLM generates a session title.
 
-Thread replies don't need a @-mention -- if there's an active session in the thread, the bot responds to everything.
+Thread replies don't need a @-mention — if there's an active session in the thread, the bot responds to everything.
 
 Idle conversations are freed from memory after 2 hours (individual sessions after 1 hour, unless an approval request is pending). On daemon restart, up to 200 messages of thread history are backfilled so in-progress conversations resume.
 
@@ -210,35 +224,33 @@ Idle conversations are freed from memory after 2 hours (individual sessions afte
 
 `MentionOnly: true` (the default) means the bot ignores messages that don't @-mention it. Two exceptions:
 
-- **Thread replies** -- if a thread already has an active session, the bot responds without needing a mention
-- **Daemon restart recovery** -- if the daemon restarts and a user continues a thread, the session is re-created from the thread's message history
+- **Thread replies** — if a thread already has an active session, the bot responds without needing a mention
+- **Daemon restart recovery** — if the daemon restarts and a user continues a thread, the session is re-created from the thread's message history
 
 Netclaw strips the @-mention before passing text to the LLM.
 
 ### Message formatting
 
-Discord natively renders markdown -- bold, italic, code blocks, headers, lists, links. Responses longer than 2,000 characters are split at newline boundaries.
+Discord natively renders markdown — bold, italic, code blocks, headers, lists, links. Responses longer than 2,000 characters are split at newline boundaries.
 
 ### Tool approval
 
-When a tool call needs approval, netclaw posts an interactive button prompt in the thread. The prompt shows the tool name, action, and pattern(s), with four buttons: **Approve once** (green), **Approve for this chat**, **Approve always**, and **Deny** (red). Only the user who triggered the request can approve.
+When a tool call needs approval, netclaw posts an interactive button prompt in the thread. The prompt shows the tool name, action, and pattern(s). The full set is five buttons: **Once**, **This chat**, **Always here**, **Always anywhere**, and **Deny** — though **Always here** is omitted when the working directory is a session scratch path or too shallow for a folder-scoped grant. **Always anywhere** grants the command everywhere, so use it sparingly. netclaw shows fewer buttons when some don't apply — a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. Only the user who triggered the request can approve.
 
-If posting the button prompt fails, netclaw falls back to a text prompt where you reply with `A`, `B`, `C`, or `D`.
+If posting the button prompt fails, netclaw falls back to a text prompt where you reply with the letter shown next to each option.
 
 After a decision, netclaw updates the original message in-place with a checkmark or denied icon.
 
 ### Reminders
 
-Reminder targets for Discord users accept several formats:
+Discord reminders deliver to guild text channels only — user DMs are not supported as reminder targets. Accepted formats:
 
-- `<@123456789012345678>` or `<@!123456789012345678>` -- standard Discord mention
-- `@123456789012345678` -- shorthand
-- `123456789012345678` -- raw user ID
-- `dm:123456789012345678` -- explicit DM channel
+- `<#123456789012345678>` — Discord channel mention
+- `channel:123456789012345678` — explicit channel prefix
 
 ### Proactive messaging
 
-Discord does not have proactive messaging tools yet. Unlike Slack's `send_slack_message` and `lookup_slack_user`, there are no equivalent tools for initiating conversations in Discord channels or looking up users by name. Reminders work, but the bot can't start new threads on its own.
+The LLM can start a conversation with the generic `send_channel_message` tool — pass `channel_key: discord` and a `destination` (a guild text channel or a DM) resolved via `lookup_channel_user` or `lookup_channel_destination`. ACL rules still apply.
 
 ### Ignored messages
 
@@ -267,10 +279,10 @@ Then @-mention the bot in an allowed channel. If it creates a thread and respond
 
 Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshooting/). The hits:
 
-- **Connected but silent** -- `AllowedChannelIds` is empty and no `DefaultChannelId` is set, so all traffic gets denied
-- **Invalid bot token** -- HTTP 401 on startup means the token is wrong or was regenerated in the Developer Portal
-- **Gateway disconnected** -- the daemon couldn't establish a connection. Usually a network issue or [Discord outage](https://discordstatus.com/).
-- **Message Content privileged intent not enabled** -- turn it on under Privileged Gateway Intents in the [Developer Portal](https://discord.com/developers/applications)
+- **Connected but silent** — `AllowedChannelIds` is empty and no `DefaultChannelId` is set, so all traffic gets denied
+- **Invalid bot token** — HTTP 401 on startup means the token is wrong or was regenerated in the Developer Portal
+- **Gateway disconnected** — the daemon couldn't establish a connection. Usually a network issue or [Discord outage](https://discordstatus.com/).
+- **Message Content privileged intent not enabled** — turn it on under Privileged Gateway Intents in the [Developer Portal](https://discord.com/developers/applications)
 
 ## Next steps
 
@@ -280,18 +292,18 @@ Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshoo
 
 ## Related pages
 
-- [`netclaw init`](/cli/init/) -- Discord setup at step 3
-- [`netclaw secrets`](/cli/secrets/) -- token management
-- [`netclaw status`](/cli/status/) -- primary diagnostic tool for Discord
-- [Security Model](/security/security-model/) -- audiences and approval gates
-- [Channel Troubleshooting](/channels/troubleshooting/) -- error codes and debug logging
-- [Slack](/channels/slack/) -- sibling channel integration
+- [`netclaw config`](/cli/config/) — Channels
+- [`netclaw secrets`](/cli/secrets/) — token management
+- [`netclaw status`](/cli/status/) — primary diagnostic tool for Discord
+- [Security Model](/security/security-model/) — audiences and approval gates
+- [Channel Troubleshooting](/channels/troubleshooting/) — error codes and debug logging
+- [Slack](/channels/slack/) — sibling channel integration
 
 ## External resources
 
-- [Discord Developer Portal](https://discord.com/developers/applications) -- create and manage your bot
-- [Discord Developer Docs: Getting Started](https://discord.com/developers/docs/getting-started) -- bot setup walkthrough
-- [Discord: Privileged Intents](https://discord.com/developers/docs/events/gateway#privileged-intents) -- Message Content intent setup
-- [Discord: Bot Permissions](https://discord.com/developers/docs/topics/permissions) -- permission reference
-- [Discord: Enable Developer Mode](https://support.discord.com/hc/en-us/articles/206346498) -- how to copy channel and user IDs
-- [Discord Status](https://discordstatus.com/) -- check for outages
+- [Discord Developer Portal](https://discord.com/developers/applications) — create and manage your bot
+- [Discord Developer Docs: Getting Started](https://discord.com/developers/docs/getting-started) — bot setup walkthrough
+- [Discord: Privileged Intents](https://discord.com/developers/docs/events/gateway#privileged-intents) — Message Content intent setup
+- [Discord: Bot Permissions](https://discord.com/developers/docs/topics/permissions) — permission reference
+- [Discord: Enable Developer Mode](https://support.discord.com/hc/en-us/articles/206346498) — how to copy channel and user IDs
+- [Discord Status](https://discordstatus.com/) — check for outages

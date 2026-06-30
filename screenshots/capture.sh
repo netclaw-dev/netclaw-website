@@ -16,6 +16,15 @@ mkdir -p "$OUTPUT_DIR"
 
 NETCLAW_PORT="${NETCLAW_PORT:-5299}"
 
+# Pin the daemon image to the version the docs are written against (src/version.json),
+# unless the caller already set NETCLAW_VERSION or NETCLAW_IMAGE. Keeps screenshots
+# in lockstep with the documented release.
+if [ -z "${NETCLAW_VERSION:-}" ] && [ -f "$PROJECT_ROOT/src/version.json" ]; then
+  NETCLAW_VERSION="$(node -e "process.stdout.write(require('$PROJECT_ROOT/src/version.json').documentedVersion)" 2>/dev/null || true)"
+fi
+export NETCLAW_VERSION
+echo "==> Capturing against netclaw ${NETCLAW_IMAGE:-ghcr.io/netclaw-dev/netclaw:${NETCLAW_VERSION:-0.22.1}}"
+
 echo "==> Starting screenshot environment (building images if needed)..."
 docker compose -f "$COMPOSE_FILE" up -d --build --wait
 

@@ -41,15 +41,13 @@ Posture and audience are related but distinct. Posture is a deployment-wide sett
 
 Tools, filesystem access, and attachment policies differ by audience:
 
-<!-- TODO: Public grants `file_write` while Team doesn't — tracked in netclaw-dev/netclaw#1084. If that issue removes `file_write` from the Public profile, update the Public row below and rewrite the "looks backwards" paragraph. -->
-
 | Audience | Tools | MCP Servers | Memory | Filesystem | Attachment Types |
 |----------|-------|-------------|--------|------------|-----------------|
 | **Personal** | All | All | Full | Unrestricted | Image, PDF, Document, Archive, Media, Other |
-| **Team** | `file_read`, `attach_file` | None | Full | Session-scoped only | Image, PDF, Document, Archive, Media |
-| **Public** | `file_read`, `file_write`, `attach_file` | None | Disabled | Session-scoped only | Images only |
+| **Team** | `file_read`, `file_list`, `file_write`, `file_edit`, `attach_file`, web search/fetch, skills, reminders, `set_working_directory` | None | Full | Session-scoped only | Image, PDF, Document, Archive, Media |
+| **Public** | `file_read`, `file_list`, `attach_file` | None | Disabled | Session-scoped only | Images only |
 
-Public having `file_write` while Team doesn't looks backwards, but the tool grant isn't the real boundary — filesystem scope is. Both audiences confine every read and write to a session-scoped temp directory that's wiped on session end. Granting `file_write` only changes how the agent edits files inside that sandbox; it can't widen what the agent reaches. The split is a per-audience default in `netclaw.json` — adjust each audience's `AllowedTools` list if it doesn't suit your deployment.
+Public is read-only — it reads, lists, and attaches files, but can't write, search the web, or manage skills. Team adds writes and edits, web search and fetch, skill management, and reminders. The two grants cascade, so everything Public can do, Team can too. Filesystem scope is the hard boundary underneath: Public and Team both confine every read and write to a session-scoped temp directory that's wiped on session end, so even a re-granted write tool can't widen what the agent reaches. Personal gets the full tool surface and unrestricted filesystem access. The split is a per-audience default in `netclaw.json` — adjust each audience's `AllowedTools` list if it doesn't suit your deployment.
 
 Memory is hard-disabled for Public — not just defaulted off. Public sessions get no automatic recall before a turn, write no new memories after one, and never see the memory tools, so they can't pull in cross-session context or leave anything behind. Team and Personal get the full memory subsystem. See [Memory Model](/architecture/memory-model/#audience-scoping) for how stored memories carry audience and boundary context.
 
@@ -115,13 +113,17 @@ MCP tool grants are configured separately per server and per audience through [`
 
 Tools that pass layers 1-3 hit the approval gate, which prompts the operator for confirmation:
 
-![Approval gate prompt in Slack showing Approve once, Approve for this chat, Approve always, and Deny options](/assets/approval-prompt.png)
+![Approval gate prompt in a Slack thread](/assets/approval-prompt.png)
 
 | Option | Behavior |
 |--------|----------|
-| Approve once | Valid for the current session only |
-| Approve always | Persisted to `~/.netclaw/config/tool-approvals.json` — manage with [`netclaw approvals`](/cli/approvals/) |
+| Once | Just this invocation |
+| This chat | The rest of the current session |
+| Always here | The command's verb, scoped to the current directory — persisted to `~/.netclaw/config/tool-approvals.json` |
+| Always anywhere | The command's verb, everywhere — a global grant persisted to the same file. The broadest option; use it sparingly. |
 | Deny | Blocks this invocation |
+
+Grants are keyed by the command's verb (e.g. `git`, `npm`), not the full command string; a compound command records one entry per verb. The full prompt shows all five options, but netclaw shows fewer when some don't apply — a command it can't cleanly parse (shell control flow, or unbalanced quotes) drops to just **Once** and **Deny**. Manage saved approvals with [`netclaw approvals`](/cli/approvals/).
 
 Approval timeouts work differently depending on the channel:
 
@@ -202,6 +204,77 @@ When in doubt, netclaw denies:
 
 There is no permissive mode — access must be explicitly granted.
 
+## Customizing Approval Gates (Personal)
+
+On the Personal audience, most tools auto-approve out of the box. Two things always prompt, regardless of config:
+
+- `shell_execute` — every shell command
+- `file_write` / `file_edit` targeting netclaw's own config directory (`~/.netclaw/config`) — the *control plane*
+
+These are fail-closed on Personal: the gate ignores your default mode and forces a prompt unless you explicitly opt the tool into `Auto`. Everything else on Personal is auto-approved by default.
+
+You tune this per-audience under `Tools.AudienceProfiles.<audience>.ApprovalPolicy` in `~/.netclaw/config/netclaw.json`. Each tool resolves to one of three modes:
+
+| Mode | Behavior |
+|------|----------|
+| `Auto` | Runs immediately, no prompt |
+| `Approval` | Prompts the operator before each run (the [Layer 4](#approval-gates) gate) |
+| `Deny` | Always blocked — same as not granting the tool |
+
+### Stop shell from prompting
+
+Set an explicit override for `shell_execute`:
+
+```json
+{
+  "Tools": {
+    "AudienceProfiles": {
+      "Personal": {
+        "ApprovalPolicy": {
+          "ToolOverrides": {
+            "shell_execute": "Auto"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Then restart the daemon:
+
+```bash
+netclaw daemon stop && netclaw daemon start
+```
+
+:::caution
+Two non-obvious traps, because shell is fail-closed:
+
+- **`DefaultMode: "Auto"` won't do it.** `DefaultMode` is already the default, and the fail-closed check runs *before* it — so shell keeps prompting. You need the explicit `shell_execute` entry in `ToolOverrides`.
+- **Deleting the entry won't do it either.** Removing `shell_execute` drops it back to the fail-closed default, which is a prompt. To silence shell you have to set it to `Auto`, not remove it.
+:::
+
+The same applies to control-plane writes — opt them in with `"file_write:control-plane": "Auto"` (and `"file_edit:control-plane"`). Think hard before you do: that lets the agent rewrite netclaw's own config without asking.
+
+### Precedence
+
+A tool's mode is resolved in this order, first match wins:
+
+1. Exact `ToolOverrides` entry (`shell_execute`, `file_write:control-plane`, or an MCP `server/tool` key)
+2. `McpServerDefaults` entry for an MCP tool's server
+3. Built-in fail-closed default — shell and control-plane writes on Personal
+4. `DefaultMode`
+
+### What this doesn't change
+
+Relaxing an approval gate only removes the confirmation prompt. The other layers still apply:
+
+- **Layer 1 hard-deny** still blocks `rm -rf /`, `sudo`, fork bombs, and the rest of the [operation hard-deny list](#layer-1-operation-hard-deny) — no override reaches it.
+- **Layer 3 tool grants** still decide which tools exist for each audience.
+- **Team and Public are untouched** — this is the Personal profile only.
+
+The tradeoff is real: with `shell_execute` on `Auto`, a [prompt-injected](#prompt-injection-detection) agent can run any non-hard-denied command without a human in the loop. The hard-deny list is your remaining backstop.
+
 ## Limitations
 
 - Prompt injection detection uses regex pattern matching, not semantic analysis — novel phrasings can evade it
@@ -223,5 +296,5 @@ There is no permissive mode — access must be explicitly granted.
 ## Further Reading
 
 - [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) — common attack vectors for LLM applications
-- [NIST AI Risk Management Framework](https://www.nist.gov/artificial-intelligence/ai-risk-management-framework) — federal guidance on AI system security
-- [Model Context Protocol specification](https://spec.modelcontextprotocol.io/) — the protocol netclaw uses for tool server integration
+- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework) — federal guidance on AI system security
+- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) — the protocol netclaw uses for tool server integration

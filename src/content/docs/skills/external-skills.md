@@ -9,7 +9,7 @@ Skills must follow the [SKILL.md format](https://agentskills.io) (frontmatter wi
 
 ## Quick Start
 
-Already have Claude Code installed? The [`netclaw init`](/cli/init/) wizard detects it and configures the source automatically. To add it manually:
+To add Claude Code's skills, use the CLI:
 
 ```bash
 netclaw skill source add claude-code --well-known claude-code
@@ -17,9 +17,11 @@ netclaw skill source add claude-code --well-known claude-code
 
 That's it. The daemon picks up the change via its file watcher — no restart needed.
 
+Alternatively, run `netclaw config` → Skill Sources, then choose **Add a local skill folder** to browse and select a directory manually.
+
 ## Before You Begin
 
-- Netclaw is installed and `netclaw init` has been run (or you're comfortable editing `netclaw.json` directly — it lives at `~/.netclaw/config/netclaw.json` by default)
+- Netclaw is installed and initialized (or you're comfortable editing `netclaw.json` directly — it lives at `~/.netclaw/config/netclaw.json` by default)
 - The external directory you want to add exists on disk (netclaw logs a warning for missing paths but still configures the source)
 
 ## Well-Known Sources
@@ -66,7 +68,7 @@ External sources live under `ExternalSkills.Sources` in `netclaw.json`:
 | `Path` | string | null | Absolute path to a skill directory (mutually exclusive with `WellKnown`) |
 | `WellKnown` | string | null | Well-known alias (mutually exclusive with `Path`) |
 | `Enabled` | bool | `true` | Whether the source is active |
-| `AllowSymlinks` | bool | `false` | Follow symlinks within the directory. Well-known sources like `claude-code` default to `true` when added via CLI or init wizard. |
+| `AllowSymlinks` | bool | `false` | Follow symlinks within the directory. Any well-known alias defaults to `true` when added via CLI (`--well-known`). |
 
 Each source must set either `Path` or `WellKnown`, not both.
 
@@ -96,17 +98,17 @@ netclaw skill source remove team-skills
 
 All `netclaw skill source` commands work without the daemon running. CLI changes are picked up by a running daemon automatically via its file watcher.
 
-## Auto-Detection During Init
+## Adding Sources via the Config Menu
 
-The [`netclaw init`](/cli/init/) wizard detects Claude Code and Open Code installations automatically:
+`netclaw config` → Skill Sources presents two options: **+ Add local folder** and **+ Add skill server**.
 
-![External skills configuration during init](/screenshots/output/init-07-external-skills.png)
+Local folders are selected via a directory picker (Ctrl+N to create a new folder). After selection, you choose whether to allow symlinks in that folder, then confirm the source name. The source gets added and autosaved immediately.
 
-Detected sources get enabled by default. Next, the wizard prompts for custom paths:
+![Skill Sources editor](/screenshots/output/config-skills.png)
 
-![Custom skills path input](/screenshots/output/init-07-custom-skills-path.png)
+The Skill Sources screen — **+ Add local folder** opens a directory picker; **+ Add skill server** connects a remote feed.
 
-A symlink toggle follows. Leave it off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
+Leave symlinks off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
 
 ## Precedence
 
@@ -128,7 +130,7 @@ The daemon logs a warning for missing directories at startup but keeps running.
 
 ## Security
 
-Well-known sources (like `claude-code`) have `AllowSymlinks: true` set automatically because their standard paths include symlinked marketplace plugins. Custom sources default to `AllowSymlinks: false` — opt in per source if you trust the targets.
+All well-known sources have `AllowSymlinks: true` set automatically when added via CLI — their standard paths often include symlinked directories. Custom sources default to `AllowSymlinks: false` — opt in per source if you trust the targets.
 
 External skills loaded from disk go through:
 

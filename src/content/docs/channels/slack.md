@@ -99,7 +99,7 @@ Then invite the bot to each channel where it should respond: `/invite @YourBotNa
 | `app_mentions:read` | Receive @-mention events |
 | `channels:history` | Read message history in public channels |
 | `channels:read` | Resolve channel names to IDs, list public channels |
-| `chat:write` | Post messages and replies in threads |
+| `chat:write` | Post messages and replies in threads, plus native loading status |
 | `chat:write.customize` | Post with custom display name/avatar |
 | `files:read` | Download files shared in conversations |
 | `files:write` | Upload files (agent output, attachments) |
@@ -273,6 +273,10 @@ Netclaw strips the @-mention before passing text to the LLM.
 ### Message formatting
 
 Netclaw converts LLM markdown to Slack [Block Kit](https://api.slack.com/block-kit): headers, code blocks, blockquotes, lists, bold, italic, strikethrough, inline code, links. Everything renders natively in Slack.
+
+### Loading status
+
+While Netclaw is working on a reply, Slack shows the bot's native thread status as `<Bot Name> is thinking...`. This uses Slack's `assistant.threads.setStatus` API with the existing `chat:write` scope, so the manifest above does not need `assistant:write` or the Slack assistant split view.
 
 ### Tool approval
 

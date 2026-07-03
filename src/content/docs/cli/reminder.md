@@ -22,6 +22,7 @@ netclaw reminder <subcommand> [options]
 | `ui` / `tui` | Interactive reminder builder |
 | `show <id>` | Show reminder details |
 | `history <id>` | Show execution history |
+| `status <id>` | Show operational status — failures, skipped fires, next fire, recent runs |
 | `enable <id>` | Enable a reminder |
 | `disable <id>` | Disable a reminder |
 | `cancel <id>` | Cancel (soft delete — disables, keeps definition) |
@@ -130,6 +131,40 @@ netclaw reminder history <id> [--last N]
 
 Output is a table with columns: `fired_at`, `status` (`ok`/`failed`), `duration_ms`, and `session_id`. Use the session ID to dig into what the agent did with [`netclaw sessions`](/cli/sessions/).
 
+## `status`
+
+```bash
+netclaw reminder status <id>
+```
+
+The go-to command when a reminder is misbehaving. Where `history` lists raw runs, `status` answers "is this thing healthy right now?" in one screen — whether it's enabled, whether a run is in flight, when it fires next, how close it is to auto-disabling, and its last five outcomes.
+
+```
+$ netclaw reminder status gotowebinar-triage
+Reminder:            gotowebinar-triage
+Enabled:             True
+Executing now:       False
+Next fire:           2026-06-26 18:00:00Z
+Consecutive fails:   2
+Skipped (duplicate): 14
+Recent history (newest first):
+  2026-06-26 17:00:00Z  failed — Reminder execution stalled: no session output for 00:20:00.
+  2026-06-26 15:00:00Z  ok
+```
+
+| Field | Meaning |
+|-------|---------|
+| `Enabled` | Whether the reminder is active. Flips to `False` on its own after 5 consecutive failures. |
+| `Executing now` | A run is in flight right now. |
+| `Next fire` | Next scheduled time, or `not scheduled` when disabled. |
+| `Consecutive fails` | Current failure streak. Auto-disables at 5; a single success resets it to 0. |
+| `Skipped (duplicate)` | Fires skipped because the previous run was still executing. Counted since daemon start — a climbing number means runs regularly outlast their interval. |
+| `Recent history` | The five most recent runs, newest first, each with its outcome and error. |
+
+Backed by `GET /api/reminders/{id}/status`. An unknown ID exits non-zero with `Reminder '<id>' not found`.
+
+A high `Skipped (duplicate)` count with a short interval is the classic misconfiguration: the reminder is scheduled more often than a run takes to finish, so most fires are dropped. Lengthen the interval or speed up the work.
+
 ## `enable` / `disable`
 
 ```bash
@@ -185,7 +220,7 @@ Checks a reminder JSON file for schema errors offline. Schedule-type-specific ru
 
 ## What's next
 
-Run [`netclaw reminder list`](#list) to confirm your reminder appears with the right schedule and next fire time. After it fires, [`netclaw reminder history <id>`](#history) shows whether it succeeded. Grab the session ID from the history output and pass it to [`netclaw sessions`](/cli/sessions/) to see the full run.
+Run [`netclaw reminder list`](#list) to confirm your reminder appears with the right schedule and next fire time. After it fires, [`netclaw reminder history <id>`](#history) shows whether it succeeded, and [`netclaw reminder status <id>`](#status) tells you at a glance whether it's healthy. Grab the session ID from the history output and pass it to [`netclaw sessions`](/cli/sessions/) to see the full run.
 
 ## Related commands
 

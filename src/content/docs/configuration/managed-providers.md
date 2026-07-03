@@ -153,6 +153,66 @@ netclaw prints a one-time code and a verification URL; enter the code, approve, 
 
 Requires an active [GitHub Copilot](https://github.com/features/copilot) subscription.
 
+### GitHub Enterprise
+
+By default the provider authenticates against github.com. To use Copilot on a GitHub Enterprise Server or GitHub Enterprise Cloud with data residency, point auth at your enterprise host with two vendor options:
+
+| Vendor option | Default | Controls |
+|---------------|---------|----------|
+| `GitHubHost` | `https://github.com` | The OAuth **auth** host — device-code, OAuth token, and token-refresh endpoints (`<host>/login/device/code`, `<host>/login/oauth/access_token`) |
+| `GitHubApiBase` | `https://api.github.com` | The API base for the Copilot **token exchange** (`<api-base>/copilot_internal/v2/token`) |
+
+Set them from the CLI with `--github-host` and `--github-api-base`:
+
+```bash
+netclaw provider add copilot-ghe github-copilot --auth oauth-device \
+  --github-host https://github.example.com \
+  --github-api-base https://github.example.com/api/v3
+```
+
+Pass `--github-host` alone and netclaw derives the API base for you: `github.com` → `https://api.github.com`, a `*.ghe.com` data-residency tenant → `api.<host>`, any other host (GitHub Enterprise Server) → `<host>/api/v3`. Both values must be HTTPS; `GitHubHost` must be a bare origin with no path.
+
+In the TUI, **+ Add new provider → GitHub Copilot** offers a **GitHub.com / GitHub Enterprise** auth-host choice; pick **GitHub Enterprise** and enter the host (the API base is prefilled from it).
+
+The stored config looks like this:
+
+```json
+{
+  "Providers": {
+    "copilot-ghe": {
+      "Type": "github-copilot",
+      "AuthMethod": "OAuthDevice",
+      "VendorOptions": {
+        "GitHubHost": "https://github.example.com",
+        "GitHubApiBase": "https://github.example.com/api/v3"
+      }
+    }
+  }
+}
+```
+
+#### Auth host vs. model endpoint
+
+Two different hosts are in play, and they're set separately:
+
+- **Auth plane** — `GitHubHost` and `GitHubApiBase` (above) decide where device OAuth, token refresh, and the Copilot token exchange happen. This is what GitHub Enterprise changes.
+- **Model plane** — the provider `Endpoint` decides where chat and `/models` traffic goes. Leave it at the default (`https://api.githubcopilot.com`) and netclaw sends chat to the host the token exchange reports in its `endpoints.api` field — the tenant host that GHE data residency requires. Set an explicit `--endpoint` only to force traffic through a specific host (e.g. a corporate proxy); a deliberate override always wins.
+
+So for a standard GHE setup you configure `GitHubHost`/`GitHubApiBase` and leave `Endpoint` alone — the correct model host is discovered at token-exchange time.
+
+If you're on a headless server, the ambient GitHub environment variables seed the host during `--auth oauth-device` setup: `GitHubHost` from the first of `COPILOT_GH_HOST`, `GHE_HOST`, `GH_HOST`, or `GITHUB_SERVER_URL`, and `GitHubApiBase` from `GITHUB_API_URL`. An explicit flag always wins over the environment.
+
+#### Verify and troubleshoot
+
+Run [`netclaw doctor`](/cli/doctor/) or open `netclaw provider` after setup. The probe hits `/models` at the token's real host, so a misconfigured enterprise host fails at setup instead of silently reporting healthy and breaking on the first chat.
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Device flow never shows a code | Wrong `GitHubHost` — `login/device/code` is unreachable | Point `--github-host` at your enterprise host origin (HTTPS, no path) |
+| `token exchange failed` | Wrong `GitHubApiBase`, or the host doesn't serve `copilot_internal/v2/token` | Set `--github-api-base` to the enterprise API base (`<host>/api/v3` for GHES) |
+| `authorization expired` on a long run | OAuth token expired and refresh failed against the enterprise host | Re-authenticate: `netclaw provider remove <name>` then re-add with `--auth oauth-device` |
+| `token exchange did not return an API host (endpoints.api)` | Token isn't scoped to a data-residency host | Re-authenticate, or set an explicit `--endpoint` to override the model host |
+
 ## Venice.ai
 
 [Venice.ai](https://venice.ai/) is privacy-focused inference with an OpenAI-compatible API. Auth is an API key:

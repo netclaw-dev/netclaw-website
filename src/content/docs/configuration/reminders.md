@@ -172,13 +172,40 @@ When all 3 slots are busy, incoming fires queue and run as slots open.
 
 Recurring reminders get an automatic instruction appended: if the agent determines the reminder's purpose has been permanently fulfilled, it should call `cancel_reminder` to stop future fires.
 
+If a run produces no session output for 20 minutes, the daemon concludes it as failed with `Reminder execution stalled: no session output for 00:20:00.` and releases the execution slot. This is a backstop against a wedged run holding its slot forever — a stall counts as a failure, so it feeds the failure counter and the visibility below.
+
+## Failure visibility
+
+A reminder that quietly stops working used to be invisible until someone went looking. Now failures surface two ways.
+
+**On demand.** [`netclaw reminder status <id>`](/cli/reminder/#status) reports the failure streak, skipped-fire count, whether a run is in flight, and the last five outcomes — the fastest way to see whether a reminder is healthy.
+
+**Pushed to the channel.** When a `Channel`-delivery reminder fails, netclaw posts a plain-language notice to that reminder's **destination channel** — the same place its results normally land, so the failure shows up where you're already looking:
+
+```
+Reminder "Daily Standup Summary" failed: send_channel_message: channel not found
+```
+
+The notices are bounded by the auto-disable threshold, so a broken reminder posts at most five times before it disables itself. On that fifth, threshold-hitting failure the message is the auto-disable notice instead — the plain failure notice is suppressed so the most important event isn't doubled:
+
+```
+Reminder "Daily Standup Summary" was automatically disabled after 5 consecutive failures. Last error: send_channel_message: channel not found
+```
+
+Two things are deliberately *not* posted to the channel:
+
+- **Skipped (duplicate) fires** — a fire dropped because the previous run was still executing isn't a failure, so it's counted (visible in `reminder status`) but never posted.
+- **`CurrentSession` and `None` failures** — these have no destination channel. They surface through the [operational alert sink](/observability/operational-alerts/) (`ReminderExecutionFailed`, `ReminderAutoDisabled`) and your [notification webhooks](/configuration/webhooks/#outbound-notification-webhooks) instead.
+
+Channel delivery of a failure notice is fire-and-forget — if the channel itself is unreachable, netclaw logs it rather than blocking the reminder manager.
+
 ## Auto-disable and expiration
 
 Two mechanisms stop reminders automatically.
 
 ### Consecutive failures
 
-After 5 failed executions in a row, the reminder is disabled and a `ReminderAutoDisabled` critical alert fires via your [notification webhooks](/configuration/webhooks/#outbound-notification-webhooks). A single successful execution resets the failure counter.
+After 5 failed executions in a row, the reminder is disabled and a `ReminderAutoDisabled` critical alert fires via your [notification webhooks](/configuration/webhooks/#outbound-notification-webhooks). A single successful execution resets the failure counter. Check the streak any time with [`netclaw reminder status <id>`](/cli/reminder/#status), and see [Failure visibility](#failure-visibility) for how failures reach you before the reminder disables.
 
 Fix the underlying issue (usually a missing Slack channel or invalid delivery target), then re-enable:
 
@@ -211,7 +238,11 @@ On daemon startup, the reconciliation process permanently deletes any one-shot r
 
 ### Reminder fires but delivery fails
 
-Verify that Slack is still configured and the target channel exists. Run `netclaw reminder history <id>` — if you see repeated `failed` statuses, the auto-disable countdown is ticking. Fix the channel, then `netclaw reminder enable <id>`.
+Start with `netclaw reminder status <id>` — the `Consecutive fails` count tells you how close it is to auto-disabling, and `Recent history` shows the actual error. For a channel reminder, the same error is also posted to its destination channel. The usual culprit is a missing Slack channel or an invalid delivery target: fix it, then `netclaw reminder enable <id>` if it already auto-disabled.
+
+### Reminder runs but drops most fires
+
+If `netclaw reminder status <id>` shows a climbing `Skipped (duplicate)` count, the reminder is scheduled more often than a run takes to finish, so each new fire is dropped while the previous run is still executing. Lengthen the interval or make the work faster.
 
 ### Reminder doesn't fire
 

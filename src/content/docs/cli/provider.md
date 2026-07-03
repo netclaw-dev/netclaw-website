@@ -67,6 +67,9 @@ netclaw provider add <name> <type> [--api-key <key>] [--endpoint <url>]
 |------|-------------|---------|
 | `--api-key <key>` | API key for the provider | Prompted if required |
 | `--endpoint <url>` | Custom endpoint URL | Provider default |
+| `--auth <method>` | Auth method: `api-key` or `oauth-device` | Inferred from provider |
+| `--github-host <url>` | GitHub Enterprise auth host (`github-copilot` only) | `https://github.com` |
+| `--github-api-base <url>` | GitHub Enterprise API base (`github-copilot` only) | `https://api.github.com` |
 
 Provider type and endpoint are stored in `~/.netclaw/config/netclaw.json`. Credentials are encrypted in [`secrets.json`](/cli/secrets/). Restart the daemon after adding a provider so it picks up the new config.
 
@@ -92,10 +95,14 @@ Pick Anthropic or OpenAI for hosted models, Ollama for fully local inference, or
 | Type | Display Name | Default Endpoint | Auth |
 |------|-------------|-----------------|------|
 | `ollama` | Ollama | `http://localhost:11434` | None |
-| `openai-compatible` | llama.cpp / vLLM | `http://localhost:11434` | None |
+| `openai-compatible` | llama.cpp / vLLM / DwarfStar ds4 | `http://localhost:11434` | None |
 | `openai` | OpenAI | `https://api.openai.com` | OAuth or API key |
 | `anthropic` | Anthropic | `https://api.anthropic.com` | API key |
 | `openrouter` | OpenRouter | `https://openrouter.ai/api/v1` | API key |
+| `github-copilot` | GitHub Copilot | `https://api.githubcopilot.com` | OAuth (device) |
+| `veniceai` | Venice.ai | `https://api.venice.ai/api/v1` | API key |
+
+For hosted-provider setup details — including GitHub Copilot on GitHub Enterprise — see [Managed Providers](/configuration/managed-providers/).
 
 ## Examples
 
@@ -114,6 +121,11 @@ netclaw provider add my-openrouter openrouter --api-key sk-or-...
 
 # llama.cpp or vLLM behind an OpenAI-compatible endpoint
 netclaw provider add my-llama openai-compatible --endpoint http://localhost:8080
+
+# GitHub Copilot on GitHub Enterprise
+netclaw provider add copilot-ghe github-copilot --auth oauth-device \
+  --github-host https://github.example.com \
+  --github-api-base https://github.example.com/api/v3
 
 # Remove a provider
 netclaw provider remove my-ollama

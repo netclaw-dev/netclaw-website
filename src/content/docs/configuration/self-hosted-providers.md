@@ -3,7 +3,7 @@ title: Self-Hosted Providers
 description: Configure self-hosted inference servers like Ollama, llama.cpp, and vLLM.
 ---
 
-Self-hosted providers run inference on your own hardware. No API keys, no data leaving your network. Netclaw has two provider types for this: native Ollama integration and an OpenAI-compatible mode that works with any server exposing a `/v1/chat/completions` endpoint — llama.cpp, vLLM, Lemonade, or anything else OpenAI-compatible.
+Self-hosted providers run inference on your own hardware. No API keys, no data leaving your network. Netclaw has two provider types for this: native Ollama integration and an OpenAI-compatible mode that works with any server exposing a `/v1/chat/completions` endpoint — llama.cpp, vLLM, Lemonade, DwarfStar (ds4), or anything else OpenAI-compatible.
 
 Config goes in `~/.netclaw/config/netclaw.json`. Self-hosted providers don't need credentials unless you're running an authenticated endpoint. Environment variables with the `NETCLAW_` prefix override file-based config.
 
@@ -22,7 +22,7 @@ For cloud-hosted providers (OpenRouter, Anthropic, OpenAI), see [Managed Provide
 | Type | Display Name | Default Endpoint | Auth | Use Case |
 |------|-------------|-----------------|------|----------|
 | `ollama` | Ollama | `http://localhost:11434` | None | Ollama servers (auto-detects model capabilities) |
-| `openai-compatible` | llama.cpp / vLLM | `http://localhost:11434` | Optional Bearer token | Anything exposing `/v1/chat/completions` |
+| `openai-compatible` | llama.cpp / vLLM / DwarfStar ds4 | `http://localhost:11434` | Optional Bearer token | Anything exposing `/v1/chat/completions` |
 
 ## Configuration Schema
 

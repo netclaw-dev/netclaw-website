@@ -17,6 +17,10 @@ For CLI commands that manage models interactively, see [`netclaw model`](/cli/mo
 | **Fallback** | Automatic failover when Main is unavailable | No — routes to Main when unset |
 | **Compaction** | Cheaper/faster model for context summarization | No — routes to Main when unset |
 
+:::caution
+The `local-ollama` / `qwen3:30b` values below are the config-schema defaults, not a working setup. Since 0.24.3 netclaw no longer silently falls back to a local Ollama when no valid model is configured. Start with no reachable Main model and the daemon boots **degraded** — it runs, but every turn returns a `No valid model configuration detected.` banner until you point Main at a provider you've actually configured. [`netclaw doctor`](/cli/doctor/) surfaces the degraded state.
+:::
+
 ![Model Manager TUI showing role assignments](/screenshots/output/model-manager.png)
 
 ## Configuration schema

@@ -183,6 +183,8 @@ That also helps with pairing: if the daemon is running in a container and you ne
 
 Self-update is disabled in the image (`NETCLAW_Daemon__DisableSelfUpdate=true`), so upgrades mean pulling a new image. Schema migrations are forward-only with no automatic rollback.
 
+Model configuration is the one exception. On 0.25.0, the first model write converts `Models` to named definitions and roles and keeps a restorable snapshot — see [Migrating model configuration](/guides/migrating-model-config/), especially if you set models through `NETCLAW_Models__*` variables.
+
 ```bash
 # Pull the new version
 docker pull ghcr.io/netclaw-dev/netclaw:latest

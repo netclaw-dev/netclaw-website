@@ -247,6 +247,14 @@
     "architecture/context-structure": {
       "hash": "f28ea5f10f62df6db39a6a2ad5159083bc75eae24fa8bfe56f9a0a803414370c",
       "imageUrl": "https://hcti.io/v1/image/8e1125b30cb2852b87279f8adfd0e4e820f434222b55ae6596dc5571483f2e8f"
+    },
+    "skills/bundled-resources": {
+      "hash": "f457960f1866b08f19e213d2d78c47c50ea1a228142a198a8739a318389ab31b",
+      "imageUrl": "https://hcti.io/v1/image/3fffc186335b9cd7165d55c0626e17d01d233a59cefcc1eda61f3729dc665a82"
+    },
+    "skills/native-manifest": {
+      "hash": "d420501a6c5bbcc2593deb9fc57fba6fd3df695281aeb585bd7e6e29e83ed8f0",
+      "imageUrl": "https://hcti.io/v1/image/eb22b7288dcc2e2e997fcd389ba65f0032ee0830fa553481f3648eebdc3bd0bb"
     }
   }
 }

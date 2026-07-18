@@ -154,10 +154,10 @@ For `Channel` delivery, the target format depends on the transport, and `set_rem
 | Transport | Channel target | User / DM target |
 |-----------|----------------|------------------|
 | `slack` | `#channel-name` or a `C…`/`G…` channel ID | `@username` or a `U…` user ID |
-| `discord` | `channel:<channelId>` or `<#channelId>` | Not supported — guild channels only |
+| `discord` | `channel:<channelId>` or `<#channelId>` | `dm:<userId>`, `@<userId>`, or `<@userId>` (delivers to that user's DM) |
 | `mattermost` | `channel:<channelId>` | `@<userId>` (delivers to that user's DM) |
 
-Mattermost channel and user IDs are both 26-character strings, and Discord snowflakes are ambiguous on their own, so those two transports require the `channel:`/`@` prefix — a bare ID is rejected with a disambiguation error.
+Discord DM delivery needs `AllowDirectMessages: true` and the target user in the channel's `AllowedUserIds` — the same [access controls](/channels/discord/#access-control) that gate live Discord chat. Mattermost and Discord IDs are ambiguous snowflakes on their own, so both transports require the `channel:` / `dm:` / `@` prefix — a bare ID is rejected with a disambiguation error.
 
 ## Runtime behavior
 

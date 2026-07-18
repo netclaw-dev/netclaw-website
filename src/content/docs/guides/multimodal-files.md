@@ -11,7 +11,7 @@ Netclaw identifies a file by its extension and its magic bytes (the signature in
 
 | Type | Examples |
 |------|----------|
-| Text | `.txt`, `.md`, `.csv`, `.json`, `.xml`, `.yaml` — plus any UTF-8 text file (source code included), detected by content |
+| Text | `.txt`, `.md`, `.csv`, `.tsv`, `.json`, `.xml`, `.yaml` — plus any UTF-8 text file (source code included), detected by content |
 | Image | PNG, JPEG, GIF, WebP, BMP, TIFF |
 | PDF | `application/pdf` |
 | Document | DOCX, XLSX, PPTX, ODT, RTF |

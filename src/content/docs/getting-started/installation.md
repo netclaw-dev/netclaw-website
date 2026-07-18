@@ -11,7 +11,7 @@ Netclaw has two components: a **CLI** (`netclaw`) and a **daemon** (`netclawd`).
 curl -sSL https://releases.netclaw.dev/install.sh | bash
 ```
 
-Installs both CLI and daemon to `~/.netclaw/bin` and adds it to your PATH. Supports x86_64 and ARM64.
+Installs both CLI and daemon to `~/.netclaw/bin` and puts `netclaw` on your PATH automatically — see [PATH and shell integration](#path-and-shell-integration). The same script serves macOS on Apple Silicon. Supports x86_64 and ARM64 on Linux; Intel Macs are not supported.
 
 ```bash
 # CLI only
@@ -33,7 +33,7 @@ INSTALL_DIR=/opt/netclaw curl -sSL https://releases.netclaw.dev/install.sh | bas
 iwr -useb https://releases.netclaw.dev/install.ps1 | iex
 ```
 
-Installs to `%LOCALAPPDATA%\Programs\netclaw`. To install a specific component or version:
+Installs to `%LOCALAPPDATA%\Programs\netclaw` and prepends it to your User PATH — see [PATH and shell integration](#path-and-shell-integration). To install a specific component or version:
 
 ```powershell
 $script = Join-Path $env:TEMP "netclaw-install.ps1"
@@ -41,6 +41,24 @@ iwr -useb https://releases.netclaw.dev/install.ps1 -OutFile $script
 & $script -Component cli           # CLI only
 & $script -Component daemon        # Daemon only
 & $script -Version 0.1.0           # Pinned version
+```
+
+## PATH and shell integration
+
+The native installers put `netclaw` on your PATH for you. The catch is the terminal you ran the installer in — a piped install can't change the PATH of a shell that's already running, so `netclaw` resolves in new terminals but not the current one until you reload it.
+
+**Linux and macOS.** The installer writes `~/.netclaw/env` and sources it from your shell's startup file — `.bashrc` or `.bash_profile` for bash, `.zshrc` for zsh, or a native `~/.config/fish/conf.d/netclaw.fish` for fish. New shells pick it up. For the shell you installed from, load it now instead of opening a new one:
+
+```bash
+. ~/.netclaw/env
+```
+
+**Windows.** The installer prepends the install directory to your User PATH and updates the current session. Any other terminal that's already open needs a restart before it inherits the change.
+
+**Opting out.** Pass `--skip-shell` (Linux/macOS) or `-SkipShell` (Windows) and the installer leaves your PATH alone, printing the directory to add yourself.
+
+```bash
+curl -sSL https://releases.netclaw.dev/install.sh | bash -s -- --skip-shell
 ```
 
 ## Docker
@@ -180,3 +198,4 @@ Self-update is disabled in the Docker image — update by pulling a new image ta
 - [.NET 10 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/10.0) — required for building from source
 - [Docker Engine](https://docs.docker.com/engine/install/) — container runtime for the Docker install method
 - [Docker Deployment](/deployment/docker/) — Docker Compose, Ollama sidecar, and production container configuration
+- [Automatic PATH integration (netclaw#1687)](https://github.com/netclaw-dev/netclaw/pull/1687) — the installer behavior this section documents

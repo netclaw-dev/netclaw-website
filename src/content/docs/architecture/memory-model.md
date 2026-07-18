@@ -176,6 +176,7 @@ SQLite is the only storage backend — no vector database, no external service, 
 ## Keep reading
 
 - [Sessions & Input Model](/architecture/sessions/) — session lifecycle and compaction (where memory extraction fits)
+- [Context Structure](/architecture/context-structure/) — how the recall and memory-index layers slot into each turn's context
 - [Security Architecture](/architecture/security-model/) — audience scoping that governs memory access
 - [Design Philosophy](/architecture/design-philosophy/#automatic-memory-formation) — why memory belongs in core
 

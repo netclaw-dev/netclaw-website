@@ -42,6 +42,8 @@ The `netclaw config` → Skill Sources screen lets you add remote skill servers.
 
 The Skill Sources screen — choose **+ Add skill server** to add a remote feed by base URL.
 
+Each remote server in the list shows how many skills it **advertises** — the count from its `index.json`, rendered as `N advertised` on the server's row. That's what the server publishes, not necessarily what netclaw loads: the daemon can end up with fewer after content-scanning, hashing, and version filtering. A gap between "advertised" and what shows up in `netclaw skill list` is normal, not an error.
+
 ## Manual Configuration
 
 Remote feeds can only be added through `netclaw config` → Skill Sources, or by editing `~/.netclaw/config/netclaw.json` directly:

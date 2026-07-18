@@ -113,9 +113,7 @@ netclaw model list    # confirm the roles read as they did before
 
 ## Converting environment variables
 
-Legacy `NETCLAW_Models__Main__*` variables still work by themselves. But while any of them is set, migration fails rather than proceeding — after a restart you'd have a canonical file and legacy variables fighting over the same roles, which is exactly the mixed shape netclaw rejects everywhere else.
-
-The same variable also makes `netclaw doctor` unusable for unrelated fixes, so it's worth clearing out regardless.
+Legacy `NETCLAW_Models__Main__*` variables still work by themselves. But while any of them is set, migration stops with a clear error instead of proceeding — after a restart you'd have a canonical file and legacy variables fighting over the same roles, which is exactly the mixed shape netclaw rejects everywhere else.
 
 Convert them first. Before:
 

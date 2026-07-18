@@ -68,14 +68,14 @@ Context window shows `(default)` unless you've set an explicit `--context-window
 
 This reads from config, not from the running daemon. With no models configured, it prompts you to run `model set` or open the TUI.
 
-If a role points at a definition that doesn't exist, `list` stops here:
+If a role points at a definition that doesn't exist, `list` names the bad reference and stops:
 
 ```
-Error: model configuration could not be parsed.
-Run `netclaw doctor` to diagnose, or `netclaw doctor --fix` to repair it.
+Error: Models:Roles:Main references unknown definition 'does-not-exist'.
+Fix the Models section in netclaw.json, then rerun `netclaw model list`.
 ```
 
-The message is vaguer than the cause, and the advice won't help: it's almost always a name in `Models.Roles` that doesn't appear in `Models.Definitions`, typically after hand-editing, and `netclaw doctor` can't repair that. Open the config, compare `Roles` against `Definitions`, and make the names agree. The daemon fails to start on the same condition, so fix it before restarting.
+Open the config, compare `Roles` against `Definitions`, and make the names agree — this usually happens after renaming a definition and forgetting a role. `netclaw doctor` flags the same thing (it won't auto-fix it), and the daemon refuses to start on it, so fix it before restarting.
 
 ### `model set`
 
@@ -106,10 +106,10 @@ netclaw model set main remote-gpu qwen3-vl:32b \
 Error: --context-window and --clear-context-window cannot be combined.
 ```
 
-Modality names are case-insensitive and are stored canonicalized — `text,image` lands on disk as `"Text, Image"`. An unrecognized value is rejected outright:
+Modality names are case-insensitive and are stored canonicalized — `text,image` lands on disk as `"Text, Image"`. Only the four names are accepted; anything else, including a raw integer, is rejected:
 
 ```
-Error: invalid modalities 'Bogus'. Use a comma-separated list of: Text, Image, Audio, Video (or --clear-modalities to remove the override).
+Error: invalid modalities '1'. Use a comma-separated list of: Text, Image, Audio, Video (or --clear-modalities to remove the override).
 ```
 
 #### What set and clear actually touch

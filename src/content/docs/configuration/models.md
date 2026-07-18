@@ -184,9 +184,7 @@ export NETCLAW_Models__Roles__Main="claude"
 These take highest priority, overriding anything in `netclaw.json`. On Linux, variable names are case-sensitive.
 
 :::caution
-The legacy `NETCLAW_Models__Main__*` form still works on its own, but it **blocks migration of the config file**. While any legacy model override is set, `netclaw model set` and `netclaw doctor --fix` fail rather than convert `netclaw.json` — restarting with a migrated file and legacy variables still exported would leave netclaw reading a shape that's half one thing and half the other.
-
-The guard is blunter than that suggests: a legacy variable makes `netclaw doctor` unusable for *any* fix, not just this one. Convert the variables to `Definitions`/`Roles` first — [Migrating model configuration](/guides/migrating-model-config/) walks through it.
+The legacy `NETCLAW_Models__Main__*` form still works on its own, but it **blocks migration of the config file**. While any legacy model override is set, `netclaw model set` and `netclaw doctor --fix` refuse to convert `netclaw.json` and say why — otherwise, restarting with a migrated file and legacy variables still exported would leave netclaw reading a shape that's half one thing and half the other. Convert the variables to `Definitions`/`Roles` first; [Migrating model configuration](/guides/migrating-model-config/) walks through it.
 :::
 
 ## Validation errors
@@ -205,7 +203,7 @@ The guard is blunter than that suggests: a legacy variable makes `netclaw doctor
 | Two definitions whose names differ only by case | Rejected as duplicates |
 | Legacy inline roles mixed with `Definitions`/`Roles` | Rejected — [pick one shape](/guides/migrating-model-config/) |
 
-An unresolved role reference is the one worth watching for, since it's easy to introduce by renaming a definition and forgetting a role. It stops the daemon at startup, and `netclaw model list` reports it as a parse failure rather than naming the bad reference — compare `Roles` against `Definitions` by hand and make them agree.
+An unresolved role reference is the one worth watching for, since it's easy to introduce by renaming a definition and forgetting a role. It stops the daemon at startup, and `netclaw model list` and `netclaw doctor` both name the offending reference (`Models:Roles:Main references unknown definition '...'`). The fix is manual — compare `Roles` against `Definitions` and make them agree.
 
 ## Applying changes
 

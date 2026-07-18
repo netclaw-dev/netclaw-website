@@ -28,13 +28,14 @@ chmod 700 ~/.netclaw/keys/
 
 ## Shell Access
 
-Shell access is the biggest risk surface you can control. Three modes in `~/.netclaw/config/netclaw.json`:
+Shell access is the biggest risk surface you can control. Two working modes in `~/.netclaw/config/netclaw.json`:
 
 | Mode | Behavior |
 |------|----------|
 | `Off` | Shell completely disabled. No `shell_execute` tool available. |
-| `SandboxOnly` | Reserved for a future sandboxed backend that doesn't ship in 0.22.1. Setting it **denies shell entirely** (tools fail with `shell_requires_sandbox_backend`), so today it behaves like `Off`. Use `Off` or `HostAllowed`. |
 | `HostAllowed` | Shell runs directly on the host. Approval gates are your only guardrail. |
+
+A third value, `SandboxOnly`, is accepted but has no backend yet — setting it **denies shell entirely**, and `shell_execute` fails with `shell_requires_sandbox_backend`. If you see that error, this is why; use `Off` for the same effect.
 
 Set the mode explicitly:
 

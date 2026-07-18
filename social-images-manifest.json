@@ -239,6 +239,10 @@
     "guides/multimodal-files": {
       "hash": "06edd9a20ea7eb980f5a8e9ff130edcbd2a6aa17a7b1e4b5c881791735c2d619",
       "imageUrl": "https://hcti.io/v1/image/20030b1084b28da47613299165f48fdef9538e8be54ceac208e56bb932430634"
+    },
+    "guides/migrating-model-config": {
+      "hash": "0f3f0cd051088e504da53cc9a9a2d1e98efa002ce63d6ab0c13356f3a51308e2",
+      "imageUrl": "https://hcti.io/v1/image/5ae47a0b9739964b595ce6810c4b6dfd6acb2ceddfc5469311528ba2efe1c0c7"
     }
   }
 }

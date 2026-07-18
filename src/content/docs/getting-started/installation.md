@@ -72,8 +72,9 @@ docker run -d \
   -v netclaw-home:/home/netclaw/.netclaw \
   -e NETCLAW_Providers__openrouter__Type=openrouter \
   -e NETCLAW_Providers__openrouter__ApiKey=sk-or-v1-... \
-  -e NETCLAW_Models__Main__Provider=openrouter \
-  -e NETCLAW_Models__Main__ModelId=anthropic/claude-sonnet-4 \
+  -e NETCLAW_Models__Definitions__claude__Provider=openrouter \
+  -e NETCLAW_Models__Definitions__claude__ModelId=anthropic/claude-sonnet-4 \
+  -e NETCLAW_Models__Roles__Main=claude \
   ghcr.io/netclaw-dev/netclaw
 ```
 

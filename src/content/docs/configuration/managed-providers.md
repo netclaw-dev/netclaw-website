@@ -264,9 +264,10 @@ Skip config files entirely by setting environment variables with the `NETCLAW_` 
 # Override a provider's API key
 export NETCLAW_Providers__openrouter__ApiKey="sk-or-v1-..."
 
-# Point a model role at a provider
-export NETCLAW_Models__Main__Provider="openrouter"
-export NETCLAW_Models__Main__ModelId="anthropic/claude-sonnet-4"
+# Point a model role at a provider (named definition + role reference)
+export NETCLAW_Models__Definitions__claude__Provider="openrouter"
+export NETCLAW_Models__Definitions__claude__ModelId="anthropic/claude-sonnet-4"
+export NETCLAW_Models__Roles__Main="claude"
 ```
 
 Environment variables take highest priority, overriding both `netclaw.json` and `secrets.json`. On Linux, variable names are case-sensitive — `NETCLAW_Providers__openrouter__ApiKey` won't match `NETCLAW_PROVIDERS__OPENROUTER__APIKEY`.

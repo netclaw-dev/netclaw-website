@@ -25,8 +25,9 @@ docker run -d \
   -v netclaw-home:/home/netclaw/.netclaw \
   -e NETCLAW_Providers__openrouter__Type=openrouter \
   -e NETCLAW_Providers__openrouter__ApiKey=sk-or-v1-... \
-  -e NETCLAW_Models__Main__Provider=openrouter \
-  -e NETCLAW_Models__Main__ModelId=anthropic/claude-sonnet-4 \
+  -e NETCLAW_Models__Definitions__claude__Provider=openrouter \
+  -e NETCLAW_Models__Definitions__claude__ModelId=anthropic/claude-sonnet-4 \
+  -e NETCLAW_Models__Roles__Main=claude \
   ghcr.io/netclaw-dev/netclaw
 ```
 
@@ -64,8 +65,9 @@ docker run -d \
   -v netclaw-home:/home/netclaw/.netclaw \
   -e NETCLAW_Providers__openrouter__Type=openrouter \
   -e NETCLAW_Providers__openrouter__ApiKey=sk-or-v1-... \
-  -e NETCLAW_Models__Main__Provider=openrouter \
-  -e NETCLAW_Models__Main__ModelId=anthropic/claude-sonnet-4 \
+  -e NETCLAW_Models__Definitions__claude__Provider=openrouter \
+  -e NETCLAW_Models__Definitions__claude__ModelId=anthropic/claude-sonnet-4 \
+  -e NETCLAW_Models__Roles__Main=claude \
   ghcr.io/netclaw-dev/netclaw
 ```
 
@@ -88,8 +90,9 @@ services:
     environment:
       NETCLAW_Providers__local-ollama__Type: ollama
       NETCLAW_Providers__local-ollama__Endpoint: http://ollama:11434
-      NETCLAW_Models__Main__Provider: local-ollama
-      NETCLAW_Models__Main__ModelId: qwen3:30b
+      NETCLAW_Models__Definitions__qwen__Provider: local-ollama
+      NETCLAW_Models__Definitions__qwen__ModelId: qwen3:30b
+      NETCLAW_Models__Roles__Main: qwen
 
   ollama:
     image: ollama/ollama:latest
@@ -182,6 +185,8 @@ That also helps with pairing: if the daemon is running in a container and you ne
 ## Upgrading
 
 Self-update is disabled in the image (`NETCLAW_Daemon__DisableSelfUpdate=true`), so upgrades mean pulling a new image. Schema migrations are forward-only with no automatic rollback.
+
+Model configuration is the one exception. On 0.25.0, the first model write converts `Models` to named definitions and roles and keeps a restorable snapshot — see [Migrating model configuration](/guides/migrating-model-config/), especially if you set models through `NETCLAW_Models__*` variables.
 
 ```bash
 # Pull the new version

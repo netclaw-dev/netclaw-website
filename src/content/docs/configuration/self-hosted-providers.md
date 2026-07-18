@@ -55,7 +55,8 @@ Browse available models at the [Ollama model library](https://ollama.com/library
     }
   },
   "Models": {
-    "Main": { "Provider": "local", "ModelId": "qwen3:30b" }
+    "Definitions": { "local-qwen": { "Provider": "local", "ModelId": "qwen3:30b" } },
+    "Roles": { "Main": "local-qwen" }
   }
 }
 ```
@@ -107,7 +108,8 @@ For any inference server with a `/v1/chat/completions` endpoint — llama.cpp, v
     }
   },
   "Models": {
-    "Main": { "Provider": "llama-server", "ModelId": "my-model" }
+    "Definitions": { "llama": { "Provider": "llama-server", "ModelId": "my-model" } },
+    "Roles": { "Main": "llama" }
   }
 }
 ```
@@ -168,8 +170,11 @@ Mix provider types freely. Here's Ollama handling Main with a llama.cpp instance
     }
   },
   "Models": {
-    "Main": { "Provider": "ollama-local", "ModelId": "qwen3:30b" },
-    "Fallback": { "Provider": "llama-gpu", "ModelId": "qwen3:14b" }
+    "Definitions": {
+      "main": { "Provider": "ollama-local", "ModelId": "qwen3:30b" },
+      "fallback": { "Provider": "llama-gpu", "ModelId": "qwen3:14b" }
+    },
+    "Roles": { "Main": "main", "Fallback": "fallback" }
   }
 }
 ```
@@ -183,9 +188,10 @@ Assign models to roles with [`netclaw model set`](/cli/model/).
 export NETCLAW_Providers__local__Type="ollama"
 export NETCLAW_Providers__local__Endpoint="http://gpu-server:11434"
 
-# Override model assignment
-export NETCLAW_Models__Main__Provider="local"
-export NETCLAW_Models__Main__ModelId="qwen3:30b"
+# Override model assignment (named definition + role reference)
+export NETCLAW_Models__Definitions__local-qwen__Provider="local"
+export NETCLAW_Models__Definitions__local-qwen__ModelId="qwen3:30b"
+export NETCLAW_Models__Roles__Main="local-qwen"
 ```
 
 Environment variables follow the [.NET configuration convention](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — double underscores separate path segments.

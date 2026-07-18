@@ -235,6 +235,8 @@ tail -f ~/.netclaw/logs/daemon.log
 
 Schema migrations are forward-only with no automatic rollback, so back up before upgrading.
 
+Model configuration is the one exception. On 0.25.0, the first model write converts `Models` to named definitions and roles and keeps a restorable snapshot — see [Migrating model configuration](/guides/migrating-model-config/), especially if your unit sets models through `NETCLAW_Models__*` variables.
+
 Unlike the Docker deployment, bare-metal installs can self-update — the daemon periodically checks for new releases and applies them. After an update, the process exits and systemd's `Restart=always` brings it back on the new version. For manual upgrades:
 
 ```bash

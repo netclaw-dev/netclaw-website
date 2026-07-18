@@ -1461,7 +1461,7 @@ import SiteNav from '../components/SiteNav.astro';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
             </div>
-            <p class="tab-note">Installs CLI + daemon to <code>~/.netclaw/bin</code>. Supports x64 and arm64.</p>
+            <p class="tab-note">Installs CLI + daemon to <code>~/.netclaw/bin</code>. Supports x64 and arm64. Open a new terminal, or run <code>. ~/.netclaw/env</code>, before <code>netclaw init</code>.</p>
           </div>
           <div class="tab-panel" id="panel-macos" role="tabpanel" aria-labelledby="tab-macos" data-panel="macos">
             <div class="code-block">
@@ -1470,7 +1470,7 @@ import SiteNav from '../components/SiteNav.astro';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
             </div>
-            <p class="tab-note">Same install script. Supports Apple Silicon and Intel Macs.</p>
+            <p class="tab-note">Same install script. Apple Silicon only (M1 and later). Open a new terminal, or run <code>. ~/.netclaw/env</code>, before <code>netclaw init</code>.</p>
           </div>
           <div class="tab-panel" id="panel-windows" role="tabpanel" aria-labelledby="tab-windows" data-panel="windows">
             <div class="code-block">
@@ -1479,7 +1479,7 @@ import SiteNav from '../components/SiteNav.astro';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
             </div>
-            <p class="tab-note">PowerShell. Installs to <code>%LOCALAPPDATA%\Programs\netclaw</code>.</p>
+            <p class="tab-note">PowerShell. Installs to <code>%LOCALAPPDATA%\Programs\netclaw</code> and adds it to your User PATH. Restart your terminal before <code>netclaw init</code>.</p>
           </div>
           <div class="tab-panel" id="panel-docker" role="tabpanel" aria-labelledby="tab-docker" data-panel="docker">
             <div class="code-block">

@@ -11,7 +11,13 @@ Install netclaw, run the setup wizard, and start chatting. Takes about 5 minutes
 curl -sSL https://releases.netclaw.dev/install.sh | bash
 ```
 
-See [Installation](/getting-started/installation/) for Windows, Docker, and build-from-source options.
+The installer adds `netclaw` to your PATH in new shells. To use it in this one, load it now:
+
+```bash
+. ~/.netclaw/env
+```
+
+Or just open a new terminal — on Windows, restart your terminal so it picks up the updated PATH. See [Installation](/getting-started/installation/) for Windows, Docker, build-from-source, and the `--skip-shell` opt-out.
 
 ## 2. Run the setup wizard
 

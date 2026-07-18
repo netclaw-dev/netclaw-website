@@ -71,7 +71,7 @@ The parent agent calls the `spawn_agent` tool:
 | `task` | Yes | A specific, bounded task for this run |
 | `context` | No | Extra background prepended to the task |
 
-The subagent runs its own tool loop and returns a single text result to the parent. It inherits the parent's session and project directories, working directory, and trust audience -- so file tools resolve against the same workspace, and a subagent can never widen its own permissions.
+The subagent runs its own tool loop and returns a single text result to the parent. It inherits the parent's session and project directories, working directory, and trust audience -- so file tools resolve against the same workspace, and a subagent can never widen its own permissions. It also inherits the parent's [`AGENTS.md` operating rules and project instructions](/architecture/context-structure/#subagent-context), so a child plays by the same house rules -- but it runs a much thinner context than the parent (no persona, memory, or conversation history). [Context Structure](/architecture/context-structure/#subagent-context) lays out exactly what a subagent gets and what it doesn't.
 
 Each subagent run gets up to **30 tool iterations** before it's forced to wrap up with a text answer. That's separate from the main session's per-turn budget, `Session:MaxToolIterationsPerTurn` (default **60**, configurable in `netclaw.json`).
 

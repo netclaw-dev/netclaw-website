@@ -116,6 +116,7 @@ A new message during the passivation window cancels the shutdown and the session
 ## Keep reading
 
 - [Architecture Overview](/architecture/overview/) — the three-boundary design and actor internals
+- [Context Structure](/architecture/context-structure/) — the layered context each turn assembles, and how it's ordered for caching
 - [Design Philosophy](/architecture/design-philosophy/) — why sessions are transport-agnostic
 - [Security Architecture](/architecture/security-model/) — how audience dispositions scope what a session can do
 - [`netclaw sessions`](/cli/sessions/) — CLI commands for listing and resuming sessions

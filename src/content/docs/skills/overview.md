@@ -13,7 +13,7 @@ All skills follow the [AgentSkills.io](https://agentskills.io) format: a `SKILL.
 
 The lifecycle has four phases:
 
-1. **Sync** — at startup, the daemon pulls system skills from a CDN and (optionally) syncs skills from private [skill servers](/skills/skill-server/). These land in read-only directories under `~/.netclaw/skills/`.
+1. **Sync** - at startup, the daemon pulls netclaw's built-in skills from netclaw's own feed and (optionally) syncs skills from private [skill servers](/skills/skill-server/). These land in read-only directories under `~/.netclaw/skills/`.
 
 2. **Scan** — the daemon walks all skill directories (native, server feeds, external), validates frontmatter, and merges results. Native skills take precedence over server feeds, which take precedence over external sources. Netclaw logs name collisions from lower-precedence sources as issues and skips the duplicates. Run `netclaw skill issues` to see them.
 
@@ -97,16 +97,14 @@ Four source types, each with different trust and management:
 
 | Source | Location | Managed by | Mutable? |
 |--------|----------|-----------|----------|
-| **system** | `~/.netclaw/skills/.system/` | Daemon (CDN sync) | No |
+| **system** | `~/.netclaw/skills/.system/` | Daemon (netclaw's feed) | No |
 | **native** | `~/.netclaw/skills/` | You | Yes |
 | **server feeds** | `~/.netclaw/skills/.server-feeds/` | Private [skill servers](/skills/skill-server/) | No |
 | **external** | Configured directories | Source tool (Claude Code, etc.) | At source |
 
-Drop a `SKILL.md` into `~/.netclaw/skills/` and it appears on the next scan — that's a native skill. Create, edit, and remove them with [`netclaw skill`](/cli/skill/). Run `netclaw skill validate` to check a skill's frontmatter before using it.
+Drop a `SKILL.md` into `~/.netclaw/skills/` and it appears on the next scan - that's a native skill. You can also ask netclaw's agent to write one for you - it has a `skill_manage` tool for creating and editing skills. Inspect or remove skills with [`netclaw skill`](/cli/skill/), and run `netclaw skill validate` to check a skill's frontmatter before using it.
 
-System skills ship from a CDN feed and are read-only. Built-in skills like `netclaw-memory` and `netclaw-operations` land here on first run. For a fully offline setup, set `SkillSync.DisableSystemSkillSync: true` in your `netclaw.json` (see [Configuration](/configuration/models/) for file location).
-
-<!-- TODO: needs user input — What is the full list of built-in system skills that ship from CDN? -->
+System skills ship from netclaw's own feed and are read-only. Built-in skills like `netclaw-memory` and `netclaw-operations` land here on first run. For a fully offline setup, set `SkillSync.DisableSystemSkillSync: true` in your `netclaw.json` (see [Configuration](/configuration/models/) for file location).
 
 External skills let netclaw read skill directories from other AI tools. Add a local folder via `netclaw config` → Skill Sources or wire up a well-known alias via the CLI.
 
@@ -131,7 +129,7 @@ A native skill named `commit` shadows any `commit` from a server feed or externa
 
 ## Security
 
-Skills are just text, but text that lands in an agent's instructions can carry prompt injection. Netclaw runs a content scanner on both write operations (create, edit, sync) and at load time (every `skill_load` call scans before returning content):
+Skills are just text, but text that lands in an agent's instructions can carry prompt injection - hidden text that tries to hijack the agent's instructions. Netclaw runs a content scanner on both write operations (create, edit, sync) and at load time (every `skill_load` call scans before returning content):
 
 | Verdict | Risk | Action |
 |---------|------|--------|

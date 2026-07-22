@@ -71,6 +71,7 @@ export default defineConfig({
             { label: 'Native Manifest & Sync', slug: 'skills/native-manifest' },
             { label: 'Bundling Resources with Skills', slug: 'skills/bundled-resources' },
             { label: 'Skill Server', slug: 'skills/skill-server' },
+            { label: 'skillserver CLI', slug: 'skills/skillserver-cli' },
             { label: 'External Skills', slug: 'skills/external-skills' },
             { label: 'Skill Feeds', slug: 'skills/skill-feeds' },
           ],

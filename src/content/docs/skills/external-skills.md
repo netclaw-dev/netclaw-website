@@ -138,7 +138,7 @@ External skills loaded from disk go through:
 - **Symlink/path safety** — blocked unless `AllowSymlinks: true` for that source
 - **[Tool access policies](/security/security-model/)** — same restrictions as native skills; the `allowed-tools` frontmatter field is informational only and doesn't grant tool access
 
-External skills do NOT go through the prompt injection content scanner (that only runs on skills authored through the `skill_manage` tool). The assumption is that external skill files are user-curated.
+External skills are scanned for prompt injection at load time, the same as every other skill - `skill_load` always scans before returning content. They skip only the write-time scan that runs when you create or edit a skill through netclaw, since you author these files yourself in another tool.
 
 ## Validating External Skills
 

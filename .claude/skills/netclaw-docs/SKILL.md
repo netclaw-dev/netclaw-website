@@ -12,10 +12,10 @@ Write like you're explaining netclaw to a sharp coworker who knows Linux, Docker
 - **Open with the payload.** First sentence states what the feature does and when you'd use it. No "In this section" runway. See `getting-started/installation.md`: "Netclaw has two components..."
 - **Use direct imperative voice.** "Run `netclaw status`." "Store tokens with `netclaw secrets`." Never "You can run" or "Users may wish to."
 - **Show, don't tell.** A config block, command, or screenshot beats a paragraph. If CLI help already explains a flag, show the output instead of rewriting it.
-- **Tables for anything with a shape** — flags, config fields (Field / Type / Default / Description), scopes, error→cause→fix, mode comparisons. Prose is for the one idea a table can't hold.
+- **Tables for anything with a shape** - flags, config fields (Field / Type / Default / Description), scopes, error→cause→fix, mode comparisons. Prose is for the one idea a table can't hold.
 - **Name the #1 mistake.** The best pages flag the common footgun in bold ("This is the number one setup mistake"). Lead readers away from the trap.
 - **Use Starlight callouts** `:::caution` / `:::note` for breaking changes, footguns, and security boundaries. Reserve them for things that bite.
-- **Comment real screenshots in, stub honest TODOs out.** `<!-- TODO(screenshots): ... -->` and `<!-- TODO: needs user input — <question> -->` are the house pattern; never ship fake "coming soon" prose.
+- **Comment real screenshots in, stub honest TODOs out.** `<!-- TODO(screenshots): ... -->` and `<!-- TODO: needs user input - <question> -->` are the house pattern; never ship fake "coming soon" prose.
 - **Close with cross-links.** End with Related pages + Resources (2+ external links to upstream docs/RFCs).
 
 ## Don't
@@ -29,7 +29,11 @@ Write like you're explaining netclaw to a sharp coworker who knows Linux, Docker
 
 ## Punctuation
 
-Use the em-dash (`—`). The published docs lean on it heavily and consistently (50+ pages; `security-model.md` alone has ~38) for parenthetical asides and appositives — it is established house voice, not an AI tell here. CONTEXT/TENSION: a memorizer feedback memory ("No em-dashes in customer-facing writing - LLM tell") flags em-dashes in *emails and broadcasts*. That rule is correct for outbound 1:1 and marketing copy; it does **not** govern reference documentation, where the established voice already uses them. Keep that split deliberate. Style notes: surround the em-dash with single spaces ( — ), don't stack more than one per sentence, and don't use it where a colon or period reads cleaner. Some channel pages use ` -- ` (double-hyphen) instead — that's an authoring inconsistency, not a second standard; prefer `—` in new pages.
+Use the spaced hyphen ` - ` (space-hyphen-space), not the em-dash (`—`), for parenthetical asides and appositives. As of 2026-07-22 the docs drop the em-dash to match the house writing voice, where the em-dash reads as an AI tell and ` - ` is the connector that replaces it. Outbound email and marketing already ban the em-dash, so there's now one rule everywhere - no docs-versus-email split to remember.
+
+Style notes for ` - `: it joins clauses mid-sentence only, never after a terminal `.`, `?`, or `!`. If the prior sentence ended, start a new one. Don't stack more than one per sentence, and skip it where a period, colon, comma, or parentheses read cleaner.
+
+Migration: use ` - ` in every new page and in any page you edit. The ~50 legacy pages still contain em-dashes (`security-model.md` alone has ~38) and stay as they are until you edit the page for another reason, or a dedicated sweep converts them. Some channel pages use the double-hyphen ` -- ` instead. Normalize those to ` - ` when you touch them.
 
 ## Per-page-type quick reference
 
@@ -56,7 +60,7 @@ Use the em-dash (`—`). The published docs lean on it heavily and consistently 
 - [ ] Opens with what/when, not runway. No filler or hedge phrases.
 - [ ] Reference material is in tables; code/screenshots carry the weight.
 - [ ] netclaw lowercase; commands and config keys backticked; cross-links use correct trailing-slash slugs.
-- [ ] No placeholder prose — only `<!-- TODO -->` comments for gaps; all referenced screenshots exist.
+- [ ] No placeholder prose - only `<!-- TODO -->` comments for gaps; all referenced screenshots exist.
 - [ ] 2+ external resource links.
 - [ ] Every runnable snippet was actually run against the current release.
 - [ ] `/humanizer` pass done; `npm run build` passes.

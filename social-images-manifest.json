@@ -173,8 +173,8 @@
       "imageUrl": "https://hcti.io/v1/image/c970328302630c63745ae3527584ea7145a2450d6305dad2eac6dd53f9e0f704"
     },
     "skills/skill-server": {
-      "hash": "13d89c9f77cf6820f7e9723f0a1724558f9998349c2f3f44df23a1702f39aede",
-      "imageUrl": "https://hcti.io/v1/image/a70897afbe3e94297ca1b473ce9ae09db69ed6454338e9722823030203882b81"
+      "hash": "79847785f7c901f6d57dfa4f48cb11f1e33304708f1a2ae29d34877fa0a4c91f",
+      "imageUrl": "https://hcti.io/v1/image/2aa2af5666a4d8bbf5c231ac363157f38d50f88821a13b65ef438f143ebf5ce3"
     },
     "__homepage__": {
       "hash": "832aa2ff01870a7200516422a9855629d4c00d98a9bf6cde5ec3174580750318",
@@ -255,6 +255,10 @@
     "skills/native-manifest": {
       "hash": "d420501a6c5bbcc2593deb9fc57fba6fd3df695281aeb585bd7e6e29e83ed8f0",
       "imageUrl": "https://hcti.io/v1/image/eb22b7288dcc2e2e997fcd389ba65f0032ee0830fa553481f3648eebdc3bd0bb"
+    },
+    "skills/skillserver-cli": {
+      "hash": "9a89d035d07a361e3b0efdc5020daa190bcd3d654805970e6b54e98da3d8ff97",
+      "imageUrl": "https://hcti.io/v1/image/f237b21ac6504b3f12cae4d56bc2c708c63d29560f7863d455f5a8389bf935b4"
     }
   }
 }

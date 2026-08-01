@@ -1,9 +1,9 @@
 ---
 title: Managed Providers
-description: Configure cloud-hosted LLM providers — OpenRouter, Anthropic, OpenAI, GitHub Copilot, and Venice.ai.
+description: Configure cloud-hosted LLM providers — OpenRouter, Anthropic, OpenAI, GitHub Copilot, Venice.ai, and DeepSeek.
 ---
 
-Managed providers are cloud-hosted LLM services that netclaw connects to over HTTPS. Each authenticates with an API key or OAuth: OpenRouter, Anthropic, OpenAI, GitHub Copilot, and Venice.ai.
+Managed providers are cloud-hosted LLM services that netclaw connects to over HTTPS. Each authenticates with an API key or OAuth: OpenRouter, Anthropic, OpenAI, GitHub Copilot, Venice.ai, and DeepSeek.
 
 Provider config lives in two files. Non-secret fields (type, endpoint, auth method) go in `~/.netclaw/config/netclaw.json`. Credentials go in `~/.netclaw/config/secrets.json`, which is [encrypted at rest](/security/secrets/) — write plaintext values and netclaw encrypts them on first read. Environment variables override both.
 
@@ -20,6 +20,7 @@ For self-hosted inference (Ollama, llama.cpp, vLLM), see [Self-Hosted Providers]
 | `openai` | OpenAI | `https://api.openai.com` | OAuth or API key | [platform.openai.com](https://platform.openai.com/api-keys) |
 | `github-copilot` | GitHub Copilot | `https://api.githubcopilot.com` | OAuth (device) | GitHub Copilot subscription |
 | `veniceai` | Venice.ai | `https://api.venice.ai/api/v1` | API key | [venice.ai/settings/api](https://venice.ai/settings/api) |
+| `deepseek` | DeepSeek | `https://api.deepseek.com/v1` | API key | [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys) |
 
 ## Configuration Schema
 
@@ -27,7 +28,7 @@ Each provider is a named entry under the `Providers` section. The key is a name 
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `Type` | string | `"ollama"` | Provider SDK: `openrouter`, `anthropic`, `openai`, `github-copilot`, or `veniceai` for managed providers. Always set this explicitly. |
+| `Type` | string | `"ollama"` | Provider SDK: `openrouter`, `anthropic`, `openai`, `github-copilot`, `veniceai`, or `deepseek` for managed providers. Always set this explicitly. |
 | `Endpoint` | string | `""` | Base URL. Leave empty to use the provider's default |
 | `ApiKey` | string? | `null` | API key. Store in `secrets.json`, never `netclaw.json` |
 | `AuthMethod` | enum | `None` | `None`, `ApiKey`, `OAuthDevice`, or `OAuthPkce` |
@@ -236,6 +237,18 @@ By default, netclaw tells Venice **not** to prepend its own system prompt (`incl
 }
 ```
 
+## DeepSeek
+
+[DeepSeek](https://api-docs.deepseek.com/) is a hosted inference provider with a 1M-token context window, tool calls, JSON output, and optional thinking mode. Auth is an API key:
+
+```bash
+netclaw provider add deepseek deepseek --api-key sk-...
+```
+
+The endpoint defaults to `https://api.deepseek.com/v1`. Get a key at [platform.deepseek.com/api_keys](https://platform.deepseek.com/api_keys).
+
+Netclaw supports two hosted DeepSeek models: `deepseek-v4-pro` and `deepseek-v4-flash`. Both are text-only — no vision, no audio. The 1M context window and modality constraints are applied automatically since DeepSeek's `/models` endpoint doesn't report capabilities for the V4 family.
+
 ## Provider Manager TUI
 
 ![Provider Manager TUI showing configured providers with health status](/screenshots/output/provider-manager.png)
@@ -310,5 +323,6 @@ To test your configuration right now, run [`netclaw doctor`](/cli/doctor/) for a
 - [OpenAI API docs](https://platform.openai.com/docs/api-reference) — endpoints, authentication, model capabilities
 - [GitHub Copilot](https://github.com/features/copilot) — subscription details and supported models
 - [Venice.ai API docs](https://docs.venice.ai/) — endpoints, models, and vendor parameters
+- [DeepSeek API docs](https://api-docs.deepseek.com/) — authentication, models, and rate limits
 - [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention
 - [RFC 7636 — OAuth PKCE](https://datatracker.ietf.org/doc/html/rfc7636) — the code exchange flow OpenAI uses

@@ -98,7 +98,10 @@ Netclaw uses [Microsoft.Extensions.AI](https://learn.microsoft.com/en-us/dotnet/
 | **Ollama** | `ollama` | Code default. Native integration, queries `/api/show` for capabilities. |
 | **OpenRouter** | `openrouter` | Recommended for cloud models. Widest model catalog. |
 | **Anthropic** | `anthropic` | Direct API. |
-| **OpenAI** | `openai` | Direct API. |
+| **OpenAI** | `openai` | Direct API, OAuth or API key. |
+| **GitHub Copilot** | `github-copilot` | OAuth device flow. Uses your Copilot subscription. |
+| **Venice.ai** | `veniceai` | Privacy-focused, OpenAI-compatible API. |
+| **DeepSeek** | `deepseek` | 1M context window, thinking mode, text-only. |
 | **OpenAI-compatible** | `openai-compatible` | Generic self-hosted endpoint. |
 
 At startup, the daemon queries the provider to detect context window size, vision support, and tool use capabilities. If the direct query fails, it falls back to the OpenRouter catalog, then HuggingFace metadata, then assumes text-only.

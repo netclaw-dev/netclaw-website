@@ -28,6 +28,11 @@ Select **From a manifest**, pick your workspace, and paste this:
     "background_color": "#512BD4"
   },
   "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
     "bot_user": {
       "display_name": "Netclaw",
       "always_online": true
@@ -75,6 +80,8 @@ Select **From a manifest**, pick your workspace, and paste this:
 ```
 
 Change the `name` and `display_name` to whatever you want your bot to be called.
+
+The manifest enables the App Home **Messages tab** (`messages_tab_enabled`), which is what lets workspace members DM the bot. If you create the app any other way and skip this, Slack shows *"Sending messages to this app has been turned off"* when someone tries to DM it — you can fix that later under **Features → App Home → Messages Tab**, but the manifest sets it correctly from the start.
 
 After creating the app, you need two tokens:
 

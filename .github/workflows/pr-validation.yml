@@ -49,8 +49,8 @@ jobs:
           INSTALL_DIR="${GITHUB_WORKSPACE}/link-validator-bin"
           mkdir -p "$INSTALL_DIR"
 
-          echo "Downloading link-validator v0.1.1..."
-          curl -L https://github.com/Aaronontheweb/link-validator/releases/download/v0.1.1/link-validator-linux-x64.tar.gz -o link-validator.tar.gz
+          echo "Downloading link-validator v0.5.1..."
+          curl -L https://github.com/Aaronontheweb/link-validator/releases/download/v0.5.1/link-validator-linux-x64.tar.gz -o link-validator.tar.gz
           tar -xzf link-validator.tar.gz -C "$INSTALL_DIR"
           chmod +x "$INSTALL_DIR/link-validator"
 

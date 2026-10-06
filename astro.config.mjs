@@ -61,6 +61,7 @@ export default defineConfig({
             { label: 'Slack', slug: 'channels/slack' },
             { label: 'Discord', slug: 'channels/discord' },
             { label: 'Mattermost', slug: 'channels/mattermost' },
+            { label: 'Microsoft Teams', slug: 'channels/microsoft-teams' },
             { label: 'Troubleshooting', slug: 'channels/troubleshooting' },
           ],
         },

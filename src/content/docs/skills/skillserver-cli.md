@@ -27,13 +27,19 @@ For CI, pin the version. The install script takes one as an argument (`bash -s -
 | Environment | `SKILLSERVER_URL`, `SKILLSERVER_API_KEY` | CI |
 | Config file | `skillserver config init` → `~/.skillserver/config.json` | Local dev |
 
+:::caution
+`config init` echoes the key as you type and saves it in plaintext in the local config file. For a temporary session, use the [hidden Bash prompt example](/skills/skill-server/#create-a-publishing-key). Keep keys out of command-line arguments, shell history, and shared logs.
+:::
+
 ```bash
 skillserver config init          # interactive first-run setup
 skillserver config set server-url https://skills.example.com
 skillserver config show          # print current config (no secrets)
 ```
 
-Read-only commands (`list`, `list-subagents`, `versions`, `verify`, `download-subagent`) need only the URL. Everything that writes needs a key.
+Read-only commands (`list`, `list-subagents`, `versions`, `verify`, `download-subagent`) need only the URL. Everything that writes needs a key. All `api-key` commands also require authentication, including `api-key list`.
+
+Follow [API key management](/skills/skill-server/#api-key-management) to bootstrap the server, create a CI key, or rotate a key. `SKILLSERVER_API_KEY` must hold an actual key registered with that server. It is separate from the server bootstrap variable `SKILLSERVER__APIKEY`.
 
 ## Commands
 
@@ -115,7 +121,7 @@ skillserver api-key list                         # ids + labels, never secrets
 skillserver api-key delete 2
 ```
 
-`--yes`/`-y` skips the delete confirmation prompt, so reach for it in scripts. `api-key create` shows the `sk-…` secret a single time, so store it immediately.
+`--yes`/`-y` skips confirmation for skill and sub-agent deletion. API key deletion has no confirmation prompt. `api-key create` shows the `sk-…` secret a single time, so store it immediately. Every valid key can publish, delete, and manage other keys; choosing a CI label does not restrict its permissions.
 
 ## Global flags
 

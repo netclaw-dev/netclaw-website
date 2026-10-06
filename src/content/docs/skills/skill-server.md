@@ -21,7 +21,7 @@ Any agent that speaks the RFC can consume skills from your server, and netclaw a
 - Serves an RFC discovery index and a native manifest that agents poll on an interval
 - Packages skills with bundled resources as deterministic [archives](/skills/bundled-resources/)
 - Ships a web gallery for browsing skills and sub-agents
-- Requires API key auth on writes. Reads are open, so agents fetch without credentials
+- Protects writes with API keys once a key exists. Reads are open, so agents fetch without credentials
 - Runs as a single container with no external dependencies, just SQLite and the filesystem
 
 ## Deploy with Docker
@@ -33,6 +33,22 @@ docker pull ghcr.io/netclaw-dev/skillserver:latest
 ```
 
 Available for `linux/amd64` and `linux/arm64`.
+
+### Set a bootstrap key
+
+Generate and save a strong random secret in your password manager. Inject it through your deployment secret manager before the first startup. For a local setup, use a private Bash terminal:
+
+```bash
+read -r -s -p "Bootstrap API key: " SKILLSERVER_APIKEY
+printf '\n'
+export SKILLSERVER_APIKEY
+```
+
+The Compose example below maps `SKILLSERVER_APIKEY` to the server's `SKILLSERVER__APIKEY` variable. Keep the value out of committed YAML and `.env` files.
+
+:::caution
+A database with no API keys leaves publishing, deletion, and key management unauthenticated. Seed a key before exposing the server. Reads and discovery remain open even with keys configured; private content also needs a private network or proxy access policy.
+:::
 
 ### Docker Compose
 
@@ -73,9 +89,8 @@ volumes:
 Start it:
 
 ```bash
-export SKILLSERVER_APIKEY="sk-$(openssl rand -base64 32)"
-echo "Save this key: $SKILLSERVER_APIKEY"
 docker compose up -d
+unset SKILLSERVER_APIKEY
 ```
 
 Verify it's running:
@@ -84,7 +99,7 @@ Verify it's running:
 curl http://localhost:8080/health
 ```
 
-The bootstrap API key is hashed and stored on first startup. Save the raw value, because it can't be recovered from the server.
+The bootstrap key is hashed and stored when the database has no keys. Next, [create a dedicated publishing key](#create-a-publishing-key) for your CLI or CI.
 
 ## Configuration
 
@@ -107,40 +122,66 @@ All state lives in `SKILLSERVER__DATAPATH`. Back up that volume and you have eve
 
 ## API key management
 
-Reads are open. Writes (publish, delete, key management) require a `Bearer` token.
+Publishing, deletion, and all key-management commands, including `api-key list`, require an existing valid key once authentication is enabled. Reads and discovery remain open. Every valid key has the same permissions; there is no publisher-only scope.
 
-### Bootstrap
+### Create a publishing key
 
-Set `SKILLSERVER__APIKEY` before the first run. The server hashes it and stores it as the "bootstrap" key. Once any key exists in the database, this environment variable is ignored on later starts.
-
-### Create additional keys
+Install the [`skillserver` CLI](/skills/skillserver-cli/#install) on your workstation or CI runner. It is a separate tool from the server container. In a private Bash terminal, authenticate with the bootstrap key or another existing valid key:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/api-keys \
-  -H "Authorization: Bearer sk-your-bootstrap-key" \
-  -H "Content-Type: application/json" \
-  -d '{"label": "ci-deploy"}'
+export SKILLSERVER_URL=https://skills.example.com
+read -r -s -p "Existing SkillServer API key: " SKILLSERVER_API_KEY
+printf '\n'
+export SKILLSERVER_API_KEY
+skillserver api-key list
+skillserver api-key create --label ci-publish
+unset SKILLSERVER_API_KEY
 ```
 
-The response contains the raw key once. Store it in a secret manager or password vault. The [`skillserver api-key`](/skills/skillserver-cli/) commands do the same thing without hand-writing curl.
+Use your server's HTTPS URL, or `http://localhost:8080` for local testing. `list` confirms authentication. Creation prints the new `sk-...` key once, along with its ID and label. Save the actual key immediately in your secret manager; it cannot be recovered from the server.
 
-### List and revoke
+:::caution
+The label is a name you choose. The credential is the key the server generates and registers. Saving an arbitrary string as a CI secret will not authenticate. Run key creation in a private terminal, never in shared CI logs.
+:::
+
+For GitHub Actions, save the returned value as a **`SKILLSERVER_API_KEY` secret**, then pass it to the CLI:
+
+```yaml
+- name: Publish skills
+  env:
+    SKILLSERVER_URL: https://skills.example.com
+    SKILLSERVER_API_KEY: ${{ secrets.SKILLSERVER_API_KEY }}
+  run: skillserver publish-all ./skills
+```
+
+Create the secret under repository **Settings → Secrets and variables → Actions**, or under the deployment environment if the job uses one. See [GitHub secret setup](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions).
+
+Install the CLI and configure network access before this step. Use a separate CI key so you can revoke or rotate it independently.
+
+### List, revoke, and rotate
+
+With the CLI authenticated using an existing valid key:
 
 ```bash
-# List (never shows raw keys)
-curl http://localhost:8080/api/v1/api-keys \
-  -H "Authorization: Bearer sk-your-key"
-
-# Revoke
-curl -X DELETE http://localhost:8080/api/v1/api-keys/2 \
-  -H "Authorization: Bearer sk-your-key"
+skillserver api-key list
+skillserver api-key delete 2
 ```
 
-You can't delete the last remaining key.
+Listing shows IDs, labels, and dates, never raw keys or hashes. Replace `2` with the ID to revoke. The server refuses to delete the last remaining key. Creation also accepts `--expires-at <date>` for an expiring key.
 
-### Key format
+To rotate, create a replacement, update the client or CI secret, and run `skillserver api-key list` authenticated with the replacement. Then revoke the old ID. No server restart or database reset is needed. If a newly created key is lost, create another using an existing valid key and revoke the lost key.
 
-`sk-{random}` (256 bits of entropy, base64url-encoded). Stored as SHA-256 hashes, compared in constant time. Raw keys never touch disk.
+### Server bootstrap vs. client authentication
+
+| Variable | Consumer | Purpose |
+|----------|----------|---------|
+| `SKILLSERVER__APIKEY` | Server | Seed the initial bootstrap key when the database has no keys |
+| `SKILLSERVER_APIKEY` | This Compose example | Supply the value mapped to `SKILLSERVER__APIKEY` |
+| `SKILLSERVER_API_KEY` | CLI and CI | Authenticate using a key already registered with the server |
+
+Once any key exists in the database, `SKILLSERVER__APIKEY` is ignored on later startups. Changing it does not rotate existing credentials.
+
+Generated keys use `sk-` plus 256 bits of randomness encoded as base64url. The server persists only SHA-256 hashes; creation is the only response containing the raw key.
 
 ## Publishing skills and sub-agents
 
@@ -231,7 +272,7 @@ Reads are open. Endpoints marked `auth` require an `Authorization: Bearer <key>`
 |--------|------|-------------|
 | GET | `/api/v1/blobs/sha256/{digest}` | Download a blob by digest |
 | POST | `/api/v1/api-keys` | `auth` Create a key (returns raw key once) |
-| GET | `/api/v1/api-keys` | `auth` List keys (hashed, never shows raw) |
+| GET | `/api/v1/api-keys` | `auth` List key metadata (no raw keys or hashes) |
 | DELETE | `/api/v1/api-keys/{id}` | `auth` Revoke a key |
 
 ### Web gallery

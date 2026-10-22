@@ -253,7 +253,7 @@ Each audience profile controls three things: which servers are visible, which of
 
 Omitting `McpServerToolGrants` for a server passes all of that server's tools through (if server-level access is allowed). To grant everything quickly from the CLI, use `netclaw mcp add --grant-all`.
 
-New servers are fail-closed (blocked by default): all tools blocked for every audience until you grant them. Use `netclaw mcp permissions` to manage grants interactively — the daemon must be running first.
+`netclaw mcp add` grants a new server's tools to Personal with `Auto` approval. Team and Public are fail-closed: they get no tools until you grant them. Use `netclaw mcp permissions` to manage grants interactively. The daemon must be running first.
 
 ![MCP Permissions server list showing three connected servers with tool counts](/screenshots/output/mcp-tools-server-list.png)
 

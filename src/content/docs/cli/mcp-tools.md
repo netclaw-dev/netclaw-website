@@ -78,8 +78,10 @@ netclaw mcp add <name> <url> --transport http
 | `--transport`, `-t` | `stdio`, `http`, or `sse` | `stdio` |
 | `--env KEY=VALUE` | Environment variable (repeatable) | — |
 | `--header "Key: Value"` | HTTP header (repeatable) | — |
-| `--client-id <id>` | OAuth client ID for HTTP/SSE servers | — |
+| `--client-id <id>` | Pre-registered OAuth client ID for HTTP/SSE servers | — |
+| `--client-secret <secret>` | Secret for a pre-registered confidential client. Requires `--client-id` | — |
 | `--scope <scopes>` | OAuth scopes (space-separated) | — |
+| `--auth` | Start `netclaw mcp auth` right after adding (HTTP/SSE only) | — |
 | `--grant-all` | Skip per-tool grants (all tools visible), but still write approval defaults | — |
 
 Server config goes to `~/.netclaw/config/netclaw.json`. Credentials (`--env` values, `--header` values) go to [`secrets.json`](/cli/secrets/).
@@ -165,6 +167,10 @@ netclaw mcp auth <name>
 ```
 
 Starts the OAuth flow for an HTTP or SSE server. Opens your browser to the authorization page and prints the URL to the terminal. In headless environments, copy the printed URL manually. Times out after 5 minutes.
+
+If netclaw runs on another machine, the browser can't load the callback page after you approve. Copy the URL from the address bar and paste it at the prompt.
+
+A server with a pre-registered client (`--client-id`) needs this redirect URI registered at the provider: `http://127.0.0.1:<Daemon.Port>/api/mcp/oauth/callback` (default port 5199). See [Redirect URI](/configuration/mcp-servers/#redirect-uri).
 
 Only needed for HTTP and SSE servers that require OAuth.
 

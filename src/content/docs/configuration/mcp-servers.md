@@ -24,6 +24,7 @@ Each entry under `McpServers` is keyed by server name:
 | `Enabled` | bool | `true` | Whether the server is loaded at startup |
 | `GrantCategory` | string? | `null` | ACL grant category; defaults to `mcp:{serverName}`. Set this to group multiple servers under a single permission grant — e.g., both `browser_playwright` and `browser_chrome_devtools` share `browser_automation` so they can be toggled together. |
 | `OAuthClientId` | string? | `null` | Static OAuth client ID (servers without dynamic registration) |
+| `OAuthClientSecret` | string? | `null` | Secret for a pre-registered confidential client. Stored in `secrets.json` only |
 | `OAuthScope` | string? | `null` | OAuth scope override (space-separated) |
 
 Sensitive values (`EnvironmentVariables` entries, `Headers` with tokens) belong in `secrets.json`, not `netclaw.json`. The CLI handles this split for you when you use `netclaw mcp add --env` or `--header`.
@@ -171,11 +172,46 @@ Both are regular MCP server entries. Edit them in `netclaw.json` like any other 
 
 HTTP and SSE servers can authenticate via OAuth:
 
-1. Run `netclaw mcp auth <name>` — attempts to open your browser to the authorization page
-2. Complete the flow in the browser (or copy the printed URL in headless environments)
-3. The CLI polls for completion, timing out after 5 minutes
+1. Run `netclaw mcp auth <name>`. It opens your browser to the authorization page, or prints the URL on a headless host.
+2. Approve access in the browser.
+3. The daemon receives the callback. The CLI polls for completion and times out after 5 minutes.
 
-Set `OAuthClientId` and `OAuthScope` for servers that don't support [dynamic client registration](https://datatracker.ietf.org/doc/html/rfc7591). stdio servers cannot use OAuth.
+stdio servers cannot use OAuth.
+
+### Pre-registered clients
+
+Most MCP servers support [dynamic client registration](https://datatracker.ietf.org/doc/html/rfc7591), and netclaw registers itself. When a provider makes you create an OAuth app first (X, for example), pass that app's credentials on add:
+
+```bash
+# Public client (PKCE only)
+netclaw mcp add <name> <url> --transport http --client-id <client-id>
+
+# Confidential client
+netclaw mcp add <name> <url> --transport http \
+  --client-id <client-id> --client-secret <client-secret>
+```
+
+`--client-secret` goes to `secrets.json`, encrypted. Use `--scope` to override the scopes netclaw requests.
+
+### Redirect URI
+
+Register this redirect URI (also called a callback URL) in the provider's OAuth app settings:
+
+```
+http://127.0.0.1:<Daemon.Port>/api/mcp/oauth/callback
+```
+
+With the default port, that's `http://127.0.0.1:5199/api/mcp/oauth/callback`.
+
+:::caution
+**A mismatched redirect URI is the number one setup mistake.** Providers compare it to the registered value character for character, and most show only a generic error page when it doesn't match. Use `127.0.0.1`, not `localhost`. Ignore any port or path from the provider's own setup guide. The daemon owns the callback, so its port and path are fixed. If you change `Daemon.Port`, update the registered URI too.
+:::
+
+To see the exact value netclaw sends, check the `redirect_uri` parameter in the authorization URL that `netclaw mcp auth` prints.
+
+### Remote and container hosts
+
+When netclaw runs on a server or in a container, the browser redirect goes to `127.0.0.1` on *your* machine, so the page fails to load. That's expected. Copy the full URL from the address bar (it contains `code=` and `state=`) and paste it at the `netclaw mcp auth` prompt before the 5-minute timeout.
 
 ## Per-audience access control
 

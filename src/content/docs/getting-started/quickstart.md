@@ -97,6 +97,6 @@ Init gets you to chat. To make netclaw actually useful — connecting it to Slac
 
 - [`netclaw config`](/cli/config/) — connect channels, enable web search, set network exposure and skills
 - [Your First Conversation](/getting-started/first-conversation/) — personality bootstrapping and your first real interaction
-- [Slack](/channels/slack/) / [Discord](/channels/discord/) — full channel setup guides
+- [Slack](/channels/slack/) / [Discord](/channels/discord/) / [Mattermost](/channels/mattermost/) — full channel setup guides
 - [`netclaw doctor`](/cli/doctor/) — diagnose issues if something didn't work
 - [`netclaw status`](/cli/status/) — check daemon health and connector states

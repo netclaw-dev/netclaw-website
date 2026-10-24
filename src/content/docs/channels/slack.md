@@ -335,6 +335,7 @@ Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshoo
 
 - [Configure audiences and approval gates](/security/security-model/) to control what tools are available in each channel
 - [Set up systemd](/deployment/systemd/) so the daemon stays running after reboots
+- [Add Discord](/channels/discord/) or [Mattermost](/channels/mattermost/) if your team uses more than one
 - [Run `netclaw doctor`](/cli/doctor/) to verify token health and ACL config
 
 ## Related pages
@@ -344,6 +345,8 @@ Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshoo
 - [`netclaw doctor`](/cli/doctor/) — Slack auth and ACL diagnostics
 - [Security Model](/security/security-model/) — audiences and approval gates
 - [Channel Troubleshooting](/channels/troubleshooting/) — error codes and debug logging
+- [Discord](/channels/discord/) — sibling channel integration
+- [Mattermost](/channels/mattermost/) — sibling channel integration
 
 ## External resources
 

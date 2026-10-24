@@ -241,10 +241,13 @@ Running Mattermost in a container on Apple Silicon? The [`mattermost/mattermost-
 - [`netclaw status`](/cli/status/) — primary diagnostic for Mattermost
 - [Security Model](/security/security-model/) — audiences and approval gates
 - [Channel Troubleshooting](/channels/troubleshooting/) — error codes and debug logging
+- [Slack](/channels/slack/) — sibling channel integration
+- [Discord](/channels/discord/) — sibling channel integration
 
 ## External resources
 
 - [Mattermost](https://mattermost.com/) — the project, if you don't already run a server
+- [Mattermost on GitHub](https://github.com/mattermost/mattermost) — source code, issues, and release notes
 - [Mattermost: Bot accounts](https://developers.mattermost.com/integrate/reference/bot-accounts/) — creating and managing bots
 - [Mattermost: Personal access tokens](https://developers.mattermost.com/integrate/reference/personal-access-token/) — enabling and issuing tokens
 - [Mattermost: Enable bot account creation](https://docs.mattermost.com/configure/integrations-configuration-settings.html) — the System Console settings

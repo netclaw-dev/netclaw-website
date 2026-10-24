@@ -288,7 +288,7 @@ Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshoo
 
 - [Configure audiences and approval gates](/security/security-model/) to control what tools are available in each channel
 - [Set up systemd](/deployment/systemd/) so the daemon stays running after reboots
-- [Add Slack](/channels/slack/) if your team uses both
+- [Add Slack](/channels/slack/) or [Mattermost](/channels/mattermost/) if your team uses more than one
 
 ## Related pages
 
@@ -298,6 +298,7 @@ Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshoo
 - [Security Model](/security/security-model/) — audiences and approval gates
 - [Channel Troubleshooting](/channels/troubleshooting/) — error codes and debug logging
 - [Slack](/channels/slack/) — sibling channel integration
+- [Mattermost](/channels/mattermost/) — sibling channel integration
 
 ## External resources
 

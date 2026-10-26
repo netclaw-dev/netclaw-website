@@ -254,15 +254,15 @@ Two non-obvious traps, because shell is fail-closed:
 - **Deleting the entry won't do it either.** Removing `shell_execute` drops it back to the fail-closed default, which is a prompt. To silence shell you have to set it to `Auto`, not remove it.
 :::
 
-The same applies to control-plane writes — opt them in with `"file_write:control-plane": "Auto"` (and `"file_edit:control-plane"`). Think hard before you do: that lets the agent rewrite netclaw's own config without asking.
+Netclaw's own config is different: no approval mode or grant lets a file tool (`file_write`, `file_edit`) write to the config directory. As of 0.28.0, override keys that contain a colon (such as the old `"file_write:control-plane"`) are ignored, and `netclaw doctor` reports them.
 
 ### Precedence
 
 A tool's mode is resolved in this order, first match wins:
 
-1. Exact `ToolOverrides` entry (`shell_execute`, `file_write:control-plane`, or an MCP `server/tool` key)
+1. `ToolOverrides` entry for the tool (`shell_execute`, or an MCP `server/tool` key). Keys match tool names without regard to case.
 2. `McpServerDefaults` entry for an MCP tool's server
-3. Built-in fail-closed default — shell and control-plane writes on Personal
+3. Built-in fail-closed default — shell on Personal
 4. `DefaultMode`
 
 ### What this doesn't change

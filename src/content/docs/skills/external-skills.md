@@ -1,39 +1,42 @@
 ---
-title: "External Skills"
-description: "Adding custom skill paths and external sources."
+title: "External skills"
+description: "Read skills from Claude Code, Open Code or any directory on disk without copying them."
 ---
 
-External skills let netclaw read skill directories owned by other AI tools — Claude Code, Open Code, or any arbitrary directory on disk. Point netclaw at an existing directory and it scans those skills alongside its own. No copying required.
+External skills let netclaw read skill directories owned by other AI tools: Claude Code, Open Code, or any directory on disk. Point netclaw at an existing directory and it scans those skills alongside its own. No copying required.
 
-Skills must follow the [SKILL.md format](https://agentskills.io) (frontmatter with `name` and `description` fields, markdown body). See [Skills Overview](/skills/overview/) for details on the format and lifecycle.
+External skills use the [SKILL.md format](https://agentskills.io) with `description` in the frontmatter and a markdown body. See [Skills overview](/skills/overview/) for the format and where external skills rank.
 
-## Quick Start
+## Add a source
 
-To add Claude Code's skills, use the CLI:
+To add Claude Code's skills:
 
 ```bash
 netclaw skill source add claude-code --well-known claude-code
 ```
 
-That's it. The daemon picks up the change via its file watcher — no restart needed.
+For any other directory, use `--path`:
 
-Alternatively, run `netclaw config` → Skill Sources, then choose **Add a local skill folder** to browse and select a directory manually.
+```bash
+netclaw skill source add team-skills --path /opt/skills/shared
+```
 
-## Before You Begin
+Adding a source changes `netclaw.json`, so the daemon restarts itself in-process and picks up the new directory. You can also run `netclaw config`, open **Skill Sources** and choose **+ Add local folder** to browse for one.
 
-- Netclaw is installed and initialized (or you're comfortable editing `netclaw.json` directly — it lives at `~/.netclaw/config/netclaw.json` by default)
-- The external directory you want to add exists on disk (netclaw logs a warning for missing paths but still configures the source)
+The directory has to exist. `skill source add --path` refuses a missing one with `[FAIL] directory not found`.
 
-## Well-Known Sources
+## Well-known sources
 
-Well-known aliases expand to standard paths:
+An alias expands to a standard set of paths:
 
-| Alias | Resolves to |
-|-------|-------------|
-| `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, plus marketplace paths discovered dynamically (`~/.claude/plugins/marketplaces/*/skills/`) |
+| Alias | Reads |
+|-------|-------|
+| `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, and `~/.claude/plugins/marketplaces/*/skills/` for each marketplace folder that exists |
 | `open-code` | `~/.open-code/skills/` |
 
-The `claude-code` alias scans marketplace plugin directories alphabetically for stable precedence. Marketplace paths are discovered at runtime — if you install a new plugin, it gets picked up on the next scan. Missing one of those paths is fine — the alias resolves whichever ones exist.
+The `claude-code` alias reads marketplace folders in alphabetical order, so precedence stays stable. It works out the list of marketplace folders when the daemon starts. Install a new marketplace and you need to restart the daemon (any config change does it) before netclaw sees it. New skill files inside a folder netclaw already watches show up live.
+
+The alias reads skills only. It doesn't read Claude Code plugin commands, agents, hooks or MCP servers, and it skips `~/.claude/plugins/cache/`. Flat `.md` files in `~/.claude/commands/` count as skills even without frontmatter. netclaw takes the name from the file name and the description from the first line.
 
 ## Configuration
 
@@ -53,127 +56,94 @@ External sources live under `ExternalSkills.Sources` in `netclaw.json`:
         "Name": "team-skills",
         "Path": "/opt/skills/shared",
         "Enabled": true,
-        "AllowSymlinks": true
+        "AllowSymlinks": false
       }
     ]
   }
 }
 ```
 
-### Source fields
-
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `Name` | string | — | Unique identifier for this source |
-| `Path` | string | null | Absolute path to a skill directory (mutually exclusive with `WellKnown`) |
-| `WellKnown` | string | null | Well-known alias (mutually exclusive with `Path`) |
+| `Name` | string | - | Unique identifier for the source |
+| `Path` | string | none | Absolute path to a skill directory. Set this or `WellKnown`, not both. |
+| `WellKnown` | string | none | Well-known alias. Set this or `Path`, not both. |
 | `Enabled` | bool | `true` | Whether the source is active |
-| `AllowSymlinks` | bool | `false` | Follow symlinks within the directory. Any well-known alias defaults to `true` when added via CLI (`--well-known`). |
+| `AllowSymlinks` | bool | `false` | Follow symlinks inside the directory. `skill source add --well-known` sets it to `true`. |
 
-Each source must set either `Path` or `WellKnown`, not both.
-
-## Managing Sources via CLI
-
-Add and remove sources without editing `netclaw.json`:
+## Manage sources from the CLI
 
 ```bash
-# List configured sources
-netclaw skill source list
-
-# Add a well-known source
-netclaw skill source add claude-code --well-known claude-code
-
-# Add a custom path
-netclaw skill source add team-skills --path /opt/skills/shared
-
-# Disable a source without removing it
-netclaw skill source disable team-skills
-
-# Re-enable
+netclaw skill source list                    # show configured sources
+netclaw skill source disable team-skills     # keep it in config, stop scanning
 netclaw skill source enable team-skills
-
-# Remove entirely
-netclaw skill source remove team-skills
+netclaw skill source remove team-skills      # config entry only, files stay
 ```
 
-All `netclaw skill source` commands work without the daemon running. CLI changes are picked up by a running daemon automatically via its file watcher.
+These commands edit `netclaw.json` and don't need the daemon. A running daemon restarts itself when the file changes. Skill servers aren't managed here. See [Skill feeds](/skills/skill-feeds/).
 
-## Adding Sources via the Config Menu
+![The Skill Sources screen with one local folder, Claude Code at /home/netclaw/.claude/skills showing 1 skill, one remote skill server, Corp Skills, and the Add local folder, Add skill server, Rescan all and Done rows](/screenshots/output/config-skills.png)
 
-`netclaw config` → Skill Sources presents two options: **+ Add local folder** and **+ Add skill server**.
-
-Local folders are selected via a directory picker (Ctrl+N to create a new folder). After selection, you choose whether to allow symlinks in that folder, then confirm the source name. The source gets added and autosaved immediately.
-
-![Skill Sources editor](/screenshots/output/config-skills.png)
-
-The Skill Sources screen — **+ Add local folder** opens a directory picker; **+ Add skill server** connects a remote feed.
-
-Leave symlinks off unless your setup requires it (shared filesystems, monorepo layouts with linked skill directories).
+The Claude Code folder is the well-known source added with `netclaw skill source add`. In the Skill Sources screen, **+ Add local folder** opens a directory picker (Ctrl+N makes a new folder) and **+ Add skill server** connects a remote feed.
 
 ## Precedence
 
-When multiple sources define a skill with the same name:
-
 ```
-native skills  >  server feeds  >  external sources
+system  >  native  >  server feeds  >  external
 ```
 
-[Native skills](/skills/overview/) are skills authored directly through netclaw's agent. [Server feeds](/skills/skill-feeds/) are remotely-synced skill repositories. External sources always have lowest priority.
+External sources always rank last. Within them, the order of the `Sources` array decides, so put the one you want to win first. A shadowed skill shows up as a `DuplicateName` issue in `netclaw skill issues`.
 
-Within external sources, order in the `Sources` array determines which wins — higher-priority sources go first. Collisions are logged; run `netclaw skill issues` to see them.
+## Live changes
 
-## Runtime Behavior
-
-The daemon watches every resolved external path for changes. When a `*.md` file changes, it rescans after a 500ms debounce — so multiple rapid writes only trigger one rescan. Drop a new skill file into an external directory and it's available on the next agent turn. No restart needed.
-
-The daemon logs a warning for missing directories at startup but keeps running.
+The daemon watches every external path. When a `*.md` file changes, it rescans after a 500 ms pause, so several quick writes cause one rescan. A new skill file in an external directory is available to new sessions without a restart. A path that doesn't exist at startup is logged and skipped.
 
 ## Security
 
-All well-known sources have `AllowSymlinks: true` set automatically when added via CLI — their standard paths often include symlinked directories. Custom sources default to `AllowSymlinks: false` — opt in per source if you trust the targets.
+netclaw doesn't scan external skills for prompt injection. Skill scanning is off for every tier, so point netclaw only at directories you trust.
 
-External skills loaded from disk go through:
+- Symlinks are blocked unless the source sets `AllowSymlinks: true`. Well-known aliases get it automatically because their standard paths often include symlinks. A custom path defaults to `false`.
+- `allowed-tools` is informational and grants nothing. Tool access follows the [security model](/security/security-model/).
+- Frontmatter has to parse and include a `description`. A skill without one is rejected with `MissingDescription`.
 
-- **Frontmatter validation** — `name` and `description` are required; malformed YAML is rejected
-- **Symlink/path safety** — blocked unless `AllowSymlinks: true` for that source
-- **[Tool access policies](/security/security-model/)** — same restrictions as native skills; the `allowed-tools` frontmatter field is informational only and doesn't grant tool access
-
-External skills are scanned for prompt injection at load time, the same as every other skill - `skill_load` always scans before returning content. They skip only the write-time scan that runs when you create or edit a skill through netclaw, since you author these files yourself in another tool.
-
-## Validating External Skills
-
-Validate skills before loading them:
+## Validate a skill
 
 ```bash
-# Validate a single skill
 netclaw skill validate /opt/skills/shared/deploy/SKILL.md
-
-# See all scanning/validation issues across all sources
 netclaw skill issues
 ```
 
+`validate` applies the native rules: the frontmatter `name` must match the directory name, and symlinks aren't followed. A skill that the daemon loads happily from an external source can still fail `validate` for either reason. `netclaw skill issues` scans the native and external sources and lists everything it rejected or shadowed.
+
 ## Troubleshooting
 
-### Source shows 0 skills after adding
+### A source shows 0 skills
 
-The path doesn't contain valid `*.md` files with [SKILL.md frontmatter](https://agentskills.io). Run `netclaw skill validate <path>` on a file to see what's wrong. Common causes: missing `name` or `description` in frontmatter, or the directory has subdirectories but no top-level markdown files.
+- **Symptom:** `netclaw skill list` shows nothing from the source.
+- **Cause:** The directory holds no `SKILL.md` directories or `.md` files with a `description`, or the source is disabled.
+- **Fix:** Run `netclaw skill source list`, then `netclaw skill issues`. Missing `description` is the usual cause.
 
-### "Symlink blocked" warnings in logs
+### Symlink blocked
 
-The source has `AllowSymlinks: false` and the directory contains symlinks. Either restructure the directory or set `AllowSymlinks: true` if you trust where the links point.
+- **Symptom:** `netclaw skill issues` or the daemon log reports a blocked symlink.
+- **Cause:** The source has `AllowSymlinks: false` and the directory contains links.
+- **Fix:** Restructure the directory, or set `AllowSymlinks: true` if you trust where the links point.
 
-### Skills not updating after file changes
+### Edits don't show up
 
-Filesystem events are debounced by 500ms. If changes still aren't showing up, check that the daemon is running (`netclaw status`) and the source is enabled (`netclaw skill source list`).
+- **Symptom:** You changed a skill, but the agent still sees the old one.
+- **Cause:** The daemon isn't running, the source is disabled, or the session started before the change.
+- **Fix:** Check `netclaw status` and `netclaw skill source list`, then start a new session.
 
-## What to Read Next
+## Related pages
 
-- [Skills Overview](/skills/overview/) — skill format, source types, and the full lifecycle
-- [Skill Feeds](/skills/skill-feeds/) — server-synced skill repositories
-- [`netclaw skill`](/cli/skill/) — full CLI reference for skill management
+- [Skills overview](/skills/overview/): format, tiers and precedence
+- [Skill feeds](/skills/skill-feeds/): skills from a skill server
+- [`netclaw skill`](/cli/skill/): the full command reference
+- [Slash commands](/reference/slash-commands/): run any skill with `/name`
 
 ## Resources
 
-- [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code) — Claude Code setup and commands reference
-- [FileSystemWatcher docs](https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher) — the .NET file watching API netclaw uses
+- [AgentSkills.io](https://agentskills.io): the `SKILL.md` format specification
+- [Claude Code documentation](https://docs.anthropic.com/en/docs/claude-code): Claude Code setup and its skill and plugin folders
+- [FileSystemWatcher](https://learn.microsoft.com/en-us/dotnet/api/system.io.filesystemwatcher): the .NET file watcher netclaw uses

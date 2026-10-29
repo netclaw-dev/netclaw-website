@@ -1,52 +1,48 @@
 ---
-title: "Skill Feeds"
-description: "Subscribing to private skill server feeds."
+title: "Skill feeds"
+description: "Sync skills and subagents from a private skill server, add a feed, and pull updates on demand."
 ---
 
-Skill feeds connect your netclaw daemon to private skill servers. The daemon discovers available skills via the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) protocol, downloads them, verifies integrity via SHA-256 digests, and makes them available to the agent — all automatically.
+A skill feed connects the daemon to a [skill server](/skills/skill-server/). The daemon reads the server's skill index, downloads what changed, verifies each download against a SHA-256 digest, and installs skills and subagents where the agent can use them. Use a feed to give every netclaw instance in your organization the same skills without copying files around.
 
-Skills follow the [AgentSkills.io](https://agentskills.io) open standard format. Both standards are vendor-neutral and supported across multiple agent platforms, so skills published to a feed work anywhere that speaks the protocol.
+Feeds are the remote counterpart of [external skills](/skills/external-skills/), which point at directories on disk.
 
-## How It Works
+## How a sync pass works
 
 ```mermaid
 flowchart TD
-    A[Daemon starts] --> B[Sync all feeds in parallel]
-    B --> C{For each feed}
-    C --> D[Fetch /.well-known/agent-skills/index.json]
-    D --> E[Diff against local sync state]
-    E --> F{New or changed skills?}
-    F -->|No| G[Skip — already up to date]
-    F -->|Yes| H[Download skill files]
-    H --> I[Verify SHA-256 digest]
-    I -->|Mismatch| J[Reject — log warning]
-    I -->|OK| K[Content scan for prompt injection]
-    K -->|Rejected| J
-    K -->|Allowed| L[Write to ~/.netclaw/skills/.server-feeds/]
-    L --> M[Update sync state]
-    G --> N[Rescan all skill directories]
-    M --> N
-    J --> N
-    N --> O[Update agent skill index]
-    O --> P[Sleep SyncIntervalMinutes]
-    P --> B
+    A["Pass starts: daemon start,<br/>timer or netclaw skill sync"] --> B["Each enabled feed, in order:<br/>fetch the RFC skill index"]
+    B --> D{"New, changed or<br/>edited locally?"}
+    D -->|"No"| M
+    D -->|"Yes"| F["Download SKILL.md<br/>or the archive .zip"]
+    F --> I{"SHA-256 matches?"}
+    I -->|"No"| J["Reject and log"]
+    I -->|"Yes"| K["Install under<br/>skills/.server-feeds/FEED/"]
+    J --> L
+    K --> L["Delete skills the<br/>server stopped listing"]
+    L --> M["Fetch the subagent index and install<br/>agent.md files under agents/.server-feeds/FEED/"]
+    M --> O["Rescan skills and refresh the index"]
 ```
 
-Each feed syncs independently. A failing server never blocks other feeds or daemon startup. On failure, the daemon falls back to on-disk skills from the last successful sync.
+Feeds sync one after another. A feed that fails is skipped and the daemon keeps using the files from its last good sync, but a slow feed delays the ones after it by up to its `TimeoutSeconds`.
 
-## Add a Feed via netclaw config
+Skills come from the server's [RFC index](https://github.com/cloudflare/agent-skills-discovery-rfc). Each entry is either a single `skill-md` file or an `archive`, a zip that holds the skill's `references/`, `scripts/` and `assets/` as well. netclaw verifies the zip's digest first, then extracts it with hardening against path traversal, symlink entries and duplicate names. See [Bundling resources with skills](/skills/bundled-resources/).
 
-The `netclaw config` → Skill Sources screen lets you add remote skill servers. Select "+ Add skill server," enter the base URL, and the daemon probes for `/.well-known/agent-skills/index.json`, reports the skill count (or shows the error), and suggests a name based on the hostname. If the server requires authentication, you'll be prompted for a bearer token. Add as many feeds as you need.
+Subagents come from the server's [native manifest](/skills/native-manifest/), which the RFC index doesn't carry. A server with no native manifest still works for skills, and the pass reports `sidecar=absent`.
 
-![Skill Sources editor](/screenshots/output/config-skills.png)
+## Add a feed
 
-The Skill Sources screen — choose **+ Add skill server** to add a remote feed by base URL.
+Feeds aren't managed by `netclaw skill source`. That command only handles local directories. Add a server through `netclaw config` or by editing `netclaw.json`.
 
-Each remote server in the list shows how many skills it **advertises** — the count from its `index.json`, rendered as `N advertised` on the server's row. That's what the server publishes, not necessarily what netclaw loads: the daemon can end up with fewer after content-scanning, hashing, and version filtering. A gap between "advertised" and what shows up in `netclaw skill list` is normal, not an error.
+### In the config menu
 
-## Manual Configuration
+Run `netclaw config`, open **Skill Sources**, choose **+ Add skill server** and enter the base URL. The screen probes the server, shows how many skills it advertises, and suggests a name from the hostname. If the server needs a bearer token, it asks for one.
 
-Remote feeds can only be added through `netclaw config` → Skill Sources, or by editing `~/.netclaw/config/netclaw.json` directly:
+![The Skill Sources screen with one local folder, Claude Code at /home/netclaw/.claude/skills showing 1 skill, one remote skill server, Corp Skills, and the Add local folder, Add skill server, Rescan all and Done rows](/screenshots/output/config-skills.png)
+
+A skill server you add appears under **Remote skill servers**, like Corp Skills here. Once its feed has been read, the count next to it is what it publishes, which can be higher than what `netclaw skill list` shows once sync finishes.
+
+### In netclaw.json
 
 ```json
 {
@@ -55,7 +51,7 @@ Remote feeds can only be added through `netclaw config` → Skill Sources, or by
     "Feeds": [
       {
         "Name": "corp-skills",
-        "Url": "https://skills.corp.com",
+        "Url": "https://skills.example.com",
         "Enabled": true,
         "TimeoutSeconds": 30
       }
@@ -64,145 +60,136 @@ Remote feeds can only be added through `netclaw config` → Skill Sources, or by
 }
 ```
 
-## Feed Config Fields
+The daemon restarts itself when `netclaw.json` changes and runs a sync pass as it starts. Run `netclaw doctor` after hand edits to catch schema errors.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `Name` | string | — | Filesystem-safe identifier for this feed |
-| `Url` | string | — | Base URL; daemon appends `/.well-known/agent-skills/index.json` |
-| `Enabled` | bool | `true` | Toggle without removing the entry |
-| `TimeoutSeconds` | int | `30` | HTTP timeout for this feed |
-| `ApiKey` | string | `null` | Optional bearer token for authenticated feeds; supports the `ENC:` prefix for encrypted storage |
+| `Name` | string | - | Feed identifier and folder name. Lowercase letters, digits and hyphens only (`^[a-z0-9-]+$`). |
+| `Url` | string | - | Server base URL. The daemon adds `/.well-known/agent-skills/index.json`. |
+| `Enabled` | bool | `true` | Turn a feed off without deleting it. |
+| `TimeoutSeconds` | int | `30` | Per-request HTTP timeout, 1 to 300. |
+| `ApiKey` | string | none | Bearer token. Supports the `ENC:` prefix for encrypted storage. |
 
-Top-level `SkillFeeds` settings:
+`SyncIntervalMinutes` (default `60`, range 0 to 1440) sets the timer. `0` means sync at startup only.
 
-| Field | Default | Description |
-|-------|---------|-------------|
-| `SyncIntervalMinutes` | `60` | Periodic sync interval. Set to `0` for startup-only sync. |
+A skill server serves reads without a key, so you only need `ApiKey` when something in front of it, like a proxy, requires one. A publishing key is a different thing and never belongs in netclaw's config. See [Skill server](/skills/skill-server/#manage-api-keys).
 
-## Sync Behavior
+## When syncs run
 
-- **Startup sync** runs immediately with no jitter. Network failures are logged but never block the daemon from starting.
-- **Periodic sync** fires every `SyncIntervalMinutes`. The first periodic tick adds 0-5 minutes of random jitter to stagger multiple instances hitting the same server.
-- **Startup-only mode**: set `SyncIntervalMinutes: 0` to disable periodic sync entirely. Skills only update when the daemon restarts.
-- **Isolation**: each feed syncs in its own background task. One slow or broken server has zero impact on the others.
-- **Fallback**: on any failure, the daemon keeps serving the last successfully synced skills from disk.
+| Trigger | Timing |
+|---------|--------|
+| Daemon start, including the restart after a config change | Immediately. A failure never blocks startup. |
+| Timer | Every `SyncIntervalMinutes`. The first tick adds 0 to 5 minutes of random jitter. |
+| `netclaw skill sync` | Right now. If a pass is already running, it waits for that one. |
 
-## Writing Skills for a Feed
+To pull a skill you just published, run `netclaw skill sync`. It needs the running daemon.
 
-Any skill server publishes skills that follow the [AgentSkills.io](https://agentskills.io) format. Here's what you need to know.
-
-### Directory Layout
-
-```
-my-skill/
-  SKILL.md          # Required
-  references/       # Optional — reference material
-  scripts/          # Optional — helper scripts
-  assets/           # Optional — images, templates
+```bash
+netclaw skill sync
 ```
 
-### SKILL.md Format
-
-```yaml
----
-name: deploy-staging
-description: Deploy the current branch to the staging environment.
-version: 1.2.0
-category: devops
-allowed-tools: "bash docker"
----
-
-# Deploy to Staging
-
-Prerequisites:
-- Docker CLI authenticated to the registry
-- VPN connected to staging network
-
-## Steps
-
-1. Build the container image
-2. Push to the staging registry
-3. Trigger the deployment webhook
+```text
+Waiting for the daemon's skill sync pass. Press Ctrl+C to stop this wait.
+Skill sync pass a304191e2ce04fc28782ad22f8385c2d
+corp-skills: ok changed=0 unchanged=2 rejected=0 failed=0 sidecar=complete
+Inventory: ok accepted=12 rejected=0
 ```
 
-### Frontmatter Fields
+Each feed gets one line. `changed` counts skills installed, updated or deleted, and `sidecar` reports the subagent pass:
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | 1-64 chars, lowercase alphanumeric + hyphens (`^[a-z0-9]+(-[a-z0-9]+)*$`) |
-| `description` | Yes | One-line summary visible to agents during discovery |
-| `version` | Yes (for feeds) | [Semver](https://semver.org) string — bumping triggers a new publish |
-| `category` | No | Aids search and filtering |
-| `license` | No | [SPDX identifier](https://spdx.org/licenses/) |
-| `compatibility` | No | Which agent platforms can use this |
-| `allowed-tools` | No | Space-delimited tool list (informational only, does not grant access) |
-| `invocable` | No | Default `true`; `false` hides from slash commands |
-| `disable-model-invocation` | No | `true` excludes from LLM index (still invocable via `/name`) |
-| `argument-hint` | No | Hint shown after the slash command name |
-| `metadata.subagent` | No | Routes to a named subagent instead of returning content |
+| `sidecar` | Meaning |
+|-----------|---------|
+| `complete` | Subagents synced, or the server has none. |
+| `absent` | The server has no native manifest, so there's nothing to sync. |
+| `failed` | A subagent request or file failed. Existing subagent files stay. |
+| `not-run` | The skill index request failed, so subagents weren't attempted. |
 
-The `version` field is required for feed publishing. The server uses it to detect changes — bump the version to trigger downstream syncs.
+The command exits 1 if any feed reports `failed` or `rejected` above zero, or the inventory refresh fails. Ctrl+C stops the wait, not the pass.
+
+```text
+corp-skills: failed changed=0 unchanged=0 rejected=0 failed=1 sidecar=not-run
+  Error: The RFC index request failed.
+```
+
+## What lands where
+
+| What | Location |
+|------|----------|
+| Skills | `~/.netclaw/skills/.server-feeds/<feed>/<skill>/` |
+| Subagents | `~/.netclaw/agents/.server-feeds/<feed>/<agent>.md` |
+| Sync state | `.sync-state.json` in each of the two feed folders |
+
+`netclaw skill list` labels feed skills `native`, because they live under `~/.netclaw/skills/`. To tell them apart, look at the path or the `corp-skills` folder.
+
+### Updates, edits and removals
+
+- **Updates.** A skill installs again when the server's version or digest differs from the sync state. Bump `metadata.version` in `SKILL.md` and publish. netclaw shows the version from that frontmatter key, not the number you passed to the publish command.
+- **Local edits.** netclaw records a hash of every installed file. If anything edits, adds or deletes a file in a feed skill folder, the next pass reinstalls the published version. Subagent files aren't hash-checked, so an edited subagent stays edited until its version changes.
+- **Removals.** When the server stops listing a skill, the next pass deletes it. Pruning only runs when the server returns a non-empty index, so an outage or an empty response never wipes your skills. Subagents are pruned only after every page and item synced cleanly.
+- **First sync after an upgrade.** Skills installed before hash tracking get downloaded once more to record hashes.
+
+### Name clashes
+
+Native and system skills beat feed skills, and feed skills beat external ones. Between feeds, the one listed first in `SkillFeeds.Feeds` wins. For subagents, any definition in `~/.netclaw/agents/*.md` beats a feed copy of the same name, and netclaw logs a warning. To override a feed skill, create a native skill with the same name.
+
+## Authoring for a feed
+
+A feed serves skills in the [AgentSkills.io](https://agentskills.io) format. Three feed-specific rules:
+
+- Put `version` under `metadata:`. The skill server's CLI accepts a top-level `version:` key too, but netclaw ignores it and shows `-`. Under `metadata:` both read it.
+- Names are 1 to 64 characters of lowercase letters, digits and single hyphens.
+- A skill that has a `references/`, `scripts/` or `assets/` folder publishes as an archive automatically.
+
+The full format is in [Skills overview](/skills/overview/). Publishing is covered by the [`skillserver` CLI](/skills/skillserver-cli/) page.
 
 ## Security
 
-Every skill downloaded from a feed goes through the content scanner before it reaches the agent:
+netclaw checks the SHA-256 digest of every skill, archive and subagent a feed serves and rejects a file that doesn't match. It does not scan skill content. The scanner is off ([netclaw#976](https://github.com/netclaw-dev/netclaw/issues/976)), so a feed skill loads exactly as the server published it. Subscribe only to servers you run or trust. See [Trust and safety](/skills/overview/#trust-and-safety).
 
-| Verdict | Action |
-|---------|--------|
-| **Allowed** | Skill proceeds normally |
-| **Warning** | Skill loads, event is logged |
-| **Rejected** | Skill blocked; surfaces in `netclaw skill issues` |
+Subagent files are prompts. A subagent from a feed runs with the same tools and approvals as one you wrote, so read what a feed publishes.
 
-Resource files (`references/`, `scripts/`) are also scanned. SHA-256 digest verification runs before scanning — a tampered file is rejected before the content scanner even sees it.
-
-Server feed skills are stored as read-only in `~/.netclaw/skills/.server-feeds/{feed-name}/`. They cannot be modified locally.
-
-### Precedence
-
-```
-native skills  >  server feeds  >  external sources
-```
-
-A native skill with the same name always wins. To override a feed skill, create a native skill with the same `name` — your local version takes priority.
-
-### Disabling All Skills
-
-Two related config keys control broader skill behavior:
-
-| Key | Effect |
-|-----|--------|
-| `SkillSync.Enabled: false` | Blocks the agent from loading *any* skills via `skill_load` |
-| `SkillSync.DisableSystemSkillSync: false` | Set `true` to disable the built-in CDN feed; the default `false` keeps it enabled (separate from private feeds) |
+`netclaw skill issues` doesn't show feed rejections. A rejected file shows up in the daemon log and in the `rejected` count of `netclaw skill sync`.
 
 ## Troubleshooting
 
-### Feed shows 0 skills after adding
+### A feed shows 0 skills
 
-Open `netclaw config` → Skill Sources to confirm the feed is enabled, or check `~/.netclaw/config/netclaw.json` under the `SkillFeeds.Feeds` array. Then check the daemon logs — the most common cause is the server not serving `/.well-known/agent-skills/index.json` at the expected path. Verify with:
+- **Symptom:** The server row says `0 advertised`, or no skills appear after a sync.
+- **Cause:** The URL is wrong, or the server isn't serving its index.
+- **Fix:** Check the index, and check that the feed is enabled in `netclaw config` or `SkillFeeds.Feeds`:
 
 ```bash
-curl -s https://skills.corp.com/.well-known/agent-skills/index.json | head
+curl -s https://skills.example.com/.well-known/agent-skills/index.json | head
 ```
 
-### Skills not updating
+### A published skill doesn't show up
 
-Periodic sync fires every `SyncIntervalMinutes` (default 60). If you need immediate updates, restart the daemon — startup sync runs without delay. Also check that the skill's `version` was bumped on the server side.
+- **Symptom:** You published a skill, but `netclaw skill list` doesn't show it.
+- **Cause:** The timer hasn't fired yet, or the version didn't change.
+- **Fix:** Run `netclaw skill sync`. If the line says `unchanged`, publish a new `metadata.version`.
 
-### "Content rejected" in skill issues
+### The sync line says `failed`
 
-The content scanner flagged prompt injection patterns in the skill body. Run `netclaw skill issues` for details. Work with the skill author to revise the content, or file an issue on the skill server if you believe it's a false positive.
+- **Symptom:** `netclaw skill sync` exits 1 with `failed=1`.
+- **Cause:** The server was unreachable or slow, or one skill failed to download or verify.
+- **Fix:** Read the `Error:` line and the daemon log at `~/.netclaw/logs/`. Existing skills stay in place. Raise `TimeoutSeconds` for a slow server.
 
+### A subagent doesn't appear
 
-## Related Pages
+- **Symptom:** The server lists a subagent, but `spawn_agent` can't find it.
+- **Cause:** A local agent with the same name wins, the feed shows `sidecar=absent` or `failed`, or the file failed validation.
+- **Fix:** Check `~/.netclaw/agents/.server-feeds/<feed>/` for the file. A name clash and a validation failure both log a warning in the daemon log.
 
-- [Skills Overview](/skills/overview/) — format, lifecycle, and precedence rules
-- [External Skills](/skills/external-skills/) — local skill directories from other tools
-- [Skill Server](/skills/skill-server/) — running your own server that publishes feeds
-- [`netclaw skill`](/cli/skill/) — CLI reference for skill management
+## Related pages
 
-## External Resources
+- [Skills overview](/skills/overview/): tiers, precedence and trust
+- [Skill server](/skills/skill-server/): run the server a feed points at
+- [Native manifest](/skills/native-manifest/): how subagents reach netclaw
+- [Distributing subagents](/skills/distributing-subagents/): publish a subagent to a feed
+- [`netclaw skill`](/cli/skill/): `skill sync` and the other subcommands
 
-- [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC v0.2.0](https://github.com/cloudflare/agent-skills-discovery-rfc) — the discovery protocol behind skill feeds
-- [netclaw-dev/skill-server](https://github.com/netclaw-dev/skill-server) — reference implementation of a private skill server
+## Resources
+
+- [AgentSkills.io](https://agentskills.io): the `SKILL.md` format specification
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc): the discovery protocol behind skill feeds
+- [netclaw-dev/skill-server](https://github.com/netclaw-dev/skill-server): the reference skill server

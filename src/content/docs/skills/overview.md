@@ -1,49 +1,75 @@
 ---
-title: "Skills Overview"
-description: "What skills are and how Netclaw uses them."
+title: "Skills overview"
+description: "What skills and subagents are, where netclaw finds them, which one wins a name clash, and how they reach a session."
 ---
 
-Skills are markdown files that teach the agent *how to do things*. Rather than hard-coding every behavior into the daemon, you write procedural knowledge as plain text and the agent loads it on demand.
+A skill is a markdown file that teaches the agent how to do one thing: your team's commit conventions, a deploy checklist, how to triage a failing pod. A subagent is a separate markdown file that defines a specialist the agent can hand a bounded task to. Both are plain text you can read, diff and keep in git.
 
-Think of them as cheat sheets. A `commit` skill encodes your team's commit conventions; a `review-pr` skill walks through your code review checklist. The agent sees a one-line-per-skill index on every turn (just names and descriptions), then reads the full content only when it needs it. A large skill library costs almost nothing in context.
+netclaw puts a one-line-per-skill index into the system prompt when a session starts. The model reads full instructions only when it needs them, so a big library costs a few lines of context. You can also start a skill yourself by typing `/skill-name` at the start of a message.
 
-All skills follow the [AgentSkills.io](https://agentskills.io) format: a `SKILL.md` file with YAML frontmatter. The format is shared across multiple agent platforms, so skills you write for netclaw can work in Claude Code too.
+Skills use the [AgentSkills.io](https://agentskills.io) format, a `SKILL.md` with YAML frontmatter, so most skills you write for netclaw also work in other agent tools.
 
-## How skills reach the agent
+## Where skills come from
 
-The lifecycle has four phases:
+```mermaid
+flowchart TD
+    SRV[("Skill server")] -->|"sync"| FD["Feed folders"]
+    SYS["System skills<br/>(in the binary)"] --> REG
+    NAT["Native skills"] --> REG
+    FD --> REG
+    EXT["External directories"] --> REG
+    MCP["MCP prompts"] --> REG
+    REG["Skill registry"] --> IDX["Index in the system prompt"]
+    IDX --> S["Session"]
+    S -->|"skill_load or /name"| BODY["Skill body and resources"]
+    AG["~/.netclaw/agents/"] --> SUB["Subagent registry"]
+    FD --> SUB
+    S -->|"spawn_agent"| SUB
+```
 
-1. **Sync** - at startup, the daemon pulls netclaw's built-in skills from netclaw's own feed and (optionally) syncs skills from private [skill servers](/skills/skill-server/). These land in read-only directories under `~/.netclaw/skills/`.
+| Tier | Location | Managed by |
+|------|----------|-----------|
+| system | `~/.netclaw/skills/.system/` | The daemon. Restored from the binary on every start. |
+| native | `~/.netclaw/skills/` | You, or the agent through `skill_manage` |
+| server feed | `~/.netclaw/skills/.server-feeds/<feed>/` | A [skill server](/skills/skill-server/) you subscribe to. See [Skill feeds](/skills/skill-feeds/). |
+| external | Directories you add | The tool that owns them. See [External skills](/skills/external-skills/). |
+| MCP prompt | Not on disk | A connected [MCP server](/configuration/mcp-servers/) |
 
-2. **Scan** — the daemon walks all skill directories (native, server feeds, external), validates frontmatter, and merges results. Native skills take precedence over server feeds, which take precedence over external sources. Netclaw logs name collisions from lower-precedence sources as issues and skips the duplicates. Run `netclaw skill issues` to see them.
+Subagent definitions live next to skills but load separately. Your own are in `~/.netclaw/agents/`, and a skill server can install more into `~/.netclaw/agents/.server-feeds/<feed>/`. See [Custom subagents](/skills/custom-subagents/).
 
-3. **Index** — the daemon compresses the merged list into a one-line-per-skill summary and injects it into the agent's system prompt. The agent sees skill names and descriptions but not the full instructions.
+### System skills
 
-4. **Load** — when the agent needs a skill, it calls the `skill_load` built-in tool to read the full `SKILL.md` body and get a listing of resource files (scripts, references, assets). Users can also invoke skills directly via `/skill-name` slash commands.
+The daemon ships nine system skills, embedded in the binary: `agent-coordination`, `netclaw-memory`, `netclaw-operations`, `netclaw-projects`, `run-reminder`, `search-citation`, `skill-authoring`, `subagent-authoring` and `web-content-retrieval`. Nothing downloads. Every daemon start replaces the `.system` folder with the copies in the binary, so edits there don't survive a restart.
 
-Changes to skill files trigger a rescan automatically. A file watcher monitors native and external source directories with a 500ms debounce, so edits take effect without a restart. Server feed directories are not watched — they update on the configured sync interval.
+There is no setting to turn system skill sync off. 0.27.0 removed `SkillSync.DisableSystemSkillSync`, and `netclaw doctor --fix` deletes it from an old config.
 
-## Skill file format
+### Precedence
 
-Two layouts work:
+When two sources define the same name, the higher tier wins and the other copy shows up as a `DuplicateName` issue:
 
-**Directory-based** — for skills with supporting resources:
+```
+system  >  native  >  server feeds  >  external
+```
+
+Feeds rank in the order they appear in `SkillFeeds.Feeds`, and external sources in the order of `ExternalSkills.Sources`. A system skill beats a native skill of the same name, so you can't shadow `netclaw-memory` by dropping a file in `~/.netclaw/skills/`. A native skill beats everything you sync or point at.
+
+### MCP prompts
+
+Prompts from connected MCP servers appear as skills named `mcp__<server>__<prompt>`. They show up in [`netclaw skill list`](/cli/skill/) with source `mcp`, and the agent loads them through `skill_load` with an `arguments` map. They aren't files, so there is nothing to edit, and they don't become `/` commands.
+
+## What a skill looks like
+
+Two layouts work. A directory holds a skill with supporting files, and a flat file holds a self-contained one:
 
 ```
 commit/
-  SKILL.md          # Required — instructions + frontmatter
-  scripts/          # Optional — helper scripts
-  references/       # Optional — reference material
-  assets/           # Optional — images, templates
-```
+  SKILL.md          # required: frontmatter + instructions
+  references/       # optional: material the agent can read
+  scripts/          # optional: scripts the agent can run
+  assets/           # optional: templates, images
 
-**Flat file** — for self-contained skills:
-
+commit.md           # flat-file alternative
 ```
-commit.md
-```
-
-The file name (or directory name) must match the `name` field in the frontmatter for native skills. External sources are more relaxed — the frontmatter `name` is treated as canonical.
 
 ```yaml
 ---
@@ -51,101 +77,40 @@ name: commit
 description: Create well-structured git commits with conventional commit messages.
 metadata:
   version: 1.0.0
-license: MIT
-allowed-tools: "bash git"
+argument-hint: "<scope>"
 ---
 
-# Commit Changes
+# Commit changes
 
-Instructions for the agent go here...
+Instructions for the agent go here.
 ```
-
-### Frontmatter fields
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| `name` | Yes | Lowercase identifier (must match directory/file name for native skills) |
-| `description` | Yes | One-line summary (max 1024 chars per the [AgentSkills.io](https://agentskills.io) spec) |
-| `metadata.version` | No | [Semver](https://semver.org) version string |
-| `license` | No | [SPDX license identifier](https://spdx.org/licenses/) |
-| `compatibility` | No | Which agent platforms can use this skill |
-| `allowed-tools` | No | Space-delimited list of tools the skill needs (informational — does not grant access) |
-| `disable-model-invocation` | No | When `true`, excluded from the LLM index (still invocable via `/name`) |
-| `invocable` | No | Default `true`; when `false`, hidden from slash commands |
-| `argument-hint` | No | Hint text shown after the slash command in completions |
-| `metadata.subagent` | No | Routes execution to a named subagent instead of returning skill content |
+| `description` | Yes | One line, up to 1024 characters. The model sees it in the index, so say when to use the skill. |
+| `name` | No | Lowercase identifier. Defaults to the directory or file name. When you set it on a native skill it must match that name. |
+| `metadata.version` | No | A version string like `1.0.0`. A top-level `version:` key is ignored, and `netclaw skill list` shows `-`. |
+| `invocable` | No | Defaults to `true`. Set `false` to hide the skill from `/` commands. |
+| `disable-model-invocation` | No | Set `true` to keep the skill out of the index. You can still run it with `/name`. |
+| `argument-hint` | No | Text shown after the command name, like `<scope>`. |
+| `metadata.subagent` | No | Name of a subagent to run the skill instead of returning its text. |
+| `allowed-tools` | No | Informational only. It never grants access. |
+| `license`, `compatibility` | No | Free-form strings. `compatibility` is a single string, not a list. |
 
-The display name shown in `netclaw skill list` comes from the first `#` heading in the markdown body, falling back to title-casing the skill name.
+netclaw ignores unknown keys, so a misspelled one fails silently. The key is `invocable`, not `user-invocable`. `netclaw skill list` shows the `name` key. The `Display:` line in `netclaw skill show` comes from the first `#` heading in the body, or from the title-cased name when there is none.
 
-## Quick setup
+Files under a skill directory other than `SKILL.md` count as resources. A skill server can ship them as a zip archive, and netclaw extracts it into an ordinary skill folder. See [Bundling resources with skills](/skills/bundled-resources/).
 
-To add an external skill directory or connect a skill server, run [`netclaw config`](/cli/config/) → Skill Sources. The TUI opens an interactive picker — no manual JSON editing required.
+## How skills get used
 
-```bash
-netclaw config
-```
+| Path | What happens |
+|------|-------------|
+| The model loads a skill | It reads the index, calls `skill_load` with the name, and gets the body plus a list of resource files. It reads a resource with `skill_read_resource`, which returns the file's absolute path on the first line so the agent can run a bundled script. |
+| You type `/name` | The text after the name becomes your message, and netclaw adds the skill body to that turn. With no text, netclaw tells the model you invoked the skill. See [Slash commands](/reference/slash-commands/). |
+| A skill has `metadata.subagent` | Loading it, or typing its `/name`, starts that subagent in the background with the skill body as extra instructions and your text as the task. The call returns the accepted run, and the result arrives in a later turn as a notice that names `result.md`. The subagent runs with the session's effective audience. The target has to exist and be `user-facing`. The model has to pass a `task` when it loads one. |
+| The model calls an MCP prompt skill | `skill_load` returns the prompt's messages. Pass `arguments` for prompts that take them. |
 
-Select **Skill Sources** to add a local folder (e.g., `~/.claude/skills/`) or subscribe to a private [skill server](/skills/skill-server/). Changes take effect on the next scan without a restart.
-
-![Skill Sources editor](/screenshots/output/config-skills.png)
-
-Manual configuration (e.g., for scripted or Docker installs) is covered in [External Skills](/skills/external-skills/) and [Skill Feeds](/skills/skill-feeds/).
-
-## Where skills come from
-
-Four source types, each with different trust and management:
-
-| Source | Location | Managed by | Mutable? |
-|--------|----------|-----------|----------|
-| **system** | `~/.netclaw/skills/.system/` | Daemon (netclaw's feed) | No |
-| **native** | `~/.netclaw/skills/` | You | Yes |
-| **server feeds** | `~/.netclaw/skills/.server-feeds/` | Private [skill servers](/skills/skill-server/) | No |
-| **external** | Configured directories | Source tool (Claude Code, etc.) | At source |
-
-Drop a `SKILL.md` into `~/.netclaw/skills/` and it appears on the next scan - that's a native skill. You can also ask netclaw's agent to write one for you - it has a `skill_manage` tool for creating and editing skills. Inspect or remove skills with [`netclaw skill`](/cli/skill/), and run `netclaw skill validate` to check a skill's frontmatter before using it.
-
-System skills ship from netclaw's own feed and are read-only. Built-in skills like `netclaw-memory` and `netclaw-operations` land here on first run. For a fully offline setup, set `SkillSync.DisableSystemSkillSync: true` in your `netclaw.json` (see [Configuration](/configuration/models/) for file location).
-
-External skills let netclaw read skill directories from other AI tools. Add a local folder via `netclaw config` → Skill Sources or wire up a well-known alias via the CLI.
-
-Well-known aliases expand to standard paths:
-
-| Alias | Scans |
-|-------|-------|
-| `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/plugins/marketplaces/*/skills/` |
-| `open-code` | `~/.open-code/skills/` |
-
-Server feed skills sync from private [skill servers](/skills/skill-server/) that implement the [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc). These are self-hosted registries that distribute skills across your organization. Configure them in `netclaw config` → Skill Sources or add them later via `netclaw skill source add`. See the [netclaw skill-server](https://github.com/netclaw-dev/skill-server) reference implementation for setting up your own.
-
-## Precedence
-
-When multiple sources define a skill with the same name, the highest-precedence source wins:
-
-```
-native  >  server feeds  >  external
-```
-
-A native skill named `commit` shadows any `commit` from a server feed or external source. You can always override shared skills with your own version.
-
-## Security
-
-Skills are just text, but text that lands in an agent's instructions can carry prompt injection - hidden text that tries to hijack the agent's instructions. Netclaw runs a content scanner on both write operations (create, edit, sync) and at load time (every `skill_load` call scans before returning content):
-
-| Verdict | Risk | Action |
-|---------|------|--------|
-| **Allowed** | None or low risk detected | Skill proceeds normally |
-| **Warning** | Medium | Skill loads, but the event is logged |
-| **Rejected** | High (prompt injection detected) | Skill is blocked; `netclaw skill issues` surfaces the rejection |
-
-Additional guardrails:
-
-- Symlinks are blocked by default in native and system directories. External sources can opt in via `AllowSymlinks: true` in config.
-- Sessions with a [public trust audience](/security/security-model/) cannot load skills. `skill_load` also returns an error when `SkillSync.Enabled` is `false`.
-- Skills run through the same [tool access policies](/security/security-model/) as everything else. The `allowed-tools` frontmatter field is informational — actual tool grants are controlled by the security policy.
-
-## Subagent routing
-
-Instead of returning instructions, a skill can hand off to a subagent. Add `metadata.subagent` to the frontmatter:
+Routing example:
 
 ```yaml
 ---
@@ -156,40 +121,57 @@ metadata:
 ---
 ```
 
-When `skill_load` hits this skill, it spawns the named subagent with the skill's body as a system prompt overlay. The caller passes a `task` parameter to the spawned subagent. The target subagent must be registered and user-facing — internal-only subagents cannot be routed to.
+The model sees the index only in sessions with a Team or Personal audience. Public sessions get no index, and `skill_load` returns an error for them. `SkillSync.Enabled: false` empties the index and makes `skill_load` and `skill_read_resource` refuse for every audience.
+
+New and edited skill files are picked up without a restart. A file watcher on the native, feed and external directories rescans after a 500 ms pause. New sessions see the updated index. Changing which sources exist, such as adding an external directory, restarts the daemon in-process.
+
+## Trust and safety
+
+netclaw does not scan skill content. The scanner is turned off ([netclaw#976](https://github.com/netclaw-dev/netclaw/issues/976)), so a skill from any tier loads as written. Prompt-injection detection still runs on inbound channel messages. Treat a skill as instructions you are giving the agent and install only skills you've read or whose source you trust.
+
+What does protect you:
+
+- Feed downloads are checked against the server's SHA-256 digest, and a mismatch is rejected.
+- Synced files are hash-checked. If anything edits a feed skill folder or a system skill, the next sync or daemon start puts the published copy back.
+- `skill_manage` refuses to edit system, feed and external skills. Only native skills are editable.
+- `allowed-tools` grants nothing. Tool access comes from the [security policy](/security/security-model/), and a skill runs under the same approvals as any other turn.
+- Symlinks are rejected in native and system directories. An external source can opt in with `AllowSymlinks`.
+
+The skill folders are writable by the agent, so a script bundled with a feed skill can run through the shell tool. That only works in sessions whose audience allows `shell_execute`.
 
 ## Configuration
 
-Run `netclaw config` to manage skill sources interactively. Two keys in `netclaw.json` also control skill loading directly:
+Most setup happens in [`netclaw config`](/cli/config/) under **Skill Sources**, where you add local folders and skill servers.
+
+![The Skill Sources screen with one local folder, Claude Code at /home/netclaw/.claude/skills showing 1 skill, one remote skill server, Corp Skills, and the Add local folder, Add skill server, Rescan all and Done rows](/screenshots/output/config-skills.png)
+
+The screen lists local folders with their skill counts, and remote servers appear alongside them with how many skills each advertises.
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `SkillSync.Enabled` | `true` | Blocks the agent from loading skills via `skill_load` when `false` |
-| `SkillSync.DisableSystemSkillSync` | `false` | Skip CDN sync for system skills |
+| `SkillSync.Enabled` | `true` | When `false`, the skill index is empty and the skill tools refuse every call. |
+| `SkillFeeds` | none | Skill servers to sync from. See [Skill feeds](/skills/skill-feeds/). |
+| `ExternalSkills.Sources` | none | Extra skill directories. See [External skills](/skills/external-skills/). |
 
-External sources and skill feeds have their own config sections. See [External Skills](/skills/external-skills/) and [Skill Feeds](/skills/skill-feeds/) for details.
-
-## Tracking skill usage
-
-Run [`netclaw stats skills`](/cli/stats/) to see which skills the agent loads most often. Good for spotting which skills pull their weight and which to cut.
+To see what the agent has loaded, run `netclaw skill list` (the daemon has to be running). To see which skills it uses, run [`netclaw stats skills`](/cli/stats/).
 
 ## Limitations
 
-- No built-in skill marketplace or discovery beyond what your configured sources provide.
-- Skill content scanning uses regex-based heuristics. It catches common prompt injection patterns but is not a comprehensive security boundary.
-- The `allowed-tools` frontmatter field is informational. It does not grant tool access — that is controlled entirely by the [security policy](/security/security-model/).
-- Skills are text-only. They cannot register tools, modify daemon behavior, or execute code directly.
-- No versioning or rollback for native skills. If you overwrite a skill, the old version is gone.
+- Skills are text. They can't register tools or change daemon behavior.
+- There's no version history or rollback for native skills. Overwrite one and the old copy is gone, so keep yours in git.
+- `skill list` shows skills from a skill server with source `native`, because they live under `~/.netclaw/skills/`. The offline commands `show`, `search`, `issues` and `remove` don't see them. See [`netclaw skill`](/cli/skill/).
+- There's no public marketplace. Skills come from the sources you configure.
 
-## What to read next
+## Related pages
 
-- [`netclaw skill`](/cli/skill/) — CLI reference for managing skills (list, show, validate, search, source management)
-- [External Skills](/skills/external-skills/) — configuring external skill directories
-- [Skill Feeds](/skills/skill-feeds/) — subscribing to server-synced skill repositories
-- [Skill Server](/skills/skill-server/) — running a private skill registry for your org
+- [Skill feeds](/skills/skill-feeds/): sync skills and subagents from a skill server
+- [External skills](/skills/external-skills/): read skills from Claude Code or any directory
+- [Custom subagents](/skills/custom-subagents/): define subagents and spawn them
+- [`netclaw skill`](/cli/skill/): list, inspect and validate skills
+- [Slash commands](/reference/slash-commands/): `/name` and the other commands you can type
 
 ## Resources
 
-- [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) — the protocol behind skill feeds and server-based distribution
-- [netclaw skill-server](https://github.com/netclaw-dev/skill-server) — reference implementation of a self-hosted skill registry
+- [AgentSkills.io](https://agentskills.io): the `SKILL.md` format specification
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc): the protocol behind skill feeds
+- [netclaw skill-server](https://github.com/netclaw-dev/skill-server): the self-hosted skill registry

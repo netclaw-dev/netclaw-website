@@ -1,20 +1,27 @@
 ---
 title: "Hardening"
-description: "Lock down MCP permissions and network exposure."
+description: "Lock down a netclaw install for a team, the internet or unattended use: isolation, file permissions, shell, MCP, exposure, channels and webhooks."
 ---
 
-The [security model](/security/security-model/) covers what netclaw enforces by default: default-deny, [audience](/security/security-model/#trust-audiences) scoping, a four-layer invocation stack. This page covers what *you* should do on top of that, especially if you're running it for a team, exposing it to the internet, or leaving it unattended.
+The [security model](/security/security-model/) covers what netclaw enforces by default. This page covers what you should do on top of that, especially if you run it for a team, expose it to the internet or leave it unattended. The sections are independent, so work through the ones that apply.
 
-Sections are independent. Work through the ones that apply to your deployment.
+All configuration lives in `~/.netclaw/config/netclaw.json` unless noted. Most keys fall back to built-in defaults when you omit them. The exception is `Tools` lists such as `AllowedTools`, file roots, `GlobalReadRoots` and `WebFetch.HttpAllowList`. Since 0.27.1 a configured list is the complete list and replaces the default, so write out every entry you want. A malformed list, such as a scalar where a list belongs, stops the daemon at startup with an error naming the key. `HardDenyPatterns` is the exception to the exception: it adds to the built-in deny list.
 
-All configuration lives in `~/.netclaw/config/netclaw.json` unless noted otherwise. Values merge with built-in defaults, so you only need to specify what you're changing.
+## Isolate netclaw from your other credentials
 
-## File Permissions
+Netclaw protects its own credential store and config. From 0.28.0 it also denies the agent's tools a fixed list of credential folders (`~/.ssh`, `~/.aws`, `~/.gnupg`, `~/.kube`, `~/.azure`, `~/.config/gh`, `~/.config/gcloud`, `~/.docker/config.json`, `~/.netrc`, `~/.git-credentials`). See [credential locations](/security/security-model/#credential-locations). It doesn't protect anything else your OS user can read, such as a project `.env` file, and approvals don't change that. Before 0.28.0 the agent can read those credential folders too if netclaw runs as you. Giving netclaw its own OS user or container is still the most useful hardening step.
 
-Netclaw stores credentials and webhook secrets in plaintext JSON files. Lock them down:
+- **A separate OS user.** Create a user for netclaw and give it only the files it needs. This is the lightest option for a native or systemd install. See [systemd deployment](/deployment/systemd/).
+- **A container.** The image runs the daemon as the non-root `netclaw` user, and the agent sees only what you mount. See [Docker deployment](/deployment/docker/).
+
+Netclaw has no built-in kernel sandbox for shell commands yet. The work is tracked in [netclaw-dev/netclaw#2343](https://github.com/netclaw-dev/netclaw/issues/2343). The full boundary statement is in [what netclaw doesn't protect against](/security/security-model/#what-netclaw-doesnt-protect-against).
+
+## File permissions
+
+Credential values in `secrets.json` are encrypted, but the files are only as private as their permissions. Webhook route files hold HMAC secrets in plain JSON. Netclaw creates that directory as `755` and the route files as `644`, and `netclaw doctor` doesn't flag it, so run the `chmod` yourself:
 
 ```bash
-# Encrypted secrets — only the daemon user should read this
+# Encrypted secrets: only the daemon user should read this
 chmod 600 ~/.netclaw/config/secrets.json
 
 # Webhook route files contain HMAC secrets
@@ -24,34 +31,39 @@ chmod 700 ~/.netclaw/config/webhooks/
 chmod 700 ~/.netclaw/keys/
 ```
 
-[`netclaw doctor`](/cli/doctor/) checks `secrets.json` permissions and flags unencrypted values. Run it after any manual config edits.
+[`netclaw doctor`](/cli/doctor/) checks `secrets.json` permissions and flags unencrypted values. Run it after any manual config edit.
 
-## Shell Access
+## Shell access
 
-Shell access is the biggest risk surface you can control. Two working modes in `~/.netclaw/config/netclaw.json`:
+Shell access is the biggest risk you control. Two modes work:
 
 | Mode | Behavior |
 |------|----------|
-| `Off` | Shell completely disabled. No `shell_execute` tool available. |
-| `HostAllowed` | Shell runs directly on the host. Approval gates are your only guardrail. |
+| `Off` | Shell is disabled. Every `shell_execute` call is denied with `shell_disabled`. |
+| `HostAllowed` | Shell runs on the host. Approvals are your guardrail. |
 
-A third value, `SandboxOnly`, is accepted but has no backend yet — setting it **denies shell entirely**, and `shell_execute` fails with `shell_requires_sandbox_backend`. If you see that error, this is why; use `Off` for the same effect.
+A third value, `SandboxOnly`, is accepted but has no backend yet. It denies shell entirely and `shell_execute` fails with `shell_requires_sandbox_backend`. Use `Off` for that effect.
 
-Set the mode explicitly:
+To turn shell off, set both keys, the way `netclaw init` writes them:
 
 ```json
 {
   "Security": {
     "ShellExecutionMode": "Off"
+  },
+  "Tools": {
+    "ShellMode": "Off"
   }
 }
 ```
 
-**For Team and Public [postures](/security/security-model/#deployment-postures), shell is off by default.** Only Personal posture enables it, and only with approval gates on `shell_execute`. If you're running Personal posture but don't need shell, turn it off.
+`Tools.ShellMode` takes precedence. Setting only the `Security` key can leave shell on if `Tools.ShellMode` says `HostAllowed`.
 
-### Custom Hard-Deny Patterns
+Team and Public postures have shell off by default, and shell is Personal-only whatever the posture. If you run Personal posture but don't need shell, turn it off.
 
-The built-in hard-deny list blocks `sudo`, `rm -rf ~/`, `kill`, fork bombs, and commands that would stop the daemon. Add your own patterns for anything dangerous in your environment:
+### Custom hard-deny patterns
+
+The built-in hard-deny list blocks privilege escalation (`sudo`), `rm -rf ~/`, `mkfs`, fork bombs and commands that would stop the daemon or kill its process (`pkill netclawd`). Other `kill` commands prompt like any command. Add your own patterns for anything dangerous in your environment:
 
 ```json
 {
@@ -65,27 +77,43 @@ The built-in hard-deny list blocks `sudo`, `rm -rf ~/`, `kill`, fork bombs, and 
 }
 ```
 
-Custom patterns augment the defaults, they don't replace them. Netclaw tokenizes compound commands (`&&`, `||`, `;`, `|`) and checks each segment independently, so `echo hello && docker rm foo` still triggers the deny.
+Patterns augment the defaults and never replace them. Netclaw splits compound commands (`&&`, `||`, `;`, `|`) and checks each part, so `echo hello && docker rm foo` still matches. You can keep patterns in an optional `~/.netclaw/config/hard-deny-overrides.json` instead, which also adds to the defaults.
 
-## MCP Tool Permissions
+## Review saved grants
 
-New MCP servers start with zero tool grants for all audiences, safe by default. The risk comes from granting too much.
+Every "Always" answer at an approval prompt becomes a saved grant. Review them occasionally:
 
-Audit your grants per audience:
+```bash
+netclaw approvals list
+```
+
+Look hardest at "anywhere" grants for programs that run arbitrary code, such as `bash`, `python3` or `node`. A grant for one of those lets the agent run any code as your user, which defeats the point of approvals. Revoke it with `netclaw approvals revoke`. `netclaw doctor` reports grants that another grant already covers, and `netclaw doctor --fix` removes them. See [`netclaw approvals`](/cli/approvals/).
+
+## MCP tool permissions
+
+`netclaw mcp add` seeds each audience differently:
+
+| Audience | Server access | Tool grants | Approval default |
+|----------|---------------|-------------|------------------|
+| Personal | All servers | All tools | `Auto` |
+| Team | Must be in `AllowedMcpServers` | None until granted | `Approval` |
+| Public | Must be in `AllowedMcpServers` | None until granted | `Deny` |
+
+Personal gets every tool on a new server at `Auto`, so review that audience first. Audit grants per audience:
 
 ```bash
 netclaw mcp permissions
 ```
 
-![MCP tool grants for Personal audience showing all tools enabled](/screenshots/output/mcp-tools-personal.png)
+![MCP Permissions tool grid for demo-utilities on the personal audience, with the server enabled, default Auto, and ten tools each granted at Auto](/screenshots/output/mcp-tools-personal.png)
 
-Personal audience with all tools granted. Compare against the locked-down Team and Public defaults:
+Personal with every tool granted. The footer's `[E] Disable` turns the server off for this audience. Compare it with the locked-down Team and Public defaults:
 
-![Team audience with server disabled](/screenshots/output/mcp-tools-team.png)
+![MCP Permissions tool grid for demo-utilities on the team audience, with the server not enabled, default Approval and all ten tools unchecked and greyed out](/screenshots/output/mcp-tools-team.png)
 
-Team audience: server disabled, no tools granted.
+Team with the server disabled and nothing granted. Its footer reads `[E] Enable all`. Dim rows are tools that audience hasn't been granted, and the `*unsaved*` marker is there on open (see [`netclaw mcp`](/cli/mcp-tools/#tool-grid)).
 
-Grant the minimum tools each audience actually needs. Don't enable everything for Team because it's faster to configure. For destructive MCP tools (`delete`, `drop`, `write`), set approval mode to `Approval` or `Deny`. Per-tool overrides let you keep the server default on `Auto` while gating the dangerous ones:
+Grant each audience the minimum it needs. For destructive MCP tools (`delete`, `drop`, `write`), set `Approval` or `Deny`. Per-tool overrides keep the server on `Auto` while gating the dangerous ones:
 
 ```json
 {
@@ -93,9 +121,7 @@ Grant the minimum tools each audience actually needs. Don't enable everything fo
     "AudienceProfiles": {
       "Personal": {
         "ApprovalPolicy": {
-          "DefaultMode": "Auto",
           "ToolOverrides": {
-            "shell_execute": "Approval",
             "notion/notion-delete-page": "Approval"
           }
         }
@@ -105,94 +131,73 @@ Grant the minimum tools each audience actually needs. Don't enable everything fo
 }
 ```
 
-Tool override keys use the format `{serverName}/{toolName}`.
+MCP override keys use `{serverName}/{toolName}`. Keys are matched without regard to letter case. A key that contains a colon is ignored and `netclaw doctor` flags it. See [`netclaw mcp`](/cli/mcp-tools/) for the permissions TUI and [MCP tool permissions](/guides/mcp-tool-permissions/) for the full recipe.
 
-Review `~/.netclaw/config/tool-approvals.json` periodically and prune stale "approve always" decisions.
+## Network exposure
 
-See [`netclaw mcp`](/cli/mcp-tools/) for full details on the permissions TUI and CLI.
-
-## Network Exposure
-
-The daemon binds to `127.0.0.1:5199` by default. Keep it that way unless you have a reason not to.
+The daemon binds `127.0.0.1:5199` by default. Keep it that way unless you have a reason not to.
 
 | Mode | Scope | Risk |
 |------|-------|------|
-| `local` | Loopback only | Minimal — only local processes can connect |
-| `reverse-proxy` | Whatever your proxy exposes | Medium to high — depends on final hop and trusted-proxy config |
-| `tailscale-serve` | Your tailnet | Low — [Tailscale identity](https://tailscale.com/kb/1312/serve) gates access |
-| `tailscale-funnel` | Public internet | High — anyone on the internet can reach it via [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) |
-| `cloudflare-tunnel` | Public internet | High — requires a [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy |
+| `local` | Loopback only | Minimal. Only local processes connect |
+| `reverse-proxy` | Whatever your proxy exposes | Medium to high. Depends on the final hop and trusted-proxy config |
+| `tailscale-serve` | Your tailnet | Low. [Tailscale identity](https://tailscale.com/kb/1312/serve) gates access |
+| `tailscale-funnel` | Public internet | High. Anyone can reach it through [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) |
+| `cloudflare-tunnel` | Public internet | High. Needs a [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/policies/access/) policy |
 
-![Exposure mode selection during netclaw init](/screenshots/output/init-09-exposure.png)
+![The Exposure Mode screen with five options, Local checked and marked recommended, and a warning triangle on Tailscale Funnel and Cloudflare Tunnel](/screenshots/output/config-exposure.png)
 
-The exposure selection during `netclaw init`. Internet-facing modes force explicit confirmation.
+Local is the default and the only mode that never leaves the machine.
 
-If you need remote access, prefer `tailscale-serve`. It limits access to your tailnet. Funnel exposes you to the public internet — a completely different threat model.
+Set the mode in `netclaw config` under **Security & Access**, or in `netclaw.json`. [Exposure modes](/deployment/exposure-modes/) covers each one.
 
-If you need a conventional reverse proxy, bind netclaw to a non-loopback internal IP and explicitly set `Daemon.TrustedProxies`. `reverse-proxy` mode rejects loopback final-hop proxying on purpose.
+For remote access, prefer `tailscale-serve`. Funnel is a different threat model. If you need a conventional reverse proxy, bind netclaw to a non-loopback internal IP and set `Daemon.TrustedProxies`. `reverse-proxy` mode rejects loopback final-hop proxying on purpose, and daemon-host CLI access then goes through paired-device auth rather than "loopback means trusted."
 
-For Docker deployments, bind to loopback explicitly:
+For Docker, bind the published port to loopback:
 
 ```bash
 docker run -p 127.0.0.1:5199:5199 ...
 ```
 
-Omitting `127.0.0.1` binds to all interfaces. Any machine on your network can reach the daemon.
+Omitting `127.0.0.1` binds all interfaces, and any machine on your network can reach the daemon.
 
-Changing exposure mode requires a daemon restart. It's excluded from hot-reload on purpose.
+In `local` mode, a request from loopback is trusted as the operator only when its `Host` header is `localhost` or a loopback address such as `127.0.0.1` or `[::1]`, and any `Origin` header matches that host. Anything else gets a 401 and a warning in the daemon log. A page in your browser can't reach the daemon through DNS rebinding or a cross-site request. It also means a script that calls the daemon by another host name, or a web app on `http://localhost:3000`, is refused. Call from the app's server process, or pair a device with `netclaw daemon pair` and send its bearer token. Paired devices and the tunnel and reverse-proxy modes aren't affected.
 
-```bash
-netclaw daemon stop && netclaw daemon start
-```
+The daemon restarts itself when you change the exposure mode in `netclaw.json`. If you set it through an environment variable, restart by hand: `docker restart <container>`, `systemctl --user restart netclaw`, or `netclaw daemon stop && netclaw daemon start`.
 
-In `reverse-proxy` mode, daemon-host CLI access is no longer "loopback means trusted." Local control-plane requests may still work, but they do so through explicit paired-device auth when the exposure mode requires it.
+## Channel access restrictions
 
-## Channel Access Restrictions
+Every chat channel gates access with the same four controls:
 
-Every chat channel gates who can reach netclaw through the same four controls:
+- **Channel allowlist.** Which channels netclaw answers in. No allowlist and no default channel denies all channel traffic.
+- **User allowlist.** Which users get a response. Empty accepts everyone in the allowed channels.
+- **Direct messages.** Off by default. Enable them only alongside a user allowlist.
+- **Per-channel audiences.** Override the [audience](/security/security-model/#trust-audiences) for one channel or for DMs.
 
-- **Channel allowlist** -- which channels netclaw answers in. No allowlist and no default channel denies all channel traffic.
-- **User allowlist** -- which users get a response. Empty accepts everyone in the allowed channels.
-- **Direct messages** -- off by default. Enable them only alongside a user allowlist.
-- **Per-channel audiences** -- override the [trust audience](/security/security-model/#trust-audiences) for a single channel, or for DMs.
-
-Defaults are restrictive everywhere: `MentionOnly: true`, `AllowDirectMessages: false`, and empty allowlists. The config keys are identical across channels -- only the ID format and where you copy IDs from differ. Each channel page documents its own setup:
-
-<!-- Index: add a row when a new channel ships. -->
+Defaults are restrictive: `MentionOnly: true`, `AllowDirectMessages: false` and empty allowlists. The keys are identical across channels. Only the ID format and where you copy IDs from differ:
 
 | Channel | Access control reference |
 |---------|--------------------------|
 | Slack | [Slack access control](/channels/slack/#access-control) |
 | Discord | [Discord access control](/channels/discord/#access-control) |
+| Mattermost | [Mattermost access control](/channels/mattermost/#access-control) |
 
-Webhooks are the exception -- they have no channel or user allowlist. Inbound webhooks authenticate with HMAC signatures instead. See [`netclaw webhooks`](/cli/webhooks/).
+Webhooks have no channel or user allowlist. They authenticate with HMAC signatures instead. See [`netclaw webhooks`](/cli/webhooks/). [`netclaw doctor`](/cli/doctor/) runs a `Slack ACL` check that flags Slack enabled with no channel allowlist and no default channel, or DMs enabled without a user allowlist.
 
-[`netclaw doctor`](/cli/doctor/) runs a `Slack ACL` check that flags Slack enabled with no channel allowlist and no default channel, or DMs enabled without a user allowlist.
+## Approval prompts on Team and Public
 
-## Approval Gates
-
-The last layer before a tool actually runs. Configure per audience:
+A prompt waits until someone answers. No timer denies it, and on a chat channel the thread looks frozen while it waits. For Team and Public that's the person in the channel, who may not be your operator. A sub-agent's prompt has buttons only, and on Mattermost it needs a `CallbackUrl` or netclaw refuses the request. If nobody is watching, give each tool a mode that doesn't wait: `Deny` for anything you don't want exposed, `Auto` for what you do.
 
 ```json
 {
   "Tools": {
     "AudienceProfiles": {
-      "Personal": {
-        "ApprovalPolicy": {
-          "DefaultMode": "Auto",
-          "ToolOverrides": {
-            "shell_execute": "Approval"
-          }
-        }
-      },
       "Team": {
         "ApprovalPolicy": {
-          "DefaultMode": "Approval"
-        }
-      },
-      "Public": {
-        "ApprovalPolicy": {
-          "DefaultMode": "Deny"
+          "ToolOverrides": {
+            "web_fetch": "Deny",
+            "file_write": "Auto"
+          }
         }
       }
     }
@@ -200,15 +205,11 @@ The last layer before a tool actually runs. Configure per audience:
 }
 ```
 
-- Headless sessions (reminders, webhooks, `netclaw chat -p "prompt"`) auto-deny all gated tools. There's no human to ask.
-- No response within 5 minutes means deny.
-- The "Always here" and "Always anywhere" options persist to `~/.netclaw/config/tool-approvals.json` — manage them with [`netclaw approvals`](/cli/approvals/).
+Unattended runs (reminders, webhooks, `netclaw chat -p`) can't show a prompt and deny any call that would, with `approval_required_unattended`. Saved grants and `Auto` tools still run. For the model, see [How tool approvals work](/security/approvals/). For recipes, see [Reduce or turn off approval prompts](/guides/reduce-approval-prompts/).
 
-If nobody is watching the approval prompts in production, set `DefaultMode: "Deny"` for Team and Public. Auto-deny is safer than a 5-minute timeout nobody sees.
+## Webhook security
 
-## Webhook Security
-
-Each webhook route has its own HMAC secret, audience, body size limit, and rate limit:
+Each webhook route has its own HMAC secret, audience, body size limit and rate limit. These fields sit inside a route file, which also needs a `prompt`. To create a whole route from the CLI, use `netclaw webhooks set`:
 
 ```json
 {
@@ -225,60 +226,72 @@ Each webhook route has its own HMAC secret, audience, body size limit, and rate 
 }
 ```
 
-Set the audience to the minimum the webhook actually needs. Most should run as `Public` (fewest tools, session-scoped filesystem, wiped on end). Only use `Team` or `Personal` if the webhook prompt genuinely requires those tools.
+Set the audience to the minimum the webhook needs. Most should run as `Public`, which has the fewest tools and a session-scoped filesystem. Use `Team` or `Personal` only if the webhook prompt requires those tools.
 
-`RateLimitPerMinute` applies per webhook route, not globally across all routes. Lower it from the default 30 if the source won't fire that often — GitHub sends roughly one webhook per event, so 10/min is plenty. Keep `MaxBodyBytes` at 1 MB or lower unless you know the payloads are larger.
+`RateLimitPerMinute` applies per route, not globally. Lower it from the default 30 if the source fires less often. GitHub sends roughly one webhook per event, so 10 a minute is plenty. Keep `MaxBodyBytes` at 1 MB or lower unless you know the payloads are larger.
 
-Route files contain secrets in plaintext. Keep `~/.netclaw/config/webhooks/` at mode `700` (see [File Permissions](#file-permissions)).
+Route files hold the secret in plaintext. Keep `~/.netclaw/config/webhooks/` at mode `700`, as in [File permissions](#file-permissions). See [`netclaw webhooks`](/cli/webhooks/) for route setup.
 
-See [`netclaw webhooks`](/cli/webhooks/) for route setup and HMAC verification details.
+## Doctor checks
 
-## Doctor Checks
-
-After making changes, validate everything:
+After changes, validate everything:
 
 ```bash
 netclaw doctor
 ```
 
-![netclaw doctor running 16 diagnostic checks](/screenshots/output/doctor.png)
+![netclaw doctor output: 24 checks, all PASS, ending with doctor exit code: 0](/screenshots/output/doctor.png)
 
-Security-relevant checks include:
+The Security Policy line near the top is the one to read first.
+
+The checks that matter for security:
 
 | Check | What it catches |
-|-------|----------------|
-| **Security Policy** | Missing `DeploymentPosture` |
-| **Secrets JSON** | Wrong file permissions, unencrypted values |
-| **Slack ACL** | No channel allowlist, DMs enabled without user allowlist |
-| **Tool Audience Profiles** | Overly permissive tool grants |
-| **exposure-mode** | Internet-reachable exposure without valid auth policy |
-| **Inbound Webhook Routes** | Schema errors in route files |
+|-------|-----------------|
+| Security Policy | A missing `Security` section or `DeploymentPosture` (Public posture, shell off), or an implied Personal posture |
+| Secrets JSON | Wrong file permissions, unencrypted values |
+| Slack ACL | No channel allowlist, DMs enabled without a user allowlist |
+| Tool Audience Profiles | Overly permissive grants, copied default lists, Personal `shell_execute` on `Auto` with the host shell on, a profile that can write wider than it can read, and a `ToolOverrides` or `McpServerDefaults` key with a colon (an error you fix by hand) |
+| Tool approval grants | Grants that another grant already covers |
+| OAuth Token Expiry | A retired `OAuthTokenExpiry` key in `netclaw.json`. `--fix` moves it to `secrets.json` |
+| exposure-mode | Internet-reachable exposure without a valid auth policy |
+| Inbound Webhook Routes | Schema errors in route files |
 
-Wire it into your deployment pipeline:
+Wire it into a pipeline:
 
 ```bash
 netclaw doctor --format json | jq -e '.exitCode == 0'
 ```
 
+## Security advisories
+
+These published advisories are fixed in 0.28.0 or later. On an older install, upgrade and then check the follow-up.
+
+| Advisory | What to do |
+|----------|------------|
+| [GHSA-85pr-m799-g776](https://github.com/netclaw-dev/netclaw/security/advisories/GHSA-85pr-m799-g776) | A `ToolOverrides` or `McpServerDefaults` key with a colon set the whole tool to `Auto`. Remove every such key. Netclaw now ignores them and `netclaw doctor` reports them |
+| [GHSA-mh95-h6p6-c9j3](https://github.com/netclaw-dev/netclaw/security/advisories/GHSA-mh95-h6p6-c9j3) | Through 0.27.1, the TUI commands (`init`, `provider`, `model`, `reminder`, `mcp tools`, `approvals`, `config`) wrote every keystroke to `netclaw-<command>-trace.log` in the temp directory. Delete those files and rotate any secret you typed on a shared machine |
+| [GHSA-fmjr-hw4g-337j](https://github.com/netclaw-dev/netclaw/security/advisories/GHSA-fmjr-hw4g-337j) | Through 0.27.1, a paired remote device could read provider OAuth tokens in the tunnel exposure modes. Tokens now need a local-control proof |
+| [GHSA-4638-4hj7-4w4m](https://github.com/netclaw-dev/netclaw/security/advisories/GHSA-4638-4hj7-4w4m) | Before 0.28.2, a configuration that couldn't be read made the CLI fall back to the default daemon address. It now reports the problem and sends nothing |
+
 ## Limitations
 
-- Prompt injection detection is regex-based. It catches known patterns (role resets, exfiltration attempts, invisible Unicode) but novel phrasings, Base64 encoding, synonym substitution, and non-English attacks can evade it. Treat it as a tripwire, not a firewall.
-- Tool grants are per-audience, not per-channel. `ChannelAudiences` overrides which audience a channel maps to, but you can't give one Slack channel different tools than another channel with the same audience.
-- Secret redaction catches `sk-*`, Slack tokens (`xox[baprs]-*`), `ghp_*`, AWS access keys (`AKIA*`), JWTs, PEM blocks, and common JSON key names. Custom secret formats won't be redacted. Use hard-deny path rules to block file access instead.
-- Approval gates only work on interactive channels. Headless mode, reminders, and webhooks auto-deny tools that would otherwise prompt for approval. Design automation workflows with that in mind.
+- Prompt injection detection is regex-based. It catches known patterns, but novel phrasings, Base64 encoding, synonym substitution and non-English attacks evade it. Treat it as a tripwire.
+- Tool grants are per audience, not per channel. `ChannelAudiences` chooses the audience for a channel, but two Slack channels with the same audience get the same tools.
+- Secret redaction catches known token formats and secret-named variables only, and skips `file_read` and MCP results. For custom formats, use hard-deny patterns to block the command instead.
+- Approvals aren't a sandbox. See [Isolate netclaw from your other credentials](#isolate-netclaw-from-your-other-credentials).
 
-## Related Pages
+## Related pages
 
-- [Security Model](/security/security-model/) -- default-deny architecture, audiences, trust layers
-- [`netclaw init`](/cli/init/) -- posture and exposure selection wizard
-- [`netclaw mcp`](/cli/mcp-tools/) -- MCP tool permissions TUI
-- [`netclaw doctor`](/cli/doctor/) -- configuration diagnostics
-- [`netclaw webhooks`](/cli/webhooks/) -- webhook route management and HMAC verification
-- [`netclaw secrets`](/cli/secrets/) -- encrypted credential storage
+- [Security model](/security/security-model/) - audiences, the order of checks, protected paths
+- [How tool approvals work](/security/approvals/) - modes, grants and prompts
+- [`netclaw doctor`](/cli/doctor/) - configuration diagnostics
+- [`netclaw webhooks`](/cli/webhooks/) - route management and HMAC verification
+- [Secrets management](/security/secrets/) - encrypted credential storage
 
-## Further Reading
+## Resources
 
-- [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) -- prompt injection, insecure output handling, and other LLM attack vectors
-- [Tailscale ACLs](https://tailscale.com/kb/1018/acls/) -- network-level access control for `tailscale-serve` deployments
-- [Cloudflare Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) -- IdP-based access control for `cloudflare-tunnel` deployments
-- [GitHub webhook security](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks) -- best practices for HMAC verification and secret rotation
+- [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) - prompt injection, insecure output handling and other LLM attack vectors
+- [Tailscale ACLs](https://tailscale.com/kb/1018/acls/) - network access control for `tailscale-serve` deployments
+- [Cloudflare Access policies](https://developers.cloudflare.com/cloudflare-one/policies/access/) - IdP-based access control for `cloudflare-tunnel`
+- [GitHub webhook security](https://docs.github.com/en/webhooks/using-webhooks/best-practices-for-using-webhooks) - HMAC verification and secret rotation

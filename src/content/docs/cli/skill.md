@@ -1,11 +1,11 @@
 ---
 title: "netclaw skill"
-description: "Manage skills and external skill sources."
+description: "List, sync, inspect and validate skills, and manage external skill sources."
 ---
 
-Manage skills from the CLI — list what's installed, validate new ones, wire up external sources. None of these commands need a running daemon.
+`netclaw skill` shows what skills the agent has loaded, pulls updates from skill servers, checks a skill file before you rely on it, and manages the external directories netclaw reads. `list` and `sync` talk to the running daemon. Every other subcommand reads and writes files and works without it.
 
-Skills are markdown files following the [AgentSkills.io](https://agentskills.io) format: a `SKILL.md` with YAML frontmatter describing what the skill does, what tools it needs, and how to invoke it. At runtime, the agent sees a compressed skill index on every session and reads full skill content on demand — skills inject procedural knowledge into context without bloating the base prompt.
+For what skills are and how netclaw uses them, see [Skills overview](/skills/overview/).
 
 ## Usage
 
@@ -13,269 +13,218 @@ Skills are markdown files following the [AgentSkills.io](https://agentskills.io)
 netclaw skill [subcommand] [options]
 ```
 
-Running `netclaw skill` with no subcommand defaults to `list`.
+With no subcommand, `netclaw skill` runs `list`.
 
 ## Subcommands
 
-| Subcommand | Description |
-|------------|-------------|
-| `list` | List all discovered skills (default) |
-| `show <name>` | Show skill details and full content |
-| `validate <path>` | Validate a SKILL.md file's frontmatter |
-| `remove <name>` | Remove a native skill |
-| `issues` | Show only scanner issues |
-| `search <query>` | Search skills by name or description |
-| `source list` | List configured external sources |
-| `source add <name> --path <dir>` | Add a custom external source |
-| `source add <name> --well-known <alias>` | Add a well-known source |
-| `source remove <name>` | Remove an external source |
-| `source enable <name>` | Enable an external source |
-| `source disable <name>` | Disable an external source |
+| Subcommand | Needs daemon | Description |
+|------------|:------------:|-------------|
+| `list` | Yes | List every skill the daemon has loaded (default) |
+| `sync` | Yes | Run a skill server sync pass now |
+| `show <name>` | No | Show one skill's details and full content |
+| `validate <path>` | No | Check a `SKILL.md` or flat `.md` file |
+| `remove <name>` | No | Delete a native skill |
+| `issues` | No | Show skills with structural problems or shadowed by a higher tier |
+| `search <query>` | No | Find skills by name, display name or description |
+| `source list` | No | List external skill sources |
+| `source add <name> --path <dir>` | No | Add a directory as a source |
+| `source add <name> --well-known <alias>` | No | Add a well-known source (`claude-code` or `open-code`) |
+| `source remove <name>` | No | Remove a source from config |
+| `source enable <name>` | No | Enable a source |
+| `source disable <name>` | No | Disable a source without removing it |
+
+The offline subcommands scan the native directory (`~/.netclaw/skills/`) and your external sources. They don't see skills synced from a skill server or MCP prompt skills, so use `list` to see everything.
 
 ## Skill classifications
 
-Three categories:
+The `SOURCE` column in `list` and `search` takes one of these values:
 
-| Source | Location | Mutable? |
-|--------|----------|----------|
-| `system` | `~/.netclaw/skills/.system/` | No — managed by the daemon |
-| `native` | `~/.netclaw/skills/` | Yes — user-created |
-| `external` | Configured source directories | Manage at source |
+| Source | Where it comes from | Mutable |
+|--------|---------------------|---------|
+| `system` | `~/.netclaw/skills/.system/`, restored from the daemon binary on every start | No |
+| `native` | `~/.netclaw/skills/`, including skills synced from a skill server | Yes for your own skills |
+| `external` | A directory configured with `skill source` | At the source |
+| `mcp` | A prompt from a connected [MCP server](/configuration/mcp-servers/), `list` only | No |
 
-For a deeper look at how skills fit into netclaw's architecture, see [Skills Overview](/skills/overview/).
+Skills synced from a [skill server](/skills/skill-feeds/) live in `~/.netclaw/skills/.server-feeds/<feed>/`, so `list` labels them `native`. They aren't yours to edit. `skill_manage` refuses them, and the next sync restores any file you change. `skill source` doesn't manage them either. Add servers in `netclaw config` or `SkillFeeds` in `netclaw.json`. See [Skill feeds](/skills/skill-feeds/#add-a-feed).
 
-## Listing skills
+## Examples
+
+### List loaded skills
 
 ```bash
 netclaw skill list
 ```
 
+```text
+NAME                                      SOURCE      VERSION     STATUS
+------------------------------------------------------------------------
+flat-note                                 native      -           ok
+hello-greeter                             native      1.0.0       ok
+incident-summary                          native      1.1.0       ok
+k8s-log-triage                            native      0.2.0       ok
+agent-coordination                        system      1.5.3       ok
+netclaw-memory                            system      1.14.3      ok
+netclaw-operations                        system      2.144.0     ok
+netclaw-projects                          system      1.4.0       ok
+run-reminder                              system      1.0.2       ok
+search-citation                           system      1.1.4       ok
+skill-authoring                           system      1.12.0      ok
+subagent-authoring                        system      1.6.2       ok
+web-content-retrieval                     system      1.0.0       ok
+
+13 skill(s)
 ```
-NAME                      SOURCE      VERSION     STATUS
-commit                    native      1.0.0       ok
-review-pr                 native      1.2.0       ok
-akka-net-best-practices   external    -           ok
-modern-csharp-standards   external    -           ok
-session-context           system      -           ok
-my-broken-skill           ?           -           MissingDescription
 
-5 skill(s), 1 issue(s)
-```
+![netclaw skill list output with a table of 13 skills, four native and nine system, all with status ok](/screenshots/output/skill-list.png)
 
-Skills with problems show their issue kind in the STATUS column. `netclaw skill issues` gives you the full details.
+The four native rows are two local skills and two from a skill-server feed, and the nine system skills ship with netclaw. MCP prompt skills join the same table when a server provides them.
 
-## Showing skill details
+`list` reads the daemon's live registry, which is the only view that includes MCP prompt skills. It lists accepted skills only, so `STATUS` is always `ok`. Use `netclaw skill issues` for rejected ones. If the daemon isn't reachable, `list` prints `Daemon unavailable: ...` and exits 1. There's no fallback to a disk scan. Start it with `netclaw daemon start`, or `docker restart <container>` in Docker.
+
+### Sync feeds now
 
 ```bash
-netclaw skill show commit
+netclaw skill sync
 ```
 
+```text
+Waiting for the daemon's skill sync pass. Press Ctrl+C to stop this wait.
+Skill sync pass a304191e2ce04fc28782ad22f8385c2d
+corp-skills: ok changed=0 unchanged=2 rejected=0 failed=0 sidecar=complete
+Inventory: ok accepted=13 rejected=0
 ```
-Name:        commit
-Display:     Commit Changes
+
+![netclaw skill sync output reporting one feed, corp-skills, with two unchanged skills, and an inventory of 13 accepted](/screenshots/output/skill-sync.png)
+
+The feed line counts what changed on this pass, and the inventory line is the daemon's total after the refresh.
+
+`sync` starts a pass for every enabled [skill feed](/skills/skill-feeds/) right away instead of waiting for `SkillFeeds.SyncIntervalMinutes`. If a pass is already running, it waits for that one. It takes no flags and saves no config. Ctrl+C stops the wait, not the pass.
+
+It exits 1 when a feed reports `failed` or `rejected` above zero, when the inventory refresh fails, or when the daemon is unreachable. Each feed's `sidecar=` value (`complete`, `absent`, `failed`, `not-run`) reports the subagent pass. See [Skill feeds](/skills/skill-feeds/#when-syncs-run) for what each means.
+
+### Show a skill
+
+```bash
+netclaw skill show hello-greeter
+```
+
+```text
+Name:        hello-greeter
+Display:     Hello Greeter
 Source:      native
 Version:     1.0.0
-Category:    git
-License:     MIT
-Path:        /home/user/.netclaw/skills/commit/SKILL.md
+Category:    -
+License:     -
+Path:        /home/netclaw/.netclaw/skills/hello-greeter/SKILL.md
 Flat file:   False
-Tools:       bash git
-Description: Create well-structured git commits with conventional commit messages.
+Resources:   references/tone.md, scripts/stamp.sh
+Description: Greet the user by name and mention today's weekday.
 
 --- content ---
-(full SKILL.md content follows)
+(full SKILL.md follows)
 ```
 
-## Validating a skill file
+`Resources:` appears when the skill has supporting files. `show` finds skills by name in the native and external directories, so a feed skill answers `[FAIL] skill 'name' not found`.
 
-Catch frontmatter problems before deploying:
+### Validate a skill file
 
 ```bash
 netclaw skill validate ./my-skill/SKILL.md
 ```
 
-```
+```text
 [OK] Valid skill file.
   Name:        my-skill
   Description: Does something useful.
   Version:     1.0.0
-  License:     MIT
+  License:     -
 ```
 
-Once validated, drop the skill into `~/.netclaw/skills/` (directory-based or flat file) and it'll appear on the next `netclaw skill list`.
+A bad file says what's wrong and exits 1:
 
-A failing file tells you exactly what's wrong:
+```text
+[FAIL] MissingDescription: Skill frontmatter must include a non-empty description.
+```
+
+`validate` applies the native rules: the frontmatter `name` must match the directory (or file) name, and symlinks aren't followed. A skill that loads fine from an external source can still fail here for either reason.
+
+Once a skill validates, put it in `~/.netclaw/skills/` as `name/SKILL.md` or `name.md`. The daemon rescans when files change, so `list` shows it without a restart.
+
+### Check for problems
 
 ```bash
-netclaw skill validate ./broken-skill.md
+netclaw skill issues
 ```
 
-```
-[FAIL] MissingDescription: Skill file missing required 'description' field.
+```text
+NAME                      KIND                            MESSAGE
+------------------------------------------------------------------
+broken-skill              MissingDescription              Skill frontmatter must include a non-empty description.
+
+1 issue(s)
 ```
 
-## Searching skills
+`issues` is an offline structural scan of the native and external directories. It reports bad frontmatter, name mismatches, symlinks and skills shadowed by a higher tier. A copy shadowed by a system skill shows as `DuplicateName`. It doesn't report skill server rejections. Those go to the daemon log and the counts in `skill sync`.
+
+### Search skills
 
 ```bash
-netclaw skill search "testing"
+netclaw skill search greeter
 ```
 
-```
+```text
 NAME                      SOURCE      VERSION     DESCRIPTION
-snapshot-testing          external    -           Verify test output using snapshot...
-integration-tests         external    -           Testcontainers patterns for .NET...
+----------------------------------------------------------
+hello-greeter             native      1.0.0       Greet the user by name and mention today's weekday.
 
-2 match(es)
+1 match(es)
 ```
 
-## Removing a skill
+### Remove a skill
 
 ```bash
 netclaw skill remove my-old-skill
 ```
 
-Only native skills can be removed — system and external skills are read-only here.
+`remove` deletes native skills only. A system skill fails with `cannot remove system skill`, and an external skill fails with `cannot remove external skill`. Delete the files at the source. Removal is permanent, because native skills have no history.
 
-## Managing external sources
+## Manage external sources
 
-Point netclaw at skill directories from other tools (Claude Code, Open Code) or shared team paths.
-
-Note: [Skill feeds](/skills/skill-feeds/) are a separate concept — server-based skill repositories synced by the daemon. This section covers local directory sources only.
-
-### List sources
+`skill source` manages local directories. It edits `netclaw.json`, and the running daemon restarts itself to pick up the change. See [External skills](/skills/external-skills/) for the config shape and the plugin scope of the `claude-code` alias.
 
 ```bash
 netclaw skill source list
-```
-
-```
-NAME                  ENABLED     TYPE            PATH / WELL-KNOWN
-claude-skills         yes         well-known      claude-code
-team-shared           yes         path            /opt/skills/team
-```
-
-When no sources are configured, netclaw checks for well-known directories and nudges you:
-
-```
-No external skill sources configured.
-
-Detected well-known skill directories on disk:
-  claude-code      /home/user/.claude/skills
-Add one with: netclaw skill source add <name> --well-known <alias>
-```
-
-### Add a well-known source
-
-```bash
 netclaw skill source add my-claude --well-known claude-code
-```
-
-The aliases map to these paths:
-
-| Alias | Scans |
-|-------|-------|
-| `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, plus installed plugin marketplaces |
-| `open-code` | `~/.open-code/skills/` |
-
-During `netclaw init`, you're prompted to configure external skill sources:
-
-![External skills configuration during init](/screenshots/output/init-07-external-skills.png)
-
-The init wizard detects well-known directories automatically.
-
-### Add a custom path source
-
-```bash
 netclaw skill source add team-skills --path /opt/company/skills
-```
-
-The directory must exist. Netclaw scans for both directory-based skills (`skill-name/SKILL.md`) and flat files (`skill-name.md`).
-
-### Enable / disable a source
-
-```bash
 netclaw skill source disable team-skills
 netclaw skill source enable team-skills
-```
-
-Disabled sources stay in config but won't be scanned.
-
-### Remove a source
-
-```bash
 netclaw skill source remove team-skills
 ```
 
-Removes the config entry only — skill files in the directory are untouched.
+| Alias | Reads |
+|-------|-------|
+| `claude-code` | `~/.claude/skills/`, `~/.claude/commands/`, and `~/.claude/plugins/marketplaces/*/skills/` |
+| `open-code` | `~/.open-code/skills/` |
 
-## Skill file format
+`--path` fails with `[FAIL] directory not found` if the directory doesn't exist. Names have to be unique. `--well-known` sources get `AllowSymlinks: true`, and `--path` sources don't. `remove` deletes the config entry and leaves your skill files alone. With no sources configured, `source list` prints any well-known directories it finds on disk and the command to add them.
 
-Two layouts work:
+With no action, `netclaw skill source` lists your sources. An unknown action prints the usage text.
 
-**Directory-based:**
+## Frontmatter
 
-```
-my-skill/
-  SKILL.md
-  scripts/
-    helper.sh
-  references/
-    api-docs.md
-  assets/
-    diagram.png
-```
+The `SKILL.md` format, including the `invocable` key and its default, is in [Skills overview](/skills/overview/#what-a-skill-looks-like). Unknown keys are ignored without a warning. A skill with `user-invocable: false` stays a `/` command, because the key is `invocable`.
 
-**Flat file:**
+## Related pages
 
-```
-my-skill.md
-```
-
-The SKILL.md frontmatter:
-
-```yaml
----
-name: my-skill
-description: One-line description of what this skill does.
-metadata:
-  version: 1.0.0
-license: MIT
-compatibility: ["netclaw", "claude-code"]
-allowed-tools: "bash git"
-disable-model-invocation: false
-user-invocable: true
-argument-hint: "<branch-name>"
----
-
-# My Skill
-
-Skill instructions go here...
-```
-
-The display name is derived from the first `#` heading in the markdown body, falling back to title-casing the skill name.
-
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Identifier (must match directory/file name) |
-| `description` | Yes | One-line summary |
-| `metadata.version` | No | Semver version (nested under `metadata:`) |
-| `license` | No | SPDX license identifier |
-| `compatibility` | No | Which agents can use this skill |
-| `allowed-tools` | No | Space-delimited list of tools the skill needs |
-| `disable-model-invocation` | No | When `true`, prevents the model from auto-invoking this skill |
-| `user-invocable` | No | When `true`, users can invoke the skill directly (e.g. `/commit`) |
-| `argument-hint` | No | Hint text shown in command completion |
-
-## Related commands
-
-- [`netclaw init`](/cli/init/) — configures external skill sources during onboarding
-- [`netclaw mcp`](/cli/mcp-tools/) — manage tool servers that skills reference in `allowed-tools`
-- [`netclaw status`](/cli/status/) — shows loaded skill count at runtime
+- [Skills overview](/skills/overview/): tiers, precedence, formats and trust
+- [Skill feeds](/skills/skill-feeds/): configure skill servers and read the sync output
+- [External skills](/skills/external-skills/): local directories and the Claude Code alias
+- [`netclaw config`](/cli/config/): the Skill Sources screen
+- [`netclaw stats`](/cli/stats/): `stats skills` shows which skills the agent loads
 
 ## Resources
 
-- [AgentSkills.io](https://agentskills.io) — the SKILL.md format specification
-- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) — discovery protocol for skill feeds
-- [netclaw skill-server](https://github.com/netclaw-dev/skill-server) — self-hosted skill registry for organizations
-- [Skills Overview](/skills/overview/) — how skills work at runtime
-- [Skill Feeds](/skills/skill-feeds/) — server-synced skill repositories
+- [AgentSkills.io](https://agentskills.io): the `SKILL.md` format specification
+- [Cloudflare Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc): the discovery protocol behind skill feeds
+- [netclaw skill-server](https://github.com/netclaw-dev/skill-server): the self-hosted skill registry

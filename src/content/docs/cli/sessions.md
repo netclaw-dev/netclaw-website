@@ -1,13 +1,11 @@
 ---
 title: "netclaw sessions"
-description: "Browse and resume chat sessions."
+description: "Browse and resume chat sessions, or list them as plain text or JSON for scripts."
 ---
 
-Pick up where you left off. `netclaw sessions` opens a terminal UI (TUI) listing your recent sessions — scroll, hit Enter, and you're back in the conversation. For scripts, `--once` and `--json` dump session data to stdout instead.
+Pick up where you left off. `netclaw sessions` opens a terminal UI of your recent sessions. Select one and press `Enter` to land back in the conversation. `--once` and `--json` print the same list to stdout for scripts.
 
-Requires a running daemon. If it's not up, start it with `netclaw daemon start` (or run [`netclaw init`](/cli/init/) which starts it for you).
-
-This command only lists sessions — there's no delete or cleanup here. Session lifecycle is managed by the daemon's retention policy.
+It needs a running daemon. If it's down, start it with `netclaw daemon start` (`docker restart <container>` in Docker), or run [`netclaw init`](/cli/init/), which starts it for you.
 
 ## Usage
 
@@ -19,146 +17,179 @@ netclaw sessions [options]
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--once` | List sessions to stdout and exit (no TUI) | TUI mode |
-| `--json` | Output as JSON array (implies `--once`) | Plain text |
+| `--once` | Print the list and exit, with no TUI | TUI |
+| `--json` | Print a JSON array. Implies `--once`. | Plain text |
 
-## TUI mode
+## Browse in the TUI
 
 ```bash
 netclaw sessions
 ```
 
-Full-screen session browser. Each entry shows:
+Each row shows the channel, the title, the turn count and the time since the last activity:
 
 ```
-[cli] Deploy troubleshooting (8 turns, 23m ago)
-[slack] Weekly standup recap (3 turns, 2h ago)
-[cli] Config migration (12 turns, 1d ago)
+1. [headless] Untitled (2 turns, 1m ago)
+2. [headless] Untitled (1 turns, 3m ago)
+3. [tui] First Conversation Setting Up Netclaw Assistant (1 turns, 4m ago)
 ```
 
-The channel tag (`cli`, `slack`, etc.) shows where the session originated. The daemon returns up to 50 of your most recent sessions.
-
-### Keyboard shortcuts
+The channel tag says where the session started: `tui`, `headless`, `slack`, `discord` and so on. Sessions without a title yet show as `Untitled`. The daemon returns 50 sessions at a time, newest first.
 
 | Key | Action |
 |-----|--------|
-| `↑` / `K` | Move selection up |
-| `↓` / `J` | Move selection down |
-| `Enter` | Resume selected session (opens chat) |
-| `N` | Start a new [`netclaw chat`](/cli/chat/) session |
+| `↑` / `K` | Move up |
+| `↓` / `J` | Move down |
+| `Enter` | Resume the selected session in [`netclaw chat`](/cli/chat/) |
+| `N` | Start a new chat |
+| `PgDn` | Next page, older sessions |
+| `PgUp` | Previous page, newer sessions |
 | `Ctrl+Q` | Quit |
-| `Escape` | Quit |
 
-Enter drops you straight into [`netclaw chat`](/cli/chat/) with that session's full history loaded. When no sessions exist, you'll see "No sessions found. Press Enter to start a new chat."
+`Esc` does nothing here. The footer shows the range you're on, such as `Showing sessions 1-3`, plus the `[PgUp]` and `[PgDn]` hints when another page exists. With no sessions, the screen says "No sessions found. Press Enter to start a new chat."
 
-## Single-shot mode
+![Netclaw sessions browser listing three [tui] sessions with auto-generated titles and turn counts](/screenshots/output/sessions-tui.png)
 
-### Plain text output
+Each row shows where the session started, its generated title, its turn count and how long ago it was active, and the footer carries the range and the keys.
+
+Resuming loads the session's history into the chat as grayed-out context. Quitting the chat later doesn't end the session. It stays alive in the daemon, and you can pick it up again from this list.
+
+## Plain text and JSON output
+
+### Plain text
 
 ```bash
 netclaw sessions --once
 ```
 
-Lists all sessions to stdout, one per line:
-
 ```
-a1b2c3d4  Deploy troubleshooting  [active]  turns=8  last=2026-05-03 14:22
-e5f6g7h8  Weekly standup recap    [inactive]  turns=3  last=2026-05-03 11:45
-```
-
-**Active** means the session is held in memory and responds instantly. **Inactive** means it's persisted to disk — resuming one replays its history, which takes a moment.
-
-The session ID in the first column is what you pass to [`netclaw chat --resume`](/cli/chat/#session-resume):
-
-```bash
-netclaw sessions --once | head -1 | awk '{print $1}' | xargs netclaw chat --resume
+signalr/467ea8513aa44ea2bc6c8b11a7d28565  Hello from the stub model.  [active]  turns=1  last=2026-10-14 03:33
+newsess  (untitled)  [active]  turns=1  last=2026-10-14 03:32
+signalr/ef858dd055b7421fac18f4671d93facc  (untitled)  [active]  turns=1  last=2026-10-14 03:32
 ```
 
-### JSON output
+The first column is the session ID you pass to [`netclaw chat --resume`](/cli/chat/#resume-a-session). IDs that you named yourself are short. Daemon-assigned ones look like `signalr/<guid>`. Untitled sessions show `(untitled)`.
+
+**Active** means the session is held in memory and answers at once. **Inactive** means it was saved to disk after sitting idle, and resuming it replays the history first.
+
+### JSON
 
 ```bash
 netclaw sessions --json
 ```
 
-Outputs a JSON array of session objects:
-
 ```json
 [
   {
-    "persistenceId": "session-a1b2c3d4",
-    "channel": "cli",
-    "title": "Deploy troubleshooting",
-    "status": "active",
-    "turnCount": 8,
-    "createdAt": 1746268800000,
-    "lastActivity": 1746282120000,
-    "logPath": "/home/user/.netclaw/logs/sessions/a1b2c3d4"
+    "PersistenceId": "session-newsess",
+    "Channel": "headless",
+    "Title": null,
+    "Description": null,
+    "Status": "active",
+    "TurnCount": 1,
+    "CreatedAt": 1791948733854,
+    "LastActivity": 1791948733876,
+    "LogPath": "/home/netclaw/.netclaw/sessions/newsess-1efa2451f878e7b3/logs/session.log",
+    "LastInputTokens": 10,
+    "SessionId": "newsess"
   }
 ]
 ```
 
-#### JSON fields
+The keys are PascalCase. [`netclaw chat -p --json`](/cli/chat/#json-output) and most other commands use camelCase, so check the case before you write a filter.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `persistenceId` | string | Full internal persistence ID (prefixed with `session-`) |
-| `channel` | string | Origin channel (`cli`, `slack`, `discord`, etc.) |
-| `title` | string? | Auto-generated or null for untitled sessions |
-| `description` | string? | Session description, if set |
-| `status` | string | `active` (in memory) or `inactive` (persisted to disk) |
-| `turnCount` | int | Number of completed conversation turns |
-| `createdAt` | long | Creation time (Unix milliseconds) |
-| `lastActivity` | long | Last activity time (Unix milliseconds) |
-| `logPath` | string? | Path to per-session log directory |
-| `lastInputTokens` | long? | Input tokens from the last recorded turn |
+| `SessionId` | string | The ID to pass to `netclaw chat --resume` |
+| `PersistenceId` | string | The internal ID, which is `session-` plus the session ID |
+| `Channel` | string | Where the session started: `tui`, `headless`, `reminder`, `slack`, `discord`, `mattermost` |
+| `Title` | string or null | Generated after the first turns, null until then |
+| `Description` | string or null | Set only if something wrote one |
+| `Status` | string | `active` (in memory) or `inactive` (saved to disk) |
+| `TurnCount` | int | Completed turns |
+| `CreatedAt` | long | Creation time in Unix milliseconds |
+| `LastActivity` | long | Last activity in Unix milliseconds |
+| `LogPath` | string or null | The session's log file |
+| `LastInputTokens` | long or null | Input tokens in the last recorded turn |
 
-Note that `sessionId` is not included in the JSON — it's computed at runtime. To derive the short ID from `persistenceId`, strip the `session-` prefix:
+## Examples
+
+These need [jq](https://jqlang.github.io/jq/download/).
+
+Get the ID of the most recent session:
 
 ```bash
-# Requires jq
-netclaw sessions --json | jq -r '.[0].persistenceId | ltrimstr("session-")'
+netclaw sessions --json | jq -r '.[0].SessionId'
 ```
 
-Active sessions have their [actor](https://getakka.net/articles/concepts/actors.html) materialized in memory — they respond without any startup cost. Inactive sessions are persisted to disk and fully recoverable; resuming one replays its history, which takes a moment depending on the number of turns.
+Resume it without opening the TUI picker:
+
+```bash
+netclaw chat --resume "$(netclaw sessions --json | jq -r '.[0].SessionId')"
+```
+
+List sessions with more than one turn:
+
+```bash
+netclaw sessions --json | jq -r '.[] | select(.TurnCount > 1) | .SessionId'
+```
+
+Sort by last activity, newest first:
+
+```bash
+netclaw sessions --json | jq -r 'sort_by(-.LastActivity) | .[0].SessionId'
+```
+
+Print a table with readable timestamps:
+
+```bash
+netclaw sessions --json | jq -r '.[] | [.SessionId, .TurnCount, (.LastActivity/1000 | todate)] | @tsv'
+```
+
+```
+signalr/4d503455b7d64db483680132c831e3e1	1	2026-10-14T03:41:56Z
+signalr/22f90bcd201845c7861cb5d212dcbc40	1	2026-10-14T03:38:42Z
+```
+
+Count sessions by channel:
+
+```bash
+netclaw sessions --json | jq -r '.[].Channel' | sort | uniq -c
+```
+
+## Deleting sessions
+
+`netclaw sessions` is read-only. It can't delete or archive a session, and netclaw has no command that does. The session list lives in `~/.netclaw/netclaw.db`, and each session's files live in its own directory.
+
+## Where sessions are stored
+
+Since 0.27.0 a new session gets its own directory under `~/.netclaw/sessions/`, named `<session-id>-<hash>` with slashes in the ID turned into underscores. The log is at `logs/session.log` inside it, and `LogPath` in the JSON points there. Sessions created before 0.27.0 keep their old paths. See [Data directory layout](/reference/data-directory/).
 
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
-| `0` | Sessions listed successfully |
-| `1` | Daemon unavailable or request failed |
+| `0` | The list printed (or the TUI closed) |
+| `1` | The daemon was unreachable or the request failed |
 
-In TUI mode, a failed daemon connection shows "Failed to connect to daemon. Is it running?" In `--once` mode, the error looks different:
+In `--once` and `--json` mode a failure prints two lines and exits `1`:
 
 ```
-[FAIL] sessions: unable to reach daemon at <endpoint>: <message>
-run 'netclaw daemon start' and retry.
+[FAIL] sessions: unable to reach daemon at http://127.0.0.1:5199: Connection refused (127.0.0.1:5199)
+       fix: run `netclaw daemon start` and retry.
 ```
 
-## Examples
+In the TUI the same failure shows "Failed to connect to daemon. Is it running?"
 
-### Find sessions with many turns
+## Related pages
 
-```bash
-# Requires jq
-netclaw sessions --json | jq '[.[] | select(.turnCount > 10)] | sort_by(-.lastActivity)'
-```
-
-### Resume the most recently active session
-
-```bash
-# Requires jq — derives session ID by stripping the "session-" prefix
-netclaw chat --resume "$(netclaw sessions --json | jq -r '.[0].persistenceId | ltrimstr("session-")')"
-```
-
-## Related commands
-
-- [`netclaw chat`](/cli/chat/) — Pass `--resume <id>` to jump straight into a specific session
-- [`netclaw chat -p`](/cli/chat/#headless-mode) — Headless mode with `--resume` for scripted multi-turn conversations
-- [`netclaw status`](/cli/status/) — Check daemon health if sessions can't connect
-- [`netclaw stats`](/cli/stats/) — Token usage and session count metrics
+- [`netclaw chat`](/cli/chat/): `--resume <id>` jumps into a session, and `-p` scripts it
+- [Scripting headless sessions](/guides/scripting-sessions/): headless multi-turn patterns
+- [`netclaw status`](/cli/status/): check daemon health when sessions can't connect
+- [`netclaw stats`](/cli/stats/): token and session counts
+- [Sessions](/architecture/sessions/): how a session is created, saved and recovered
 
 ## Resources
 
-- [jq manual](https://jqlang.github.io/jq/manual/) — filter and transform `--json` output
-- [Akka.NET persistence](https://getakka.net/articles/persistence/architecture.html) — how session state survives daemon restarts
+- [jq manual](https://jqlang.github.io/jq/manual/): filter and transform `--json` output
+- [Akka.NET persistence](https://getakka.net/articles/persistence/architecture.html): how session state survives daemon restarts

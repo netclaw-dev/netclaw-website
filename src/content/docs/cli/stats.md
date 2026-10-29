@@ -1,9 +1,9 @@
 ---
 title: "netclaw stats"
-description: "View usage activity statistics."
+description: "See token use, session counts, memory health, skill loads, webhook deliveries and reminder counts from the running daemon."
 ---
 
-`netclaw stats` tells you where your tokens are going, how many sessions are running, and whether memory is healthy. It also covers channel activity, webhook deliveries, and reminders. `--json` for scripts, `--tui` for a live dashboard.
+`netclaw stats` tells you where your tokens are going, how many sessions are running, whether memory is healthy and which skills get loaded. It also covers channel activity, webhook deliveries and reminders. `--json` is for scripts and `--tui` opens a dashboard.
 
 ## Usage
 
@@ -12,17 +12,19 @@ netclaw stats [options]
 netclaw stats skills [options]
 ```
 
-Requires a running daemon. If it's not up, start it with `netclaw daemon start` (or run [`netclaw init`](/cli/init/) which starts it for you).
+It needs a running daemon. If it's down, start it with `netclaw daemon start` (`docker restart <container>` in Docker), or run [`netclaw init`](/cli/init/), which starts it for you.
 
 ## Options
 
 | Flag | Description | Default |
 |------|-------------|---------|
-| `--days <N>` | Show trailing N-day daily breakdown | None (omits daily table) |
-| `--all` | Show all-time daily breakdown | Off |
-| `--tui` | Visual TUI dashboard | Off |
-| `--json` | Alias for `--format json` | — |
+| `--days <N>` | Add a daily breakdown for the trailing N days (a positive integer) | No daily table |
+| `--all` | Add an all-time daily breakdown | Off |
+| `--tui` | Open the dashboard | Off |
+| `--json` | Alias for `--format json` | |
 | `--format <text\|json>` | Output format | `text` |
+
+An unknown option, a bad `--days` value or a bad format prints `[FAIL] stats options: ...` with the usage and exits `1`.
 
 ## Output
 
@@ -30,70 +32,92 @@ Requires a running daemon. If it's not up, start it with `netclaw daemon start` 
 netclaw stats
 ```
 
-![netclaw stats showing token usage, sessions, memory, channel activity, webhooks, and reminders](/screenshots/output/stats.png)
+```
+netclaw stats — usage since daemon started (8m 40s ago)
 
-Without `--days` or `--all`, you get process-lifetime counters plus current snapshot data. No daily table.
+this process:
+  tokens: in=150 out=90
+  turns: 10    memories: formed=0 recalled=0    skills loaded: 2
+
+sessions:
+  total: 19    active: 11    turns (all-time): 17
+
+memory (healthy):
+  anchors: 0    documents: 0    records: 0    edges: 0
+  pending checkpoints: 0
+
+skills:
+  available: 8
+
+webhooks:
+  routes: total=0 enabled=0 disabled=0 invalid=0
+  deliveries: accepted=0 filtered=0 duplicate=0
+  rejected: 404=0 401=0 413=0 400=0 429=0
+
+reminders:
+  scheduled: 0    active: 0    failed: 0
+```
+
+![netclaw stats output for a daemon that has handled three chat turns, showing token counts, three sessions, memory, skills, webhooks and reminders sections](/screenshots/output/stats.png)
+
+This daemon had been up about three minutes and had handled three short chats, so tokens and sessions are non-zero. It's the same demo install as the other status screenshots, so skills, webhook routes and scheduled reminders match what `netclaw skill list`, `netclaw webhooks list` and `netclaw reminder list` show. Enabling Slack adds a `slack` section.
 
 | Section | What it shows |
 |---------|---------------|
-| **this process** | Token consumption (in/out), turns completed, [memories](/architecture/overview/) formed/recalled, [skills](/skills/overview/) loaded |
-| **sessions** | Total, active, and all-time turn count |
-| **memory** | Status (`healthy`, `degraded`, `unavailable`), anchor/document/record/edge counts, pending checkpoints |
-| **skills** | Total available skill count |
-| **\<channel\>** | Per-channel events (recv/routed/dropped) and replies (posted/rejected/failed) |
-| **webhooks** | Route counts, delivery stats, rejection breakdown by HTTP status |
-| **reminders** | Scheduled, active, and failed counts |
+| **this process** | Tokens in and out, turns, [memories](/architecture/memory-model/) formed and recalled, and skills loaded |
+| **sessions** | Total, active and all-time turn counts |
+| **memory** | `healthy`, `degraded` or `unavailable`, with anchor, document, record and edge counts and pending checkpoints |
+| **skills** | How many skills are available |
+| **\<channel\>** | Per-channel events (`recv`, `routed`, `dropped`) and replies (`posted`, `rejected`, `failed`). Printed for channels with activity. |
+| **webhooks** | Route counts, delivery counts and rejections by HTTP status |
+| **reminders** | Scheduled, active and failed counts. **failed** counts enabled reminders that currently have consecutive failures. A reminder you disable, or one that has since run cleanly, drops out. |
 
-The "this process" counters live in the daemon process's memory and reset when the daemon restarts. Everything else (sessions, memory, daily breakdown) is persisted to SQLite and survives restarts.
-
-If memory status shows `degraded` or `unavailable`, run [`netclaw doctor --fix`](/cli/doctor/) to fix common issues automatically.
+The **this process** counters live in the daemon's memory and reset when it restarts. Sessions, memory and the daily breakdown come from SQLite and survive restarts. If memory reads `degraded` or `unavailable`, run [`netclaw doctor`](/cli/doctor/).
 
 ### Daily breakdown
 
-Add `--days` to see a per-day table of token usage and activity:
-
 ```bash
-# Last 14 days
-netclaw stats --days 14
-
-# All time
-netclaw stats --all
+netclaw stats --days 7
 ```
 
-Columns: date, input/output tokens, turns, sessions, memories formed/recalled, skills loaded. When more than one day of data is returned, a totals row appears at the bottom.
+```
+date          in tokens    out tokens   turns   sessions   mem formed   mem recalled   skills
+----------   ----------   ----------   -----   --------   ---------   ------------   ------
+2026-10-14          240          144      17         20           0              0        2
+```
 
-## TUI dashboard
+Use `--all` for all time. With more than one day of data, a totals row closes the table.
+
+## Dashboard
 
 ```bash
 netclaw stats --tui
-```
-
-Opens a full-screen dashboard. `--tui` always shows an ASCII bar chart of daily token usage, defaulting to the last 7 days. Pass `--days N` to change the window:
-
-```bash
 netclaw stats --tui --days 30
 ```
 
-The lower half of the dashboard shows the Daily Token Usage bar chart by default. Memory, per-channel, and Webhooks panels take its place when there's no daily breakdown data.
+The dashboard shows token totals, activity and a bar chart of daily token use, defaulting to the last 7 days. When there's no daily data, the memory, per-channel and webhook panels take the chart's place.
 
-`Q`, `Escape`, or `Ctrl+C` to quit.
+Only `Ctrl+Q` quits. `Q`, `Esc` and `Ctrl+C` don't close the view. `--tui` is ignored by `stats skills`, which prints the plain-text report instead of opening a dashboard.
 
-## Skill usage stats
+## Skill usage
 
-`stats skills` shows per-skill load counts broken down by day and invocation method (e.g., `direct`, `auto`, `scheduled`):
+`stats skills` counts skill loads per day, by how they were loaded and by skill:
 
 ```bash
-# Last 7 days (default)
-netclaw stats skills
-
-# Last 30 days
+netclaw stats skills            # last 7 days
 netclaw stats skills --days 30
-
-# All time
 netclaw stats skills --all
 ```
 
-Each day shows total loads, a method breakdown, and per-skill counts (top 15). `--tui` doesn't work with `stats skills`.
+```
+netclaw stats skills — all time
+
+2026-10-14  total=2
+  by method: slash-command=2
+  run-reminder: 2 (slash-command=2)
+```
+
+The three load methods are `slash-command` (you typed `/name`, see [Slash commands](/reference/slash-commands/)), `skill-load` (the model called `skill_load`) and `file-read` (a skill file was read directly). Each day lists the top 15 skills, then a count of the rest. With nothing recorded it prints `No skill loads recorded.`
 
 ## JSON output
 
@@ -101,70 +125,43 @@ Each day shows total loads, a method breakdown, and per-skill counts (top 15). `
 netclaw stats --json
 ```
 
+The keys are camelCase.
+
 ```bash
-# Total input tokens since daemon started
 netclaw stats --json | jq '.tokens.inputTokensTotal'
-
-# Daily token usage for the last 7 days
 netclaw stats --days 7 --json | jq '.dailyBreakdown[] | {date, inputTokens, outputTokens}'
-
-# Active session count
 netclaw stats --json | jq '.sessions.activeSessions'
-
-# Memory health status
 netclaw stats --json | jq -r '.memory.status'
-```
-
-`stats skills --json` returns a separate shape with daily skill load breakdowns:
-
-```bash
 netclaw stats skills --json | jq '.daily[] | {date, totalLoads}'
 ```
+
+The top-level keys are `process`, `tokens`, `sessions`, `memory`, `skills`, `channels`, `webhooks`, `reminders` and `dailyBreakdown`. `stats skills --json` has a single `daily` array whose entries hold `date`, `totalLoads`, `methods` and `skills`.
 
 ## Exit codes
 
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
-| `1` | Daemon unreachable or error response |
-
-## Daemon endpoint
-
-`stats` queries `http://127.0.0.1:5199` by default. Override with:
-
-- `NETCLAW_DAEMON_ENDPOINT` environment variable
-- `~/.netclaw/client/config.json`
-
-See [`netclaw status`](/cli/status/) for more on endpoint configuration.
+| `1` | The daemon is unreachable or answered with an error, or the options were wrong |
 
 ## When the daemon isn't running
 
-You'll see one of two errors:
-
-**Connection refused** — the daemon process isn't running at all:
-
 ```
-[FAIL] stats: unable to reach daemon at http://127.0.0.1:5199: Connection refused
+[FAIL] stats: unable to reach daemon at http://127.0.0.1:5199: Connection refused (127.0.0.1:5199)
        fix: run `netclaw daemon start` and retry.
 ```
 
-**503 response** — the daemon is up but not ready (still starting, or something broke):
+A daemon that answers with an error status, such as `503` while starting, prints `[FAIL] stats: daemon returned 503 from <endpoint>`. `stats` finds the daemon the same way [`netclaw status`](/cli/status/#daemon-endpoint) does: `NETCLAW_DAEMON_ENDPOINT`, then `~/.netclaw/client/config.json`, then `netclaw.json`, then `http://127.0.0.1:5199`.
 
-```
-[FAIL] stats: daemon returned 503 from http://127.0.0.1:5199
-       fix: run `netclaw daemon start` and retry.
-```
+## Related pages
 
-For 503s, [`netclaw doctor --fix`](/cli/doctor/) can often sort out what's wrong without a restart.
-
-## Related commands
-
-- [`netclaw status`](/cli/status/) — live health check for daemon, connectors, and model
-- [`netclaw doctor`](/cli/doctor/) — config diagnostics with `--fix` for auto-repair
-- [`netclaw sessions`](/cli/sessions/) — if stats show unexpected session counts, dig into individual conversations here
-- [`netclaw init`](/cli/init/) — first-run setup (starts the daemon for you)
+- [`netclaw status`](/cli/status/): live health for the daemon, connectors and model
+- [`netclaw doctor`](/cli/doctor/): config diagnostics with `--fix`
+- [`netclaw sessions`](/cli/sessions/): dig into the sessions behind the counts
+- [Memory model](/architecture/memory-model/): what the memory counters measure
+- [OpenTelemetry](/observability/opentelemetry/): export the same signals to a collector
 
 ## Resources
 
-- [jq manual](https://jqlang.github.io/jq/manual/) — for wrangling `--json` output
-- [SQLite documentation](https://www.sqlite.org/docs.html) — daily breakdown data is persisted here
+- [jq manual](https://jqlang.github.io/jq/manual/): work with `--json` output
+- [SQLite documentation](https://www.sqlite.org/docs.html): the daily breakdown is stored in SQLite

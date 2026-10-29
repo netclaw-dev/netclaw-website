@@ -1,33 +1,26 @@
 ---
-title: "Pairing Remote Devices"
-description: "Pair remote CLI clients with your Netclaw daemon."
+title: "Use the CLI from another machine"
+description: "Pair a laptop, second server, or container with your netclaw daemon so its CLI can talk to the daemon over HTTPS."
 ---
 
-Your netclaw daemon runs on one machine but you want to use the CLI from another -- a laptop, a second server, a container you can't shell into. Pairing takes two commands: generate a time-limited code on the daemon, exchange it from the remote device, and the client gets a bearer token for all future requests.
+Your netclaw daemon runs on one machine and you want `netclaw chat` and `netclaw status` on another. Pairing does it: generate a short-lived code on the daemon host, exchange it from the remote device, and the device gets a bearer token for every later request. Two commands, plus the one-time work of exposing the daemon over HTTPS.
 
-## Before You Begin
+| I want to | Do this |
+|-----------|---------|
+| Pair my first remote device | [Expose the daemon](#1-expose-the-daemon-over-https), then [pair](#2-generate-a-code-on-the-daemon-host) |
+| Add another device later | `netclaw daemon pair` on the daemon host, then `netclaw pair <url>` on the device |
+| Cut off a lost device | `netclaw daemon devices revoke <name>` on the daemon host |
+| Re-pair after a 401 | Same as adding a device |
 
-- Netclaw installed on both machines ([`netclaw init`](/cli/init/) completed on the daemon host). The remote device only needs the `netclaw` binary -- you don't need to run `netclaw init` on it. Pairing replaces init for client-only machines.
-- The daemon's exposure mode set to something other than `local` -- remote pairing doesn't work over loopback. The default daemon port is **5199**; make sure the chosen proxy or tunnel path can reach the daemon.
-- Network connectivity between the two machines (same tailnet, tunnel, or direct)
+## Before you begin
 
-## 1. Set an Exposure Mode
+- netclaw installed on both machines, and [`netclaw init`](/cli/init/) completed on the daemon host. The remote device needs only the `netclaw` binary. Pairing replaces init for client-only machines.
+- An HTTPS URL that reaches the daemon (port 5199 behind it): a reverse proxy, Tailscale Serve, or a Cloudflare Tunnel. **`netclaw pair` refuses a plain `http://` URL for any non-loopback address**, so a bare `http://my-server:5199` doesn't work. [Exposure modes](/deployment/exposure-modes/) has the setup for each.
+- The remote device trusts the certificate. A public certificate (Tailscale, Cloudflare, Let's Encrypt) needs nothing. For a private CA, install it in the device's trust store. .NET also honors `SSL_CERT_FILE`.
 
-By default, the daemon only listens on loopback. You need to change this before any remote device can connect.
+## 1. Expose the daemon over HTTPS
 
-During `netclaw init`, Step 9 handles this:
-
-![Network exposure mode selection during netclaw init](/screenshots/output/init-09-exposure.png)
-
-| Mode | Config value | Requires | Who can reach it |
-|------|-------------|----------|-----------------|
-| Local | `local` | Nothing | Loopback only (default) |
-| Reverse Proxy | `reverse-proxy` | Reverse proxy + trusted proxy config | Whatever the proxy exposes |
-| Tailscale Serve | `tailscale-serve` | `tailscaled` running | Same [tailnet](https://tailscale.com/kb/1136/tailnet) |
-| Tailscale Funnel | `tailscale-funnel` | `tailscaled` running | [Public internet](https://tailscale.com/kb/1223/funnel) |
-| Cloudflare Tunnel | `cloudflare-tunnel` | `cloudflared` running | Internet via [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) |
-
-To change the mode after init, edit `~/.netclaw/config/netclaw.json`:
+By default the daemon listens on loopback only, and pairing doesn't work in `local` mode. Set an exposure mode in `~/.netclaw/config/netclaw.json`:
 
 ```json
 {
@@ -37,198 +30,169 @@ To change the mode after init, edit `~/.netclaw/config/netclaw.json`:
 }
 ```
 
-For tunnel setup details -- Tailscale Serve commands, Cloudflare Tunnel configuration, and how each mode binds the daemon -- see [Exposure Modes](/deployment/exposure-modes/).
+| Mode | Config value | Requires | Who can reach it |
+|------|-------------|----------|-----------------|
+| Local | `local` | Nothing | Loopback only (default) |
+| Reverse proxy | `reverse-proxy` | A proxy, a non-loopback `Daemon.Host`, and `TrustedProxies` | Whatever the proxy exposes |
+| Tailscale Serve | `tailscale-serve` | `tailscaled` running | Your [tailnet](https://tailscale.com/kb/1136/tailnet) |
+| Tailscale Funnel | `tailscale-funnel` | `tailscaled` running | The [public internet](https://tailscale.com/kb/1223/funnel) |
+| Cloudflare Tunnel | `cloudflare-tunnel` | `cloudflared` running | The internet through [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) |
 
-Restart the daemon after changing exposure mode (`netclaw daemon stop && netclaw daemon start`, or `systemctl restart netclaw` if you're [using systemd](/deployment/systemd/)).
+The daemon restarts itself when this changes in `netclaw.json`. If you set it through an environment variable, restart by hand. For a reverse proxy, the full config, the `Daemon.Host` rule, and the tunnel commands are in [Exposure modes](/deployment/exposure-modes/).
 
-:::caution[Non-local modes require at least one paired device]
-If you set a non-local exposure mode, the daemon still requires at least one paired device at startup unless another remote auth scheme is configured. On fresh setup-owned installs, netclaw creates a one-time bootstrap credential before the first successful non-local start. After that first successful start, normal CLI use requires pairing.
+:::caution[Non-local modes need a paired device]
+A non-local daemon won't start without at least one paired device, unless another remote auth scheme is configured. On a fresh install netclaw seeds one local bootstrap device (named `<hostname>-bootstrap`) before the first successful non-local start, so the daemon host's own CLI keeps working. After that first start, new devices need pairing.
 :::
 
-## 2. Generate a Pairing Code (Daemon Side)
-
-On the machine running the daemon:
+## 2. Generate a code on the daemon host
 
 ```bash
 netclaw daemon pair
 ```
 
-Output:
-
 ```
-Pairing code:  ABCD-EF23
-Expires at:    14:32:15 (local time)
+Pairing code:  56AJ-DPTU
+Expires at:    02:50:53 (local time)
 
 On the remote device, run:
-  netclaw pair http://my-server:5199
+  netclaw pair <https-address>
+
+The daemon does not know its public address. The daemon is exposed through reverse-proxy, and http://127.0.0.1:5199 is reachable only from this machine.
+Replace <https-address> with the HTTPS address this daemon is published at.
 ```
 
-Codes expire after **5 minutes** and are single-use. Generating a new code replaces any previous one -- only one active at a time.
+Codes last 5 minutes and work once. A new code replaces any earlier one. The alphabet leaves out `0`, `O`, `1`, `I`, and `L` so codes are hard to misread.
 
-The character set (`23456789ABCDEFGHJKLMNPQRSTUVWXYZ`) deliberately excludes `0`/`O`/`1`/`I`/`L` to avoid misreads.
+In a non-local mode the daemon can't know the address your proxy or tunnel publishes, so the command leaves a `<https-address>` placeholder. Substitute your HTTPS URL on the device. Only in `local` mode does it print a ready-made `netclaw pair http://127.0.0.1:5199` line, and pairing from another machine doesn't work there.
 
-### Docker
-
-If the daemon runs in a container, `docker exec` is still the simplest daemon-host path:
+In Docker, run it through `docker exec`:
 
 ```bash
-docker exec -it <container-name> netclaw daemon pair
+docker exec -u netclaw <container> netclaw daemon pair
 ```
 
-The daemon also logs pairing codes at `Information` level:
+The daemon logs that it generated a code but never the code, so `docker logs` can't recover one. Run the command again. Flags and subcommands are in [`netclaw daemon`](/cli/daemon/).
+
+## 3. Pair the remote device
+
+On the remote machine, with the URL your proxy or tunnel serves:
 
 ```bash
-docker logs <container-name> | grep "Pairing code"
+netclaw pair https://netclaw.example.com
 ```
 
-Use `docker logs` when you only need the code. Use `docker exec` when you want to pair or manage devices from inside the container.
-
-## 3. Pair the Remote Device (Client Side)
-
-On the remote machine:
-
-```bash
-netclaw pair http://my-server:5199
 ```
-
-For Tailscale, Cloudflare Tunnel, and reverse-proxy modes, the endpoint URL differs -- check [Exposure Modes](/deployment/exposure-modes/) for the correct format for each mode.
-
-The CLI prompts for two things:
-
-```
-Pairing code (XXXX-XXXX): ABCD-EF23
+Pairing code (XXXX-XXXX): 6S2F-YSJD
 Device name [my-laptop]:
+Paired successfully as 'my-laptop'.
+Token stored in:     /home/netclaw/.netclaw/config/secrets.json
+Endpoint saved in:   /home/netclaw/.netclaw/client/config.json
+
+You can now use `netclaw chat`, `netclaw status`, etc. against https://netclaw.example.com.
 ```
 
-Device name defaults to the machine's hostname. Hit Enter to accept the default, or type a custom name.
+The device name defaults to the hostname. Press Enter to accept it, or type another. The token goes to `secrets.json` and the endpoint to `client/config.json`.
 
-On success:
-
-- The CLI saves the bearer token to `~/.netclaw/config/secrets.json`
-- The daemon endpoint is written to `~/.netclaw/client/config.json`
-- `netclaw chat`, `netclaw status`, and all other remote commands work from here
-
-If a device with the same name already exists on the daemon, the exchange returns HTTP 409. Revoke the old device first (see below).
-
-You can pair as many devices as you need.
-
-## 4. Verify the Connection
-
-From the newly paired device:
+Check it from the remote device:
 
 ```bash
 netclaw status
 ```
 
-If you get system status back, pairing worked. The CLI attaches the bearer token automatically from here on.
+You should get the daemon's status back, with the `endpoint:` line showing your HTTPS URL. Pair as many devices as you need.
 
-## Managing Paired Devices
+We ran this flow with two containers of 0.28 on a private Docker network, with the daemon in `reverse-proxy` mode behind an nginx TLS proxy using a self-signed certificate that the client trusted through `SSL_CERT_FILE`. The client's `netclaw status` then reported `endpoint https://...` and `overall: healthy`.
 
-Run these from the daemon host.
+## Manage paired devices
 
-### List devices
+Run these on the daemon host:
 
 ```bash
 netclaw daemon devices
-```
-
-Shows Name, Created, and Last Used for each paired device. Prints `No paired devices.` if none exist.
-
-### Revoke a device
-
-```bash
 netclaw daemon devices revoke <name>
 ```
 
-After revocation, the device gets 401 on its next request. Use this when a device is lost, retired, or you need to re-pair with the same name.
+```
+Name                     Created                Last Used
+my-server-bootstrap     2026-10-07 15:43       2026-10-07 15:46
+my-laptop                2026-10-07 15:46       2026-10-07 15:46
+```
 
-## How Tokens Work
+`devices` prints `No paired devices.` when there are none. After `revoke`, the device gets a 401 on its next request. Revoke when a device is lost or retired, or when you want to reuse its name.
 
-- Raw tokens never hit disk on the daemon side -- it stores a SHA256 hash with a per-device salt in `~/.netclaw/config/devices.json` (file permissions `600` on Linux)
-- Clients keep the raw token in `~/.netclaw/config/secrets.json`
-- In `local` mode, loopback connections still work without bearer auth
-- In remote-auth-required modes, bearer auth may still be required even on a loopback control-plane endpoint
+## How it works
 
-### Endpoint Resolution
+- The daemon never stores a raw token. It keeps a salted SHA-256 hash in `~/.netclaw/config/devices.json` (permissions `600` on Linux), and the device keeps the raw token in its own `secrets.json`.
+- In `local` mode, loopback connections work without a token, provided `Host` is `localhost` or a loopback IP and any `Origin` matches it. In every non-local mode, loopback isn't trusted either, because the loopback peer might be your proxy forwarding remote traffic.
+- The exchange endpoint resists guessing three ways: 5 attempts per minute per IP, a block of 15 minutes after 10 failures in 15 minutes, and a 404 when no code is active. With 8 characters from a 32-character alphabet and a 5-minute life, guessing isn't practical.
 
-When the CLI connects, it checks these in order:
-
-1. `NETCLAW_DAEMON_ENDPOINT` environment variable
-2. `~/.netclaw/client/config.json` (written by `netclaw pair`)
-3. Daemon bind config (`Daemon.Host` + `Daemon.Port`) if available
-4. Default: `http://127.0.0.1:5199`
-
-If the daemon bind host is a wildcard like `0.0.0.0`, the CLI normalizes it to a connectable local endpoint instead of trying to connect to the wildcard address.
-
-Override with the env var when you need to switch between multiple daemons without re-pairing.
-
-## Exchange Endpoint Security
-
-The pairing endpoint has three layers of brute-force protection:
-
-| Layer | Behavior |
-|-------|----------|
-| Rate limiter | 5 attempts/minute per IP |
-| Fail2ban-style guard | 10 failures in 15 min blocks the IP for 15 min |
-| No-code-pending gate | Returns 404 when no code is active |
-
-With a 32-character alphabet, 8-character codes, 5-minute expiry, and 5 attempts/minute, that makes brute-force guessing impractical.
+The CLI finds the daemon in this order: the `NETCLAW_DAEMON_ENDPOINT` environment variable, `~/.netclaw/client/config.json` (written by `netclaw pair`), the daemon's own `Daemon.Host` and `Daemon.Port` from `netclaw.json`, then `http://127.0.0.1:5199`. A wildcard bind such as `0.0.0.0` is normalized to a connectable local address. Set the environment variable to switch between daemons without re-pairing.
 
 ## Troubleshooting
 
-### "Authentication failed: the daemon rejected the bearer token"
+### A non-loopback daemon endpoint must use HTTPS
 
-The token was revoked or the daemon's device store was reset. Re-pair:
+**Symptom:** `error: A non-loopback daemon endpoint must use HTTPS.`
 
-```bash
-netclaw pair <endpoint>
-```
+**Cause:** You ran `netclaw pair http://host:5199`. The client only accepts plain HTTP for loopback addresses.
 
-If the daemon is already running, run `netclaw daemon pair` on the daemon host to get a fresh code.
+**Fix:** Pair through an HTTPS URL from your proxy or tunnel ([Exposure modes](/deployment/exposure-modes/)).
 
-If the device store was lost and a non-local daemon now fails startup, temporarily switch `Daemon.ExposureMode` to `local` or restore `devices.json` and `secrets.json` from backup. Then start the daemon, run `netclaw daemon pair`, and switch back.
+### Authentication failed
 
-### Pairing code expired
+**Symptom:** `Authentication failed: the daemon rejected the bearer token. Run 'netclaw pair <endpoint>' to re-pair this device.` or `daemon returned 401`.
 
-Codes last 5 minutes. Generate a new one with `netclaw daemon pair` and try again.
+**Cause:** The device was revoked, or the daemon's device store was reset. On the daemon host in `local` mode, a request that names another host (or comes from a browser app on another local port) also gets a 401, and the daemon log shows `Refused loopback request: Host is not a loopback name`. Call `http://127.0.0.1:<port>` or `http://localhost:<port>`.
 
-### HTTP 409 — device name already exists
+**Fix:** Run `netclaw daemon pair` on the daemon host, then `netclaw pair <endpoint>` on the device. If the device store was lost and a non-local daemon now fails to start, switch `Daemon.ExposureMode` to `local` temporarily, or restore `devices.json` and `secrets.json` from backup. Start the daemon, pair, and switch back.
 
-A device with that name is already paired. Either pick a different name during pairing, or revoke the existing one first:
+### Pairing code invalid or expired
 
-```bash
-netclaw daemon devices revoke <name>
-```
+**Symptom:** `Pairing failed (401): Invalid, expired, or already-used pairing code.`
 
-### Can't connect to the daemon at all
+**Cause:** Codes live 5 minutes, work once, and a newer code replaces an older one.
 
-Check the basics:
+**Fix:** Run `netclaw daemon pair` again and retry. A 404 means no code is active at all.
 
-1. Is the daemon running? (`netclaw daemon start` on the host)
-2. Is the exposure mode set to something other than `local`?
-3. Can you reach the daemon through the intended endpoint or proxy path?
-4. Is a firewall blocking port 5199?
+### Device name already exists
 
-If the daemon uses `reverse-proxy`, also confirm the daemon itself is not still bound to loopback and that `TrustedProxies` includes the proxy's source IP or CIDR.
+**Symptom:** `Pairing failed (409): A paired device named '<name>' already exists. Revoke it before pairing again.`
 
-Run [`netclaw doctor`](/cli/doctor/) on the daemon host -- it includes exposure-mode health checks.
+**Cause:** A paired device already has that name.
 
-### IP blocked after too many failed attempts
+**Fix:** Pick a different name and reuse the same unexpired code, or revoke the old device with `netclaw daemon devices revoke <name>` first.
 
-Wait 15 minutes, or fix the issue from a different IP. Too many wrong codes temporarily block your IP for 15 minutes.
+### Can't reach the daemon at all
 
-## Next Steps
+**Symptom:** `Connection refused`, a timeout, or a TLS error.
 
-- [`netclaw chat`](/cli/chat/) -- start talking to your agent from the paired device
-- [`netclaw status`](/cli/status/) -- check daemon connectivity and endpoint URL
-- [`netclaw doctor`](/cli/doctor/) -- diagnose exposure mode and connectivity issues
-- [Exposure Modes](/deployment/exposure-modes/) -- all `Daemon.ExposureMode` options and tunnel setup
-- [`netclaw init`](/cli/init/) -- the setup wizard handles bootstrap pairing during non-local setup
+**Cause:** Daemon down, exposure mode still `local`, a proxy or firewall in the way, or an untrusted certificate.
 
-## External Resources
+**Fix:** Check in order that the daemon is running, `Daemon.ExposureMode` isn't `local`, the HTTPS URL answers from the device, and port 5199 isn't blocked between proxy and daemon. For `reverse-proxy`, also confirm the daemon isn't bound to loopback and `TrustedProxies` includes the proxy's address. [`netclaw doctor`](/cli/doctor/) on the daemon host runs an exposure-mode check.
 
-- [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve) -- expose local services to your tailnet
-- [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) -- expose local services to the public internet via Tailscale
-- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) -- route traffic to your daemon through Cloudflare's network
-- [Caddy reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy) -- example reverse proxy if you're exposing netclaw behind Caddy
-- [Tailscale: What is a tailnet?](https://tailscale.com/kb/1136/tailnet) -- networking concepts for the Tailscale Serve mode
+### Too many failed attempts
+
+**Symptom:** Requests are refused for a while after several wrong codes.
+
+**Cause:** The guard blocked your IP for 15 minutes.
+
+**Fix:** Wait it out, or pair from a different IP.
+
+## What's next
+
+- [`netclaw chat`](/cli/chat/) - start talking to your agent from the paired device
+- [`netclaw status`](/cli/status/) - daemon connectivity and endpoint
+
+## Related pages
+
+- [`netclaw daemon`](/cli/daemon/) - `pair`, `devices`, and the other daemon subcommands
+- [Exposure modes](/deployment/exposure-modes/) - every `Daemon.ExposureMode` and its setup
+- [`netclaw doctor`](/cli/doctor/) - exposure-mode and connectivity checks
+- [`netclaw init`](/cli/init/) - the setup wizard, which handles bootstrap pairing
+
+## Resources
+
+- [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve) - expose a local service to your tailnet
+- [Tailscale Funnel](https://tailscale.com/kb/1223/funnel) - expose it to the public internet through Tailscale
+- [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) - route traffic to the daemon through Cloudflare
+- [Caddy reverse_proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy) - a reverse proxy that handles TLS automatically

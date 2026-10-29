@@ -121,3 +121,26 @@ starlight-menu-button button {
     transition: none;
   }
 }
+
+/* Mermaid edge labels (yes/no/Approval) render dim grey on the dark theme. Lift them. */
+svg[id^="mermaid-"] .edgeLabel text,
+svg[id^="mermaid-"] .edgeLabel tspan {
+  fill: #e6e6ef !important;
+}
+
+svg[id^="mermaid-"] .edgeLabel rect {
+  fill: #1a1a24 !important;
+  opacity: 1 !important;
+}
+
+svg[id^="mermaid-"] .flowchart-link,
+svg[id^="mermaid-"] .messageLine0,
+svg[id^="mermaid-"] .messageLine1 {
+  stroke: #9a9ab4 !important;
+}
+
+svg[id^="mermaid-"] marker path,
+svg[id^="mermaid-"] .arrowMarkerPath {
+  fill: #9a9ab4 !important;
+  stroke: #9a9ab4 !important;
+}

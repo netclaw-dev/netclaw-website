@@ -1,6 +1,6 @@
 ---
 title: OpenTelemetry
-description: Export metrics and logs from netclaw via OTLP for monitoring token usage, session activity, and system health.
+description: "Export netclaw metrics and logs over OTLP to watch token usage, session activity and daemon health."
 ---
 
 Netclaw can push metrics and structured logs to any [OpenTelemetry](https://opentelemetry.io/) Protocol (OTLP) compatible collector. Flip it on, point it at your collector, and your existing backend (Grafana, Datadog, Honeycomb, whatever speaks OTLP) gets per-channel message flow metrics, token consumption counters, and full daemon logs.
@@ -23,9 +23,17 @@ Merge a `Telemetry` block into your existing `~/.netclaw/config/netclaw.json`:
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `Enabled` | bool | `false` | Turns on the OTLP export pipeline |
-| `Otlp:Endpoint` | string | `http://127.0.0.1:4317` | OTLP collector endpoint (gRPC) |
+| `Otlp:Endpoint` | string | `http://127.0.0.1:4317` | Base URL of the OTLP collector |
 
-Netclaw uses gRPC OTLP on port 4317, not HTTP/Protobuf (4318). If your collector only accepts HTTP OTLP, you'll get silent failures.
+`Otlp:Endpoint` is a base URL. Netclaw speaks gRPC by default, normally on port 4317, and uses the endpoint as written. To use HTTP/protobuf on port 4318, set `OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf` and leave the endpoint at the base. The exporters then post to `<endpoint>/v1/logs` and `<endpoint>/v1/metrics`:
+
+```bash
+export NETCLAW_Telemetry__Enabled="true"
+export NETCLAW_Telemetry__Otlp__Endpoint="http://otel-collector:4318"
+export OTEL_EXPORTER_OTLP_PROTOCOL="http/protobuf"
+```
+
+A full signal URL such as `http://otel-collector:4318/v1/logs` is reduced to its base, so an endpoint copied from an older setup keeps working. The daemon log shows `POST http://otel-collector:4318/v1/logs` and a `200`.
 
 Environment variable overrides follow the [.NET double-underscore convention](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider):
 
@@ -34,12 +42,7 @@ export NETCLAW_Telemetry__Enabled="true"
 export NETCLAW_Telemetry__Otlp__Endpoint="http://127.0.0.1:4317"
 ```
 
-Telemetry config changes need a daemon restart. Run [`netclaw doctor`](/cli/doctor/) first to catch config errors before you bounce the daemon:
-
-```bash
-netclaw doctor
-netclaw daemon stop && netclaw daemon start
-```
+The daemon restarts itself when you edit telemetry settings in `netclaw.json`. Environment-variable settings, including `OTEL_*` variables, need a manual restart: `systemctl --user restart netclaw` under systemd, `docker restart <container>` in Docker, or `netclaw daemon stop` then `netclaw daemon start` for a daemon you started by hand. Run [`netclaw doctor`](/cli/doctor/) first to catch config errors.
 
 ### Validation
 
@@ -53,15 +56,15 @@ Telemetry:Otlp:Endpoint must be an absolute URI.
 
 ## What gets exported
 
-Every signal carries an OpenTelemetry resource identifying the service. The name defaults to `netclawd`, but it — and the rest of the `service.*` attributes — are yours to set; see [Service identity](#service-identity).
+Every signal carries an OpenTelemetry resource identifying the service. The name defaults to `netclawd`, but you can set it, and the rest of the `service.*` attributes, yourself. See [Service identity](#service-identity).
 
-Every log line the daemon produces goes to your collector, with full formatting and scope data (`IncludeFormattedMessage`, `IncludeScopes`, `ParseStateValues` all enabled). Two meters cover metrics: one for session-level token usage, one for per-channel message flow. Full reference below.
+Every log line the daemon produces goes to your collector, with full formatting and scope data (`IncludeFormattedMessage`, `IncludeScopes`, `ParseStateValues` all enabled). That includes the daemon's own HTTP request logs and one Info line per tool call (`Invoking tool [...]`, with secrets redacted and long strings replaced by a length and hash), so exported log volume rises by about one record per tool call. Two meters cover metrics: one for session-level token usage, one for per-channel message flow. Full reference below.
 
-Distributed tracing is off for now. The cross-actor model produces disconnected spans with no meaningful causality chain, so it's more noise than signal.
+There's no tracing exporter. The cross-actor model produces disconnected spans with no meaningful causality chain, so it's more noise than signal. Only logs and metrics leave the daemon.
 
 ## Service identity
 
-Service identity comes from the standard OpenTelemetry environment variables — netclaw keeps no identity config of its own. Set them however you launch the daemon:
+Service identity comes from the standard OpenTelemetry environment variables. netclaw keeps no identity config of its own. Set them however you launch the daemon:
 
 ```bash
 export OTEL_SERVICE_NAME="netclaw-prod"
@@ -80,10 +83,10 @@ Four attributes end up on every signal and on each [operational alert](/observab
 netclaw logs the resolved identity once at startup, so you can confirm the env vars took effect:
 
 ```
-OpenTelemetry service identity resolved: service.name=netclaw-prod, service.namespace=ops, service.instance.id=claw-prod-01, service.version=0.22.1
+OpenTelemetry service identity resolved: service.name=netclaw-prod, service.namespace=ops, service.instance.id=claw-prod-01, service.version=0.28.2
 ```
 
-Give each instance a distinct name (or namespace / instance ID) when several report to the same collector or alert webhook — that's what lets you tell them apart.
+Give each instance a distinct name (or namespace and instance ID) when several report to the same collector or alert webhook. That's what lets you tell them apart.
 
 :::note
 The short-lived `Telemetry:ServiceName` property from 0.18.2 is gone. Since 0.19.0, service identity is sourced only from the OpenTelemetry environment variables above.
@@ -105,7 +108,7 @@ These are aggregate totals across all models and providers, with no per-model or
 
 ### Channel metrics (`Netclaw.Channels`)
 
-Per-channel message pipeline metrics. Each metric name is prefixed with `netclaw.channel.{channel-type}` where channel type is one of: `slack`, `tui`, `headless`, `signalr`, `reminder`, `webhook`, `discord`.
+Per-channel message pipeline metrics. Each metric name is prefixed with `netclaw.channel.{channel-type}` where channel type is one of: `slack`, `tui`, `headless`, `signalr`, `reminder`, `webhook`, `discord`, `mattermost`.
 
 | Metric suffix | Type | Attributes | Description |
 |---------------|------|------------|-------------|
@@ -113,13 +116,13 @@ Per-channel message pipeline metrics. Each metric name is prefixed with `netclaw
 | `.events.dropped` | Counter | `reason` | Events dropped before processing |
 | `.events.filtered` | Counter | `reason` | Events filtered by policy |
 | `.events.routed` | Counter | `kind` | Events that reached conversation routing |
-| `.messages.enqueued` | Counter | — | Messages accepted into session queue |
-| `.replies.posted` | Counter | — | Successful replies sent |
+| `.messages.enqueued` | Counter | - | Messages accepted into session queue |
+| `.replies.posted` | Counter | - | Successful replies sent |
 | `.replies.rejected` | Counter | `error_code` | Rejected reply attempts |
-| `.replies.failed` | Counter | — | Failed reply attempts |
-| `.reply.duration.ms` | Histogram | — | Reply post latency in milliseconds (includes both successful and failed attempts) |
+| `.replies.failed` | Counter | - | Failed reply attempts |
+| `.reply.duration.ms` | Histogram | - | Reply post latency in milliseconds (includes both successful and failed attempts) |
 
-> `Netclaw.Webhooks` (the meter behind [`netclaw stats`](/cli/stats/)) is not wired into OTLP. The `netclaw.channel.webhook.*` metrics above cover message flow through the webhook channel; per-route delivery stats only show up in `netclaw stats`.
+> `Netclaw.Webhooks` (the meter behind [`netclaw stats`](/cli/stats/)) is not wired into OTLP. The `netclaw.channel.webhook.*` metrics above cover message flow through the webhook channel. Per-route delivery stats only show up in `netclaw stats`.
 
 ## Diagnostic queries
 
@@ -131,13 +134,47 @@ Per-channel message pipeline metrics. Each metric name is prefixed with `netclaw
 
 ## Collector setup
 
-Point the endpoint at any [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) that accepts gRPC OTLP. A minimal local setup with Docker:
+Point the endpoint at any [OpenTelemetry Collector](https://opentelemetry.io/docs/collector/) that accepts OTLP. This config receives gRPC on 4317 and HTTP on 4318 and prints what arrives, so you can see the pipeline work before you wire up a backend:
+
+```yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      exporters: [debug]
+```
+
+Save it as `otel.yaml`, run the collector on the same Docker network as netclaw, and point netclaw at it over gRPC or HTTP:
 
 ```bash
-docker run -d --name otel-collector \
-  -p 4317:4317 \
-  otel/opentelemetry-collector-contrib:latest
+docker network create netclaw-net
+docker run -d --name otel-collector --network netclaw-net \
+  -v "$PWD/otel.yaml:/etc/otelcol/config.yaml:ro" \
+  otel/opentelemetry-collector:latest
+docker run -d --name netclaw --network netclaw-net \
+  -e NETCLAW_Telemetry__Enabled=true \
+  -e NETCLAW_Telemetry__Otlp__Endpoint=http://otel-collector:4317 \
+  ghcr.io/netclaw-dev/netclaw:0.28.2
 ```
+
+For HTTP/protobuf, use `http://otel-collector:4318` and add `-e OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf`.
+
+`docker logs otel-collector` shows a `Logs` line within seconds, with the number of log records, and a `Metrics` line after the first export interval (about a minute) once a chat turn has run. The detailed exporter prints each record, your `service.name`, and the `netclaw.session.*` metrics. The collector's output includes the daemon's own HTTP request logs, including the image's health check calling `/api/health/ready` every 15 seconds.
 
 Route to your backend (Prometheus, Grafana Cloud, Datadog, etc.) via the collector's [exporter configuration](https://opentelemetry.io/docs/collector/configuration/#exporters).
 
@@ -155,14 +192,15 @@ Once data is flowing, build dashboards around the [diagnostic queries](#diagnost
 
 ## Related pages
 
-- [Operational Alerts](/observability/operational-alerts/) for outbound webhook notifications
-- [`netclaw status`](/cli/status/) shows the telemetry row and OTLP endpoint
-- [`netclaw doctor`](/cli/doctor/) validates OTLP endpoint configuration
-- [`netclaw stats`](/cli/stats/) has in-process counters, including webhook metrics that aren't in OTLP
+- [Operational alerts](/observability/operational-alerts/) - outbound webhook notifications
+- [Health checks](/observability/health-checks/) - the status endpoint, including the telemetry fields
+- [`netclaw status`](/cli/status/) - the telemetry row and OTLP endpoint
+- [`netclaw doctor`](/cli/doctor/) - validates OTLP endpoint configuration
+- [`netclaw stats`](/cli/stats/) - in-process counters, including webhook metrics that aren't in OTLP
 
 ## Resources
 
-- [OpenTelemetry Collector documentation](https://opentelemetry.io/docs/collector/) covers setup, configuration, and deployment
-- [OTLP specification](https://opentelemetry.io/docs/specs/otlp/) describes the wire protocol netclaw uses
-- [Grafana OTel-LGTM Docker image](https://github.com/grafana/docker-otel-lgtm) is an all-in-one local observability stack
-- [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) explains the double-underscore nesting convention
+- [OpenTelemetry Collector documentation](https://opentelemetry.io/docs/collector/) - setup, configuration and deployment
+- [OTLP specification](https://opentelemetry.io/docs/specs/otlp/) - the wire protocol netclaw uses
+- [Grafana OTel-LGTM Docker image](https://github.com/grafana/docker-otel-lgtm) - an all-in-one local observability stack
+- [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) - the double-underscore nesting convention

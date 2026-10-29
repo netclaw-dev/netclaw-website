@@ -1,81 +1,97 @@
 ---
 title: "Mattermost"
-description: "Connect Netclaw to your self-hosted Mattermost server."
+description: "Connect netclaw to a self-hosted Mattermost server with a bot account, an allow-list and text or button approvals."
 ---
 
-Netclaw connects to Mattermost over a WebSocket for events and the REST API for replies. You run a bot account on your Mattermost server, give netclaw the bot's access token, and it shows up as a bot user — same default-deny ACL model as [Slack](/channels/slack/) and [Discord](/channels/discord/), against infrastructure you host yourself.
+netclaw connects to Mattermost over a WebSocket for events and the REST API for replies. You create a bot account on your server, give netclaw the bot's access token, and it answers in threads under the same default-deny ACL as [Slack](/channels/slack/) and [Discord](/channels/discord/). If you want the whole stack in containers, [Run netclaw with Mattermost on Docker Compose](/guides/mattermost-docker-compose/) sets up the server, the bot and netclaw with one sample.
 
 ## Prerequisites
 
-- Netclaw installed and initialized ([`netclaw init`](/cli/init/))
-- A self-hosted Mattermost server reachable from the daemon
-- System Console access on that server (to enable bot accounts and create the bot)
+- netclaw installed and initialized ([`netclaw init`](/cli/init/))
+- A Mattermost server the daemon can reach, with a user who has System Console access
+- The server's base URL as netclaw will reach it, such as `https://mm.example.com` or `http://mattermost:8065` on a Compose network
 
 ## Create a bot account
 
-Mattermost bots authenticate with a **personal access token**, not OAuth. Two server settings have to be on before you can create one.
+Mattermost bots authenticate with a **personal access token**, not OAuth. Two server settings are off by default and both must be on before you can create one.
 
 ### 1. Enable bot accounts and access tokens
 
-In the **System Console**, under **Integrations > Bot Accounts**, set **Enable Bot Account Creation** to `true`. Then, under **Integrations > Integration Management**, turn on **Enable Personal Access Tokens**.
+In the **System Console**, open **Integrations > Bot Accounts** and set **Enable bot account creation** to `true`. Then open **Integrations > Integration Management** and turn on **Enable personal access tokens**. Both map to `ServiceSettings` keys (`EnableBotAccountCreation` and `EnableUserAccessTokens`) if you'd rather set them in `config.json` or with `MM_SERVICESETTINGS_*` environment variables.
 
-![System Console Bot Accounts settings with Enable Bot Account Creation set to True](/screenshots/output/mattermost-bot-accounts.png)
+![System Console Bot Accounts settings with Enable Bot Account Creation set to True and greyed out under a notice that an environment variable set it](/screenshots/output/mattermost-bot-accounts.png)
 
-Both are off by default on a fresh Mattermost install — skipping either is the most common setup snag.
+This server was configured through an environment variable, so the setting is locked and the console says so. On your server it's a normal radio button, and skipping this toggle or the token one is the most common setup snag.
 
 ### 2. Create the bot and copy its token
 
-Under **Integrations > Bot Accounts**, click **Add Bot Account** and give it a username (e.g. `netclaw`) and display name. Then click **Create New Token**: Mattermost reveals the access token **once**, in a banner — copy it right then. That token (not the Token ID shown in the list) is the `BotToken` netclaw needs.
+Under **Integrations > Bot Accounts**, click **Add Bot Account**, give it a username such as `netclaw` and a display name, then click **Create New Token**. Mattermost shows the access token **once**, in a banner. Copy it then. That token, not the Token ID in the list, is the `BotToken` netclaw needs.
 
-![Mattermost Bot Accounts page listing the netclaw bot with its Create New Token control](/screenshots/output/mattermost-create-bot.png)
+![Mattermost Integrations > Bot Accounts list with the netclaw bot, its Create New Token, Edit and Disable links, and a token row whose Token ID is masked](/screenshots/output/mattermost-create-bot.png)
+
+The list is what you see after the bot exists. The **Create New Token** link next to the bot issues a replacement later, and the Token ID in the row, masked here, is not the token netclaw needs.
+
+The [Compose sample](/guides/mattermost-docker-compose/) provisions this for you, and the bot row ends up looking like this.
+
+![The netclaw bot row in Mattermost Bot Accounts, managed by admin, with one token described as netclaw and its Token ID masked](/screenshots/output/mattermost-compose-bot-account.png)
+
+The token description is `netclaw`, and the sample keeps the token itself out of every file in the repository.
 
 ### 3. Add the bot to your team and channels
 
-A bot only sees channels it belongs to. Add it to the target team, then invite it to each channel where it should respond (`/invite @netclaw`, or through the channel member menu).
+A bot only sees channels it belongs to. Add it to the team, then invite it to each channel where it should answer with `/invite @netclaw` or the channel member menu.
 
 ## Configure netclaw
 
 :::tip
-Run [`netclaw config`](/cli/config/) → Channels. Enable Mattermost, enter your server URL and bot token — netclaw resolves channel names to canonical IDs and saves. You no longer need to look up opaque IDs by hand.
+Run [`netclaw config`](/cli/config/) → Channels, enable Mattermost, and enter the server URL and bot token. netclaw resolves channel names to IDs and saves.
 :::
 
 ![The Channels area in netclaw config](/screenshots/output/config-channels-menu.png)
 
-The Channels area in `netclaw config` — enable Mattermost and enter its server URL and token here (the adapter list also shows Slack and Discord).
+The Channels area lists Slack, Discord and Mattermost with a checkbox each. Toggle Mattermost on and press `Enter` to configure it.
 
 ### Manual setup
 
-For scripted deployments or Docker installs where a TUI isn't available, store the token with [`netclaw secrets`](/cli/secrets/):
+For Docker or scripted installs, store the token with [`netclaw secrets`](/cli/secrets/) and describe the rest in config:
 
 ```bash
 netclaw secrets set Mattermost.BotToken your-bot-token
 ```
 
-Then enable Mattermost and point it at your server in `~/.netclaw/config/netclaw.json`:
+The token lands in your shell history and the process list this way. In scripts, feed it over stdin instead, as the [Compose guide](/guides/mattermost-docker-compose/) does: `netclaw secrets set Mattermost.BotToken "$(cat)" < .bot-token`.
 
 ```json
 {
   "Mattermost": {
     "Enabled": true,
     "ServerUrl": "https://mm.example.com",
-    "DefaultChannelId": "abcdefghijklmnopqrstuvwxyz"
+    "AllowedChannelIds": ["abcdefghijklmnopqrstuvwxyz"],
+    "AllowedUserIds": ["zyxwvutsrqponmlkjihgfedcba"]
   }
 }
 ```
 
-Environment variables work too:
+Every key also works as an environment variable with the `NETCLAW_` prefix and `__` between segments, with list entries indexed from zero:
 
 ```bash
-export NETCLAW_Mattermost__BotToken="your-bot-token"
-export NETCLAW_Mattermost__Enabled="true"
+NETCLAW_Mattermost__Enabled=true
+NETCLAW_Mattermost__ServerUrl=http://mattermost:8065
+NETCLAW_Mattermost__AllowedChannelIds__0=abcdefghijklmnopqrstuvwxyz
 ```
+
+Restart behavior differs by source. Editing `netclaw.json` makes the daemon restart itself. A change to the vault or to an environment variable needs a restart you do yourself: `systemctl --user restart netclaw`, or `docker restart <container>` in Docker.
+
+:::caution
+Keep each list in one place. Environment entries and `netclaw.json` entries merge by position, so a blank `NETCLAW_Mattermost__AllowedChannelIds__0` overwrites the first channel in the file and denies it. `netclaw config` → Channels also writes `AllowedChannelIds` and `AllowedUserIds` into `netclaw.json`.
+:::
 
 ### How channel IDs are stored
 
-Add channels one at a time in `netclaw config` → Channels. Netclaw resolves each entry against the Mattermost REST API to its canonical channel ID before adding it to the list. The stored `AllowedChannelIds` field holds IDs, not display names; display names are shown dynamically in the config UI. Entries that cannot be resolved are flagged with a warning but saved verbatim in `AllowedChannelIds` — an unresolved name is inert at runtime because the ACL matches against canonical IDs only, so the name grants access to no channel until it resolves.
+Add channels one at a time in `netclaw config` → Channels. netclaw resolves each entry against the Mattermost REST API to a canonical channel ID before it adds it. `AllowedChannelIds` holds IDs, never display names. An entry that can't be resolved is flagged and kept verbatim, and it matches no channel until it resolves. When you save, the first channel in the list also becomes `DefaultChannelId`.
 
 :::caution
-**Breaking change (pre-0.24.0 → 0.24.0+):** If you previously placed display names in `AllowedChannelIds` by hand in `netclaw.json`, those names no longer match any channel ID, so those channels are silently denied. Re-enter them via `netclaw config` → Channels so they resolve to canonical IDs. (`DefaultChannelId` already holds a canonical ID, so it's unaffected.)
+Since 0.24.0, display names you typed into `AllowedChannelIds` by hand no longer match, and those channels are silently denied. Re-enter them through `netclaw config` → Channels. `DefaultChannelId` already holds an ID.
 :::
 
 ### All config fields
@@ -83,35 +99,31 @@ Add channels one at a time in `netclaw config` → Channels. Netclaw resolves ea
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `Enabled` | bool | `false` | Turn on Mattermost |
-| `ServerUrl` | string | — | Base URL of your Mattermost server. Required when enabled. |
-| `BotToken` | string | — | Bot personal access token. Store with `netclaw secrets set`. |
-| `CallbackUrl` | string | — | URL Mattermost can reach for interactive button callbacks. Set it to get approval buttons; leave it unset for text-reply approvals (see [Tool approval](#tool-approval)). |
-| `DefaultChannelId` | string | — | A 26-character channel ID. Allows one channel without listing it in `AllowedChannelIds`. |
-| `MentionOnly` | bool | `true` | Only respond when @-mentioned in channels |
+| `ServerUrl` | string | - | Base URL of your server. Required when enabled. |
+| `BotToken` | string | - | Bot access token. Vault only (`netclaw secrets set Mattermost.BotToken`). It isn't a `netclaw.json` key, and the schema rejects it there. |
+| `CallbackUrl` | string | - | URL the Mattermost server can reach for approval buttons. Required for sub-agent approvals. Unset means text-reply approvals for the main agent only (see [Tool approval](#tool-approval)). |
+| `DefaultChannelId` | string | - | A 26-character channel ID that's allowed without being listed in `AllowedChannelIds` |
+| `MentionOnly` | bool | `true` | In channels, answer only when @-mentioned |
 | `AllowDirectMessages` | bool | `false` | Accept DMs |
-| `MentionRequiredInDm` | bool | `false` | Require @-mention even in DMs |
-| `AllowedChannelIds` | string[] | `[]` | Channel allow-list. Empty + no default = all channel messages denied |
-| `AllowedUserIds` | string[] | `[]` | User allow-list. Empty = everyone in allowed channels is accepted |
-| `ChannelAudiences` | object | `{}` | Per-channel [audience](/security/security-model/) overrides. Keys are channel IDs or `"dm"`. Values: `"personal"`, `"team"`, `"public"`. |
+| `MentionRequiredInDm` | bool | `false` | Require an @-mention even in DMs |
+| `MentionRequiredInThreadByChannel` | object | `{}` | Channel ID to bool. `true` makes a thread reply in that channel need an @-mention. See [Mention behavior](#mention-behavior). |
+| `AllowedChannelIds` | string[] | `[]` | Channel allow-list. Empty with no default denies every channel message. |
+| `AllowedUserIds` | string[] | `[]` | User allow-list. Empty accepts everyone in allowed channels. |
+| `ChannelAudiences` | object | `{}` | Per-channel [audience](/security/security-model/) overrides. Keys are channel IDs or `"dm"`. Values are `"personal"`, `"team"` or `"public"`. |
 
-The token lives in `~/.netclaw/config/secrets.json` (encrypted at rest). Mattermost channel and user IDs are 26-character alphanumeric strings — the System Console lists them, or pull them from the [REST API](https://api.mattermost.com/).
+The token lives in `~/.netclaw/config/secrets.json`, encrypted at rest. Channel and user IDs are 26-character strings. You can read them with `mmctl --local user list` and `mmctl --local channel search <name> --team <team>` inside the server container, or from the [REST API](https://api.mattermost.com/).
 
 ## Access control
 
-Mattermost ACL is **default-deny**, evaluated the same way as Slack and Discord.
+Mattermost ACL is **default-deny** and works like Slack and Discord.
 
 ### Channels
 
-The bot only responds in channels that pass the allow-list:
-
-- `DefaultChannelId` allows one channel
-- `AllowedChannelIds` allows multiple
-- **If both are empty, every channel message is denied.** This is the number one setup mistake.
+The bot answers only in channels that pass the allow-list. `DefaultChannelId` allows one, `AllowedChannelIds` allows more, and if both are empty every channel message is denied. That's the number one setup mistake.
 
 ```json
 {
   "Mattermost": {
-    "DefaultChannelId": "abcdefghijklmnopqrstuvwxyz",
     "AllowedChannelIds": ["abcdefghijklmnopqrstuvwxyz", "zyxwvutsrqponmlkjihgfedcba"]
   }
 }
@@ -119,137 +131,182 @@ The bot only responds in channels that pass the allow-list:
 
 ### Users
 
-`AllowedUserIds` restricts who gets responses:
-
-- Empty (default) — everyone in allowed channels is accepted
-- Non-empty — only listed user IDs get responses, everyone else is silently dropped
-
-Users in `AllowedUserIds` are treated as `TrustedInternal` by the [security model](/security/security-model/). Everyone else is `UntrustedExternal`.
+`AllowedUserIds` restricts who gets answers. Empty means everyone in an allowed channel. Non-empty means only the listed users, and everyone else is dropped silently, in DMs too. Listed users are `TrustedInternal` in the [security model](/security/security-model/), and everyone else is `UntrustedExternal`.
 
 :::caution
-Always set `AllowedUserIds` on a production server. With it empty, any user the bot can see can click an approval button in a shared channel and approve a tool call on someone else's behalf. The action-token check still blocks *forged* clicks — but a legitimate click from the wrong person is a real one.
+Always set `AllowedUserIds` on a shared server. With it empty, any user in an allowed channel can talk to the bot and start tool calls under that channel's audience. Only the user who triggered a prompt can approve it, but an empty list lets anyone be that user.
 :::
 
 ### Direct messages
 
-DMs are off by default:
-
-```json
-{
-  "Mattermost": {
-    "AllowDirectMessages": true
-  }
-}
-```
-
-With DMs on, users type normally — `MentionRequiredInDm` defaults to `false`, so no @-mention needed.
+DMs are off by default. Turn them on with `"AllowDirectMessages": true`. Users then write without a mention, because `MentionRequiredInDm` defaults to `false`. With `AllowedUserIds` empty, anyone on the server can DM the bot.
 
 ### Audience overrides
 
-Audience resolves per message: `ChannelAudiences[channelId]` wins first, then `ChannelAudiences["dm"]` for direct messages, then a fallback that lands on `Team` for allow-listed channels and users and `Public` for everything else. Override it explicitly:
+Audience resolves per message: `ChannelAudiences[channelId]` first, then `ChannelAudiences["dm"]` for direct messages, then a fallback. The fallback is `Team` for a channel listed in `AllowedChannelIds` or a user listed in `AllowedUserIds`, and `Public` for everything else. A DM from someone who isn't on the list is `Public`, and so is a channel allowed only through `DefaultChannelId`, unless you also list it in `AllowedChannelIds` or set `ChannelAudiences` for it.
 
 ```json
 {
   "Mattermost": {
     "ChannelAudiences": {
-      "abcdefghijklmnopqrstuvwxyz": "team",
+      "abcdefghijklmnopqrstuvwxyz": "personal",
       "dm": "personal"
     }
   }
 }
 ```
 
-The `"dm"` key is reserved — it matches every direct message rather than a channel ID, and a channel-ID entry takes precedence over it. An unrecognized audience value is rejected outright: the message is denied rather than falling back to a default.
-
-[Security Model](/security/security-model/) has the full breakdown on how audiences map to tools and permissions.
+A channel-ID entry beats `"dm"`, and an unrecognized value denies the message instead of falling back. [Security model](/security/security-model/) maps audiences to tools. For a channel you own, `personal` is what lets the agent request shell commands, still gated by approval.
 
 ## Behavior in Mattermost
 
 ### Threads and sessions
 
-Each thread is its own isolated session, keyed by `{channelId}/{rootPostId}`, and the bot replies in-thread. On daemon restart, thread history is backfilled so in-progress conversations pick up where they left off.
+Each thread is its own session, keyed by `{channelId}/{rootPostId}`, and the bot replies in-thread. The thread stays attached to its session until the session goes idle and is freed from memory, after `Session.IdleTimeout` (one hour by default). A later reply in the thread wakes it again. After a daemon restart, thread history is backfilled so conversations continue.
 
 ### Mention behavior
 
-`MentionOnly: true` (the default) means the bot ignores channel messages that don't @-mention it. Thread replies are the exception — once a thread has an active session, the bot responds to everything in it without a mention. Netclaw strips the @-mention before passing text to the LLM.
+`MentionOnly: true` makes the bot ignore channel messages that don't @-mention it. netclaw strips the mention before the text reaches the model. Once a thread has an active session, replies in it don't need a mention, unless you turn that rule on for the channel:
+
+```json
+{
+  "Mattermost": {
+    "MentionRequiredInThreadByChannel": {
+      "abcdefghijklmnopqrstuvwxyz": true
+    }
+  }
+}
+```
+
+With the rule on, an un-mentioned thread reply is ignored (`ThreadMentionRequired` in the log). The next message that does mention the bot makes netclaw re-read everything posted since its last reply, so it answers with full context. A channel with no entry behaves as `false`. The rule doesn't apply to DMs.
+
+You can also set it in `netclaw config` → Channels. On the channel list, **Space** toggles **Require @mention** for the selected channel. A channel you add there starts with the rule on if its audience is `team` or `public`, and off if it's `personal`. Only `true` entries are saved.
+
+### Typing indicator
+
+While a session works on your message, netclaw sends Mattermost's native typing pulse to the thread every three seconds. It stops when the session goes idle, and it gives up after ten minutes so a stuck session can't leave the thread typing forever. A failed pulse logs a warning and doesn't affect the reply.
 
 ### Tool approval
 
 When a tool call needs approval, how netclaw asks depends on `CallbackUrl`:
 
-- **`CallbackUrl` set** — netclaw posts interactive buttons. The full prompt offers five choices, in order: **Once**, **This chat**, **Always here**, **Always anywhere**, **Deny**. Clicks come back over an inbound HTTP POST to `/api/mattermost/actions`, which the daemon only exposes when a callback URL is configured. Each button carries a one-time, post-bound token that expires after 12 hours.
-- **`CallbackUrl` unset** — approvals fall back to text replies: reply with the letter shown next to each option. No inbound HTTP surface is opened.
+| `CallbackUrl` | Prompt | How you answer |
+|---------------|--------|----------------|
+| Unset | A text prompt listing options with letters | Reply with a letter in the thread. No inbound HTTP endpoint is opened. Approval requests from a sub-agent are refused. |
+| Set | Buttons | Click. Each button carries a one-time token that expires after 12 hours. |
 
-netclaw shows fewer than five when some don't apply — a command it can't cleanly parse (shell control flow, or unbalanced quotes) collapses to just **Once** and **Deny**, and the reply letters track whatever is shown. **Always anywhere** is the broadest grant: it approves the command's verb for every session everywhere and persists to `tool-approvals.json`. Reach for **Always here** or narrower unless you really mean it.
+The choices are the same on every channel: **Once**, **This chat**, **Always here**, **Always anywhere**, **Deny**, and **This repository** when it applies. A command netclaw can't parse cleanly gets only **Once** and **Deny**. [How tool approvals work](/security/approvals/) explains what each choice grants. Only the user whose request triggered the prompt can answer it. Anyone else gets a warning.
 
-The token store is in-memory: buttons posted before a daemon restart return "no longer valid" when clicked afterward. The pending request survives on the session, so ask the agent to re-issue the prompt.
+A prompt from a sub-agent always has buttons only, on every channel, with no lettered fallback. A typed letter doesn't answer it. If two or more prompts are open for you and one is from a sub-agent, a letter answers none and the bot replies `N approval prompts are open. Use the buttons on the prompt you mean.`
 
-:::caution
-Reach `/api/mattermost/actions` over TLS. The callback trusts the user ID in the payload as the clicker's identity, so a network attacker who can rewrite headers in plaintext could impersonate another user.
-:::
+The lettered prompt, from a real run:
+
+```text
+:lock: Tool approval required
+Tool: shell_execute
+Action: touch /tmp/approval-test
+Pattern: touch
+
+Reply with:
+A) Once
+B) This chat
+C) Always here
+D) Always anywhere
+E) Deny
+```
+
+If posting an approval prompt fails, netclaw reports the failure to the model as an unavailable prompt, not as your denial, and the call doesn't run. A prompt that nothing can answer any more is redrawn without buttons and with the reason, such as `This approval request was withdrawn because the task that asked for it was cancelled. Nothing ran.` A click on a prompt that already has an answer gets `That approval prompt already has an answer. This response changed nothing.`
+
+#### Buttons need a reachable callback
+
+The Mattermost **server**, not your browser, sends the click to `CallbackUrl`. The URL has to be reachable from the server's network, and it has to reach the daemon's `/api/mattermost/actions` path. The daemon serves that on its one listener at `Daemon.Host:Daemon.Port`. In the default `local` exposure mode that listener is loopback only, and `local` refuses any other bind. A Mattermost server on another host or in another container can't reach it.
+
+So you pick one of two setups:
+
+- Leave `CallbackUrl` unset and use text replies. This works for a single-host or Compose stack that doesn't use sub-agents. Any approval request from a sub-agent is refused, the call doesn't run, and the prompt is withdrawn as `could not show it in this channel`.
+- Move the daemon to a non-local [exposure mode](/deployment/exposure-modes/) or front the path with a forwarder, then set `CallbackUrl` to the address the Mattermost server uses, for example `https://netclaw.example.com/api/mattermost/actions`.
+
+Mattermost also blocks integration requests to private and loopback addresses unless the target is in `ServiceSettings.AllowedUntrustedInternalConnections` ([Mattermost docs](https://docs.mattermost.com/administration-guide/configure/environment-configuration-settings.html), **Environment > Developer**). Add the daemon's host there if your callback is a private address.
+
+Reach the endpoint over TLS or a trusted network. The callback trusts the user ID in the payload as the clicker's identity. The token store lives in memory and holds at most 10,000 unused tokens, oldest evicted first. Buttons posted before a daemon restart answer "no longer valid", so ask the agent to re-issue the prompt. A sub-agent prompt for a run that hadn't parked when the daemon restarted shows the withdrawal text instead. A parked run keeps its prompt, and a click after the restart resumes it.
 
 ### Proactive messaging
 
-The LLM can start a conversation with the generic `send_channel_message` tool — pass `channel_key: mattermost` and a `destination` resolved via `lookup_channel_user` or `lookup_channel_destination`. It posts a new thread root and routes replies in that thread back to a live session. ACL rules still apply — DMing a user also requires `AllowDirectMessages: true`.
+The model can start a conversation with `send_channel_message`, passing `channel_key: mattermost` and a destination from `lookup_channel_user` or `lookup_channel_destination`. It posts a new thread root and routes replies in that thread to a live session. ACL still applies, and DMing a user needs `AllowDirectMessages: true`.
 
 ### Reminders
 
-[Reminders](/configuration/reminders/) reach Mattermost through `channel` delivery with `delivery_transport: "mattermost"`. (In-thread `current_session` delivery isn't available from a Mattermost session yet — `set_reminder` only accepts it for Slack, Discord, the TUI, and SignalR.) Because Mattermost user IDs and channel IDs are both 26-character strings, channel-delivery targets need a prefix:
+[Reminders](/configuration/reminders/) reach Mattermost two ways:
 
-- `@<userId>` — delivers to that user's DM
-- `channel:<channelId>` — delivers to that channel
+- `current_session` posts back into the thread that set the reminder
+- `channel` delivery with `delivery_transport: "mattermost"` posts to a channel or a user's DM
 
-A bare ID with no prefix is rejected with a disambiguation error. Unlike Discord, DM delivery works, because a Mattermost DM is itself an addressable channel.
+User IDs and channel IDs have the same shape, so channel delivery needs a prefix:
+
+| Target | Delivers to |
+|--------|-------------|
+| `@<userId>` | That user's DM |
+| `channel:<channelId>` | That channel |
+
+A bare ID is rejected with a disambiguation error.
+
+A `current_session` reminder ends when the session admits the fire, and netclaw doesn't retry a failed post. If the reply post fails for good, the session logs an Error and raises a `reminder.delivery.failed` [alert](/observability/operational-alerts/).
 
 ## Verify it works
 
-Restart the daemon, then @-mention the bot in an allowed channel:
+Check the connector, then mention the bot in an allowed channel:
 
 ```bash
-netclaw daemon stop && netclaw daemon start
+netclaw status
 ```
 
-If it replies in a thread, you're set.
+```text
+connectors:
+- mattermost: healthy (enabled)
+```
 
-![Netclaw replying to a testuser @-mention in a Mattermost thread](/screenshots/output/mattermost-conversation.png)
+If the bot replies in a thread, you're set.
 
-`netclaw status` reports Mattermost health (healthy, degraded, disconnected, or disabled). When something's off, check its status first, then the daemon logs for detail. A bad token, an unreachable server, or any connection failure is contained there — the Mattermost channel degrades on its own and the daemon plus every other channel keeps running. See [Troubleshooting](#troubleshooting) below for the common messages.
+![Mattermost Assistant channel where alice mentions @netclaw and the netclaw bot answers with a greeting in the thread panel](/screenshots/output/mattermost-conversation.png)
+
+The reply lands in a thread under alice's mention, which is also where follow-ups go.
+
+`netclaw status` reports `healthy`, `degraded`, `disconnected` or `disabled`. A channel problem stays in the channel. The daemon and your other channels keep running.
 
 ## Troubleshooting
 
-Common problems and fixes are in [Channel Troubleshooting](/channels/troubleshooting/). The hits:
+[Channel troubleshooting](/channels/troubleshooting/) is organized by symptom. The usual ones:
 
-- **Connected but silent** — `AllowedChannelIds` is empty and no `DefaultChannelId` is set, so all traffic gets denied; or the bot was never added to the channel.
-- **`Mattermost is enabled but Mattermost:ServerUrl is not configured`** — add `Mattermost.ServerUrl` to `netclaw.json`.
-- **`Mattermost rejected the bot token (HTTP 401)`** — re-issue the bot token and update `secrets.json`.
-- **Can't create a bot or token** — Enable Bot Account Creation and Enable Personal Access Tokens are both off by default in the System Console.
+| Symptom | Likely cause |
+|---------|--------------|
+| `disconnected`, `no bot token is configured` | Store the token with `netclaw secrets set`, then restart. |
+| `disconnected`, `rejected the bot token (HTTP 401)` or `rejected the request as unauthorized` | The token is wrong or was revoked. Issue a new one and restart. |
+| `disconnected`, `ServerUrl is not configured` | Set `Mattermost.ServerUrl`. |
+| Connected but silent | The channel or user isn't in the allow-list, or the bot isn't in the channel. |
+| Reconnect loop with `outside a clean startup cycle` | A startup race fixed in 0.26.0-beta.5. Upgrade. |
+| Can't create a bot or token | One of the two System Console toggles is still off. |
+
+A bad token or an unreachable server is a fatal connect error: the channel stays offline until you fix the config and restart the daemon. Network blips retry on their own.
 
 :::note
-Running Mattermost in a container on Apple Silicon? The [`mattermost/mattermost-preview`](https://hub.docker.com/r/mattermost/mattermost-preview) image is amd64-only — start it with `--platform linux/amd64`. It's a testing image with a bundled database; for production, deploy the [`mattermost/mattermost-team-edition`](https://hub.docker.com/r/mattermost/mattermost-team-edition) image and a real database per [Mattermost's Docker install guide](https://docs.mattermost.com/install/install-docker.html).
+Testing on Apple Silicon? The [`mattermost/mattermost-preview`](https://hub.docker.com/r/mattermost/mattermost-preview) image is amd64-only and bundles its own database, so use it for trials only. For anything real, run the Team Edition image with Postgres, as the [Compose guide](/guides/mattermost-docker-compose/) does.
 :::
-
-## Next steps
-
-- [Configure audiences and approval gates](/security/security-model/) to control what tools are available in each channel
-- [Set up systemd](/deployment/systemd/) so the daemon stays running after reboots
-- [Add Slack](/channels/slack/) or [Discord](/channels/discord/) if your team uses more than one
 
 ## Related pages
 
-- [`netclaw config`](/cli/config/) — Channels
-- [`netclaw secrets`](/cli/secrets/) — token management
-- [`netclaw status`](/cli/status/) — primary diagnostic for Mattermost
-- [Security Model](/security/security-model/) — audiences and approval gates
-- [Channel Troubleshooting](/channels/troubleshooting/) — error codes and debug logging
-- [Slack](/channels/slack/) — sibling channel integration
-- [Discord](/channels/discord/) — sibling channel integration
+- [Run netclaw with Mattermost on Docker Compose](/guides/mattermost-docker-compose/) - a tested, hardened stack
+- [Channel troubleshooting](/channels/troubleshooting/) - fixes by symptom
+- [How tool approvals work](/security/approvals/) - the approval choices
+- [Security model](/security/security-model/) - audiences and approval gates
+- [Exposure modes](/deployment/exposure-modes/) - reaching the daemon from outside its host
+- [Slack](/channels/slack/) and [Discord](/channels/discord/) - the other chat channels
 
-## External resources
+## Resources
 
-- [Mattermost](https://mattermost.com/) — the project, if you don't already run a server
-- [Mattermost on GitHub](https://github.com/mattermost/mattermost) — source code, issues, and release notes
-- [Mattermost: Bot accounts](https://developers.mattermost.com/integrate/reference/bot-accounts/) — creating and managing bots
-- [Mattermost: Personal access tokens](https://developers.mattermost.com/integrate/reference/personal-access-token/) — enabling and issuing tokens
-- [Mattermost: Enable bot account creation](https://docs.mattermost.com/configure/integrations-configuration-settings.html) — the System Console settings
-- [Mattermost: Install with Docker](https://docs.mattermost.com/install/install-docker.html) — container deployment, including the [official images on Docker Hub](https://hub.docker.com/u/mattermost)
-- [Mattermost API reference](https://api.mattermost.com/) — the REST endpoints netclaw uses for replies
+- [Mattermost](https://mattermost.com/) - the project, if you don't already run a server
+- [Mattermost on GitHub](https://github.com/mattermost/mattermost) - source code, issues and release notes
+- [Mattermost: bot accounts](https://developers.mattermost.com/integrate/reference/bot-accounts/) - creating and managing bots
+- [Mattermost: personal access tokens](https://developers.mattermost.com/integrate/reference/personal-access-token/) - enabling and issuing tokens
+- [Mattermost: integrations settings](https://docs.mattermost.com/administration-guide/configure/integrations-configuration-settings.html) - the System Console toggles
+- [Mattermost: install with Docker](https://docs.mattermost.com/deploy/server/deploy-containers.html) - the official container deployment
+- [Mattermost API reference](https://api.mattermost.com/) - the REST endpoints netclaw calls

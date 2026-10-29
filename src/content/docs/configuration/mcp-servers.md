@@ -1,39 +1,64 @@
 ---
-title: "MCP Servers"
-description: "Add and manage MCP tool servers."
+title: "MCP servers"
+description: "Configure MCP tool servers: transports, every field, OAuth settings, per-audience access, and what happens with invalid config."
 ---
 
-Netclaw connects to [Model Context Protocol](https://modelcontextprotocol.io/) servers to give the LLM tools: browsing the web, querying Notion, storing memories, whatever the MCP server exposes. Server definitions live in the `McpServers` section of `~/.netclaw/config/netclaw.json`, with credentials split into [`secrets.json`](/security/secrets/).
+Netclaw connects to [Model Context Protocol](https://modelcontextprotocol.io/) servers to give the model tools (browsing, Notion, memory stores, whatever the server exposes) and prompts. Server definitions live in the `McpServers` section of `~/.netclaw/config/netclaw.json`. Credentials live in [`secrets.json`](/security/secrets/).
 
-At startup, the daemon loads all enabled servers, discovers their tools, and enforces [per-audience permissions](#per-audience-access-control) on which tools each session can call.
+At startup the daemon connects to every enabled server in parallel, discovers its tools and prompts, and enforces [per-audience permissions](#per-audience-access-control) on what each session can call. A server that fails to connect doesn't stop the others.
 
-The CLI writes this JSON for you (`netclaw mcp add`, `netclaw mcp permissions`), but direct editing works fine too. For the full CLI reference, see [`netclaw mcp`](/cli/mcp-tools/).
+`netclaw mcp add` and `netclaw mcp permissions` write this JSON for you, and editing the file directly works too. See [`netclaw mcp`](/cli/mcp-tools/) for the command reference and [Connect an OAuth MCP server](/guides/oauth-mcp-servers/) for sign-in.
 
-## Configuration schema
+## Minimal config
 
-Each entry under `McpServers` is keyed by server name:
+One stdio server with every default:
+
+```json
+{
+  "McpServers": {
+    "memorizer": {
+      "Command": "uvx",
+      "Arguments": ["memorizer-mcp"]
+    }
+  }
+}
+```
+
+`Transport` defaults to `"stdio"` and `Enabled` to `true`. The server name (`memorizer`) is what appears as `mcp:memorizer` in [`netclaw status`](/cli/status/) and in permission settings. The CLI resolves names without regard to case, so `netclaw mcp add Memorizer` while `memorizer` exists updates `memorizer`. If you edit the file by hand, don't create two keys that differ only by case: the loader reads them as duplicates and every `netclaw` command prints `Couldn't read netclaw.json` until you remove one.
+
+## Fields
+
+Each entry under `McpServers` is keyed by server name. The block is closed: unknown fields fail the schema check in `netclaw doctor`.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `Transport` | string | `"stdio"` | `"stdio"`, `"sse"`, or `"http"` |
-| `Command` | string? | `null` | Executable for stdio transport |
-| `Arguments` | string[]? | `null` | Args passed to the stdio command |
-| `Url` | string? | `null` | Endpoint URL for sse/http transport |
-| `EnvironmentVariables` | object? | `null` | Env overlay for the stdio process |
-| `Headers` | object? | `null` | Additional HTTP headers for http/sse transport |
-| `Enabled` | bool | `true` | Whether the server is loaded at startup |
-| `GrantCategory` | string? | `null` | ACL grant category; defaults to `mcp:{serverName}`. Set this to group multiple servers under a single permission grant — e.g., both `browser_playwright` and `browser_chrome_devtools` share `browser_automation` so they can be toggled together. |
-| `OAuthClientId` | string? | `null` | Static OAuth client ID (servers without dynamic registration) |
-| `OAuthClientSecret` | string? | `null` | Secret for a pre-registered confidential client. Stored in `secrets.json` only |
-| `OAuthScope` | string? | `null` | OAuth scope override (space-separated) |
+| `Transport` | string | `"stdio"` | `"stdio"`, `"sse"` or `"http"` |
+| `Command` | string | none | Executable for stdio. Required for stdio. |
+| `Arguments` | string[] | none | Arguments passed to the stdio command |
+| `Url` | string | none | Endpoint for sse and http. Required for both. |
+| `EnvironmentVariables` | object | none | Environment overlay for the stdio process |
+| `Headers` | object | none | Extra HTTP headers for sse and http |
+| `Enabled` | bool | `true` | Disabled servers aren't started |
+| `GrantCategory` | string | `mcp:<name>` | A label on the server's tools. It has no effect on access. |
+| `OAuthClientId` | string | none | Pre-registered OAuth client ID, for servers without dynamic registration |
+| `OAuthClientSecret` | string | none | Client secret for a confidential OAuth client. Allowed only in `secrets.json`. |
+| `OAuthScope` | string | none | Space-separated OAuth scopes to request |
 
-Sensitive values (`EnvironmentVariables` entries, `Headers` with tokens) belong in `secrets.json`, not `netclaw.json`. The CLI handles this split for you when you use `netclaw mcp add --env` or `--header`.
+`EnvironmentVariables`, `Headers` and `OAuthClientSecret` hold credentials. Put them in `secrets.json`, where netclaw stores them encrypted. `netclaw mcp add --env`, `--header` and `--client-secret` do that split for you.
+
+:::caution
+`OAuthClientSecret` in `netclaw.json` is a config error. The schema forbids it and `netclaw doctor` fails the Config Schema check. Set it with `netclaw mcp add --client-secret` or `netclaw secrets set McpServers.<name>.OAuthClientSecret <value>`.
+:::
+
+A server that sends an `Authorization` header (from `Headers`) opts out of netclaw's OAuth handling. Netclaw won't try to authorize it or refresh anything.
+
+`GrantCategory` is carried on each tool as a label, but authorization never reads it. Control access with `McpServersMode`, `AllowedMcpServers` and `McpServerToolGrants` below. The old advice to group servers under one shared category doesn't work.
 
 ## Transports
 
 ### stdio
 
-Launches a local process. The daemon starts it on startup and kills it on shutdown.
+Launches a local process. The daemon starts it on startup and stops it on shutdown.
 
 ```json
 {
@@ -47,67 +72,64 @@ Launches a local process. The daemon starts it on startup and kills it on shutdo
 }
 ```
 
-[`uvx`](https://docs.astral.sh/uv/) is the runner from the `uv` Python package manager — it downloads and executes MCP servers published as Python packages. `Command` must be on the daemon's `PATH`.
+[`uvx`](https://docs.astral.sh/uv/) runs Python-packaged MCP servers. `Command` must be on the daemon's `PATH`. stdio servers can't use OAuth.
 
 ### http
 
-Connects to a remote MCP server over HTTP with streamable transport.
+Streamable HTTP, the current MCP transport. Use it for remote servers.
 
 ```json
 {
   "McpServers": {
     "notion": {
       "Transport": "http",
-      "Url": "https://mcp.notion.com",
-      "OAuthClientId": "abc123",
-      "OAuthScope": "read write"
+      "Url": "https://mcp.notion.com/mcp"
     }
   }
 }
 ```
 
-If the server needs OAuth, run `netclaw mcp auth <name>` after adding it.
+If the server needs OAuth, run `netclaw mcp auth notion` after adding it. Add `OAuthClientId` (and the secret in `secrets.json`) only when the server doesn't support dynamic client registration:
+
+```json
+{
+  "McpServers": {
+    "github": {
+      "Transport": "http",
+      "Url": "https://api.githubcopilot.com/mcp/",
+      "OAuthClientId": "Iv1.example",
+      "OAuthScope": "repo read:org"
+    }
+  }
+}
+```
 
 ### sse
 
-Server-Sent Events transport — use this for MCP servers that expose an SSE endpoint instead of streamable HTTP. Some older or self-hosted servers only support SSE.
+The older Server-Sent Events transport, for servers that don't offer streamable HTTP.
 
 ```json
 {
   "McpServers": {
-    "my-server": {
+    "legacy": {
       "Transport": "sse",
       "Url": "https://mcp.example.com/sse",
-      "Headers": {
-        "Authorization": "Bearer your-api-token-here"
-      }
+      "Headers": { "X-Team": "platform" }
     }
   }
 }
 ```
 
-The `Authorization` header above is a placeholder. Put actual tokens in [`secrets.json`](/security/secrets/) instead of `netclaw.json`, or use `netclaw mcp add --header` which does the split for you.
+Tokens belong in `secrets.json`. Use `netclaw mcp add --header "Authorization: Bearer ..."` and it goes there for you.
 
-## Minimal config
+## Browser automation profiles
 
-One stdio server with all defaults:
+`netclaw init` can add one of two browser automation servers. Both are ordinary stdio entries you can edit.
 
-```json
-{
-  "McpServers": {
-    "memorizer": {
-      "Command": "uvx",
-      "Arguments": ["memorizer-mcp"]
-    }
-  }
-}
-```
-
-`Transport` defaults to `"stdio"`, `Enabled` defaults to `true`, and `GrantCategory` defaults to `mcp:memorizer`.
-
-## Production config
-
-**`~/.netclaw/config/netclaw.json`:**
+| Server name | Package | Needs |
+|-------------|---------|-------|
+| `browser_playwright` | `@playwright/mcp@latest` | Node.js and a Playwright browser |
+| `browser_chrome_devtools` | `chrome-devtools-mcp@latest` | Node.js and local Chrome |
 
 ```json
 {
@@ -121,77 +143,26 @@ One stdio server with all defaults:
         "--image-responses", "omit",
         "--snapshot-mode", "none",
         "--browser", "chromium"
-      ],
-      "GrantCategory": "browser_automation"
-    },
-    "memorizer": {
-      "Transport": "stdio",
-      "Command": "uvx",
-      "Arguments": ["memorizer-mcp"]
-    },
-    "notion": {
-      "Transport": "http",
-      "Url": "https://mcp.notion.com",
-      "OAuthClientId": "abc123",
-      "OAuthScope": "read write"
+      ]
     }
   }
 }
 ```
 
-The `--browser chromium` value is set by `netclaw init` based on which browsers are installed. `netclaw init` may also set `EnvironmentVariables` for the browser profiles depending on your environment.
+The `--browser` value comes from what `netclaw init` finds installed.
 
-`Enabled: true` is omitted throughout — it's the default.
+## OAuth fields
 
-**`~/.netclaw/config/secrets.json`** (encrypted at rest):
+`OAuthClientId`, `OAuthClientSecret` and `OAuthScope` apply to http and sse servers without an `Authorization` header. Without them, netclaw discovers the authorization server from the MCP URL and registers itself through [dynamic client registration](https://datatracker.ietf.org/doc/html/rfc7591).
 
-```json
-{
-  "McpServers": {
-    "memorizer": {
-      "EnvironmentVariables": {
-        "API_KEY": "ENC:CfDJ8N2x...encrypted..."
-      }
-    }
-  }
-}
-```
+| You have | Set |
+|----------|-----|
+| A server with dynamic registration | Nothing |
+| A pre-registered public client | `OAuthClientId` |
+| A pre-registered confidential client | `OAuthClientId` in `netclaw.json`, `OAuthClientSecret` in `secrets.json` |
+| Scopes beyond the provider's defaults | `OAuthScope` |
 
-## Built-in browser automation profiles
-
-`netclaw init` offers two browser automation backends. Both use stdio transport and share the `browser_automation` grant category:
-
-| Profile | Package | Runtime Requirement |
-|---------|---------|---------------------|
-| `browser_playwright` | `@playwright/mcp@latest` | Node.js + Playwright browser |
-| `browser_chrome_devtools` | `chrome-devtools-mcp@latest` | Node.js + local Chrome |
-
-Both are regular MCP server entries. Edit them in `netclaw.json` like any other server.
-
-## OAuth flow
-
-HTTP and SSE servers can authenticate via OAuth:
-
-1. Run `netclaw mcp auth <name>`. It opens your browser to the authorization page, or prints the URL on a headless host.
-2. Approve access in the browser.
-3. The daemon receives the callback. The CLI polls for completion and times out after 5 minutes.
-
-stdio servers cannot use OAuth.
-
-### Pre-registered clients
-
-Most MCP servers support [dynamic client registration](https://datatracker.ietf.org/doc/html/rfc7591), and netclaw registers itself. When a provider makes you create an OAuth app first (X, for example), pass that app's credentials on add:
-
-```bash
-# Public client (PKCE only)
-netclaw mcp add <name> <url> --transport http --client-id <client-id>
-
-# Confidential client
-netclaw mcp add <name> <url> --transport http \
-  --client-id <client-id> --client-secret <client-secret>
-```
-
-`--client-secret` goes to `secrets.json`, encrypted. Use `--scope` to override the scopes netclaw requests.
+A secret without a client ID is invalid. Tokens are stored in `secrets.json` under `McpOAuthTokens.<name>` and refreshed by the daemon. The full flow, including hosts with no browser, is in [Connect an OAuth MCP server](/guides/oauth-mcp-servers/).
 
 ### Redirect URI
 
@@ -204,14 +175,14 @@ http://127.0.0.1:<Daemon.Port>/api/mcp/oauth/callback
 With the default port, that's `http://127.0.0.1:5199/api/mcp/oauth/callback`.
 
 :::caution
-**A mismatched redirect URI is the number one setup mistake.** Providers compare it to the registered value character for character, and most show only a generic error page when it doesn't match. Use `127.0.0.1`, not `localhost`. Ignore any port or path from the provider's own setup guide. The daemon owns the callback, so its port and path are fixed. If you change `Daemon.Port`, update the registered URI too.
+**A mismatched redirect URI is the number one setup mistake.** Providers compare it to the registered value character for character, and most show only a generic error page when it doesn't match. Use `127.0.0.1`, not `localhost`. Ignore any port or path from the provider's own setup guide, because the daemon owns the callback. If you change `Daemon.Port`, update the registered URI too.
 :::
 
-To see the exact value netclaw sends, check the `redirect_uri` parameter in the authorization URL that `netclaw mcp auth` prints.
+`netclaw mcp auth` prints the authorization URL, and its `redirect_uri` parameter is the exact value netclaw sends.
 
-### Remote and container hosts
+## MCP prompts as skills
 
-When netclaw runs on a server or in a container, the browser redirect goes to `127.0.0.1` on *your* machine, so the page fails to load. That's expected. Copy the full URL from the address bar (it contains `code=` and `state=`) and paste it at the `netclaw mcp auth` prompt before the 5-minute timeout.
+Since 0.26.0, prompts that an MCP server publishes show up as skills named `mcp__<server>__<prompt>` (lowercased) with source `mcp` in `netclaw skill list`. The agent can load them like any other skill, and the prompt's arguments become the skill's arguments. They're only visible to audiences that can reach the server, and a prompt name that another server already owns is rejected. A prompt skill never overrides a skill file with the same name. `netclaw skill list` needs the daemon running to show them.
 
 ### GitHub MCP server
 
@@ -258,15 +229,15 @@ The GitHub server exposes write tools such as `merge_pull_request`, `delete_file
 
 ## Per-audience access control
 
-Netclaw gates MCP server access per [audience](/security/security-model/#trust-audiences) (Personal, Team, Public) in the `Tools.AudienceProfiles` section of `netclaw.json`:
+Netclaw gates MCP access per [audience](/security/security-model/#trust-audiences) (Personal, Team, Public) in `Tools.AudienceProfiles` of `netclaw.json`:
 
 | Audience | Default `McpServersMode` | Default behavior |
 |----------|--------------------------|------------------|
-| Personal | `"All"` | All servers allowed |
-| Team | `"Allowlist"` | Must list servers in `AllowedMcpServers` |
-| Public | `"Allowlist"` | Must list servers in `AllowedMcpServers` |
+| Personal | `"All"` | Every server and tool allowed |
+| Team | `"Allowlist"` | Servers must be listed in `AllowedMcpServers` |
+| Public | `"Allowlist"` | Servers must be listed in `AllowedMcpServers` |
 
-Each audience profile controls three things: which servers are visible, which of those servers' tools can be invoked, and whether each tool runs on autopilot, needs confirmation, or is hard-blocked.
+Each profile decides which servers are visible, which of their tools can run, and whether each tool runs on its own, asks first, or is blocked.
 
 ```json
 {
@@ -274,9 +245,6 @@ Each audience profile controls three things: which servers are visible, which of
     "AudienceProfiles": {
       "Personal": {
         "McpServersMode": "All",
-        "McpServerToolGrants": {
-          "memorizer": ["search_memories", "store_memory"]
-        },
         "ApprovalPolicy": {
           "DefaultMode": "Auto",
           "McpServerDefaults": { "memorizer": "Approval" },
@@ -294,82 +262,74 @@ Each audience profile controls three things: which servers are visible, which of
 }
 ```
 
-Omitting `McpServerToolGrants` for a server passes all of that server's tools through (if server-level access is allowed). To grant everything quickly from the CLI, use `netclaw mcp add --grant-all`.
+`McpServerToolGrants` only applies to `Allowlist` audiences. Under `"All"` it's ignored, so disable a single tool for Personal with a `Deny` entry in `ToolOverrides`, keyed `server/tool`. Leaving a server out of `McpServerToolGrants` exposes all of its tools to that audience, and an empty list exposes none. Keys in `ToolOverrides` and `McpServerDefaults` match without regard to case. Write an MCP tool as `server/tool` or `server__tool`. A key that contains a colon, or has no value, is ignored and the tool keeps the audience default. `netclaw doctor` reports the colon case as an error.
 
-`netclaw mcp add` grants a new server's tools to Personal with `Auto` approval. Team and Public are fail-closed: they get no tools until you grant them. Use `netclaw mcp permissions` to manage grants interactively. The daemon must be running first.
+`netclaw mcp add` leaves Personal open (every tool, `Auto`) and closes Team and Public. They get an empty grant list for the server and `Approval` (Team) or `Deny` (Public) as its default approval mode. Use `netclaw mcp permissions` to manage grants, or `netclaw mcp add --grant-all` to skip the empty grant lists when you first add the server. `netclaw mcp tools <server> --grant <tool> --audience <audience>` grants tools and adds the server to that audience's `AllowedMcpServers` in one step. Adding the same server again keeps its grants, defaults and enabled state, and `netclaw mcp remove` deletes them along with the server's OAuth tokens and saved approvals. See [MCP tool permissions](/guides/mcp-tool-permissions/) for a walkthrough.
 
-![MCP Permissions server list showing three connected servers with tool counts](/screenshots/output/mcp-tools-server-list.png)
+![MCP Permissions server list with one connected server, demo-utilities, and its tool count of 10](/screenshots/output/mcp-tools-server-list.png)
 
-Each server shows its connection status and discovered tool count. Select one to configure per-audience grants and approval policies.
+Each server gets a row with its connection state and discovered tool count, and selecting one opens its per-audience grants.
 
-## Daemon status codes
+## Server status
 
-After the daemon loads your MCP config, `netclaw mcp list` shows live status:
+`netclaw mcp list` and `netclaw doctor` report live status from the daemon:
 
 | Status | Meaning | Action |
 |--------|---------|--------|
-| `connected (N tools)` | Server up, N tools discovered | None |
-| `awaiting auth` | OAuth required | Run `netclaw mcp auth <name>` |
-| `auth failed` | OAuth rejected or credentials invalid | Re-run `netclaw mcp auth <name>` |
-| `unreachable` | Process crashed or network error | Run [`netclaw doctor`](/cli/doctor/) |
-| `disabled` | Toggled off | Run `netclaw mcp enable <name>` when ready |
+| `connected (N tools)` | Connected, N tools discovered | None |
+| `connected but not responding (N cached tools)` | Connected, but catalog refreshes keep failing | Check the server, then `netclaw doctor` |
+| `awaiting auth` | OAuth sign-in needed | `netclaw mcp auth <name>` |
+| `auth failed (...)` | The server rejected the credentials | Re-run `netclaw mcp auth <name>`, or fix the header or secret |
+| `unreachable - ...` | Connection failed or timed out | `netclaw doctor` |
+| `disabled` | `Enabled` is `false` | `netclaw mcp enable <name>` |
+| `status unavailable - restart daemon to load this config` | The daemon hasn't loaded a server you just added. It reloads on its own within seconds. | Run `netclaw mcp list` again. Restart only if it persists. |
 
-## Environment variable overrides
+`netclaw status` lists the same servers as `mcp:<name>` connectors.
 
-Override any server field with `NETCLAW_` environment variables. Double underscores separate path segments per the [.NET configuration convention](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider):
+## Invalid config
 
-```bash
-export NETCLAW_McpServers__notion__Enabled="true"
-export NETCLAW_McpServers__notion__Url="https://mcp.notion.com"
-export NETCLAW_McpServers__notion__Transport="http"
-```
-
-These take highest priority, overriding anything in `netclaw.json`. On Linux, variable names are case-sensitive.
-
-## Validation errors
-
-`netclaw doctor` validates MCP server config at startup:
+`netclaw doctor` checks each entry. A bad entry is reported and the rest of the servers still load.
 
 | Condition | Result |
 |-----------|--------|
-| `Transport` not `stdio`, `sse`, or `http` | Config error |
-| stdio transport with empty `Command` | Config error |
-| sse/http transport with empty `Url` | Config error |
-| Server `unreachable` at runtime | Warning (partial) or Error (all servers down) |
-| OAuth auth failed | Error — re-run `netclaw mcp auth <name>` |
+| `Transport` isn't `stdio`, `sse` or `http` | Config Schema and `mcp-servers` checks fail |
+| stdio with no `Command` | `mcp-servers` check fails: `stdio transport requires 'Command'` |
+| sse or http with no `Url` | `mcp-servers` check fails: `<transport> transport requires 'Url'`, for example `sse transport requires 'Url'` |
+| `OAuthClientSecret` in `netclaw.json` | Config Schema check fails |
+| An unknown field | Config Schema check fails |
 
-Invalid config prevents that server from loading, but the rest still start fine.
+We loaded a config with an unknown transport, a stdio entry with no command, an http entry with no URL and an unknown field, on 0.27.1 and again on a later build. The daemon started, `netclaw doctor` named each one, and `netclaw status` showed each as `disconnected`.
+
+## Environment variable overrides
+
+Override any field with `NETCLAW_` variables. Double underscores separate path segments, per the [.NET configuration convention](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider):
+
+```bash
+export NETCLAW_McpServers__notion__Enabled="true"
+```
+
+Environment variables take priority over `netclaw.json` and `secrets.json`. They apply to the daemon only. `netclaw mcp list` and `netclaw mcp get` read the files, so a server you enable by environment variable still shows as `disabled` there while `netclaw status` shows it loaded. Env changes need a manual daemon restart.
 
 ## Applying changes
 
-Config changes take effect after a daemon restart:
+The daemon restarts itself, after draining sessions, when `netclaw.json` changes. Secrets changes (`netclaw secrets set`, `--client-secret` rotation) don't trigger that. Restart the daemon yourself: `docker restart <container>`, `systemctl --user restart netclaw`, or `netclaw daemon stop` then `netclaw daemon start`.
 
 ```bash
-netclaw daemon restart
-netclaw mcp list       # shows config + live status
-netclaw status         # shows MCP connector health
+netclaw mcp list    # config plus live status
+netclaw status      # MCP connector health
 ```
-
-## Setup sequence
-
-1. Add a server: `netclaw mcp add <name> <command-or-url>`
-2. Restart the daemon: `netclaw daemon restart`
-3. Grant tool permissions: `netclaw mcp permissions` (requires a running daemon)
-4. Authenticate (if HTTP/SSE with OAuth): `netclaw mcp auth <name>`
-5. Verify: `netclaw mcp list`
 
 ## Related pages
 
-- [`netclaw mcp`](/cli/mcp-tools/) — CLI reference for all MCP subcommands (add, list, remove, permissions, auth)
-- [`netclaw init`](/cli/init/) — adds browser automation MCP servers during onboarding
-- [Secrets Management](/security/secrets/) — how credentials in `secrets.json` are encrypted
-- [Models](/configuration/models/) — configure which LLMs use these tools
-- [Security Model](/security/security-model/) — audience definitions and trust levels
+- [`netclaw mcp`](/cli/mcp-tools/) - every MCP subcommand and flag
+- [Connect an OAuth MCP server](/guides/oauth-mcp-servers/) - sign in, confidential clients, headless hosts
+- [MCP tool permissions](/guides/mcp-tool-permissions/) - grant tools per audience
+- [Secrets management](/security/secrets/) - how `secrets.json` is encrypted
+- [Security model](/security/security-model/) - audiences and what each can do
 
 ## Resources
 
-- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) — the protocol netclaw implements
-- [MCP server registry](https://github.com/modelcontextprotocol/servers) — community-maintained list of MCP servers
-- [uv documentation](https://docs.astral.sh/uv/) — the Python package manager behind `uvx`
-- [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) — the double-underscore nesting convention
-- [OAuth 2.0 Dynamic Client Registration (RFC 7591)](https://datatracker.ietf.org/doc/html/rfc7591) — for servers that support automatic client registration
+- [Model Context Protocol specification](https://modelcontextprotocol.io/specification) - the protocol netclaw implements
+- [MCP server registry](https://github.com/modelcontextprotocol/servers) - community-maintained list of MCP servers
+- [uv documentation](https://docs.astral.sh/uv/) - the package manager behind `uvx`
+- [.NET environment variable configuration](https://learn.microsoft.com/en-us/dotnet/core/extensions/configuration-providers#environment-variable-configuration-provider) - the double-underscore nesting convention

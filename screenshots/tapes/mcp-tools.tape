@@ -1,45 +1,42 @@
-# netclaw mcp tools — MCP tool permissions TUI
-# Shows server list, then tool grid with audience toggling
-Output screenshots/output/mcp-tools.gif
-
+# MCP Permissions TUI (`netclaw mcp permissions`): server list, then the tool grid for the
+# demo-utilities server under the Personal, Team and Public audiences, plus the Team "Grant all" prompt.
 Set Shell "bash"
+Set WaitTimeout 60s
 Set Theme "Dracula"
-Set Width 1200
-Set Height 700
 Set FontSize 16
+Set Width 1000
+Set Height 560
 Set Padding 20
-Set TypingSpeed 50ms
+Set TypingSpeed 40ms
 
-Type "netclaw mcp tools"
+Type "netclaw mcp permissions"
 Enter
-Sleep 3s
-
-# Server list showing connected MCP servers
+Wait+Screen /demo-utilities/
+Sleep 1s
 Screenshot screenshots/output/mcp-tools-server-list.png
-Sleep 300ms
+Sleep 1s
 
-# Select first server to see tool grid
 Enter
 Sleep 2s
-
-# Tool grid — Personal audience (default)
 Screenshot screenshots/output/mcp-tools-personal.png
-Sleep 300ms
+Sleep 1s
 
-# Switch to Team audience (right arrow)
 Right
 Sleep 1s
 Screenshot screenshots/output/mcp-tools-team.png
-Sleep 300ms
+Sleep 1s
 
-# Switch to Public audience (right arrow again)
+# E on a server that is not enabled for Team asks before granting anything
+Type "e"
+Sleep 1s
+Screenshot screenshots/output/mcp-tools-confirm.png
+Sleep 1s
+Type "n"
+Sleep 1s
+
 Right
 Sleep 1s
 Screenshot screenshots/output/mcp-tools-public.png
-Sleep 300ms
+Sleep 1s
 
-# Return to server list and exit
-Escape
-Sleep 1s
-Escape
-Sleep 1s
+Ctrl+Q

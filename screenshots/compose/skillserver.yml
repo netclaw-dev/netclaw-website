@@ -1,0 +1,31 @@
+# Overlay: a skill server on the stack's network namespace (port 8090, because the demo MCP
+# server owns 8080), for the skill-list and skill-sync captures. It
+# is seeded with a throwaway demo key (publishing needs one; reads stay open). Pinned to the release the docs describe.
+services:
+  skillserver-init:
+    image: ghcr.io/netclaw-dev/skillserver:0.4.1
+    user: "0:0"
+    network_mode: "none"
+    entrypoint: ["sh", "-c", "chown -R 1654:1654 /data"]
+    restart: "no"
+    volumes:
+      - skill-data:/data
+
+  skillserver:
+    image: ghcr.io/netclaw-dev/skillserver:0.4.1
+    network_mode: "service:netns"
+    depends_on:
+      netns:
+        condition: service_started
+      skillserver-init:
+        condition: service_completed_successfully
+    environment:
+      SKILLSERVER__DATAPATH: /data
+      SKILLSERVER__BASEURL: http://127.0.0.1:8090
+      SKILLSERVER__APIKEY: demo-publish-key
+      ASPNETCORE_URLS: http://+:8090
+    volumes:
+      - skill-data:/data
+
+volumes:
+  skill-data:

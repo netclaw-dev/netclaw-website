@@ -2,10 +2,12 @@
 set -eu
 
 MODEL="${OLLAMA_MODEL:-qwen2:0.5b}"
+# Runs in the stack's shared network namespace, so Ollama is on loopback.
+OLLAMA="http://127.0.0.1:11434"
 
 echo "Waiting for Ollama API to become available..."
 for i in $(seq 1 30); do
-  if curl -fsS http://ollama:11434/api/tags >/dev/null; then
+  if curl -fsS "$OLLAMA/api/tags" >/dev/null; then
     echo "Ollama is ready."
     break
   fi
@@ -14,9 +16,9 @@ for i in $(seq 1 30); do
 done
 
 echo "Pulling model: $MODEL"
-curl -fsS -X POST http://ollama:11434/api/pull -d "{\"name\":\"$MODEL\"}"
+curl -fsS -X POST "$OLLAMA/api/pull" -d "{\"name\":\"$MODEL\"}"
 
 echo "Verifying model is available..."
-curl -fsS http://ollama:11434/api/tags
+curl -fsS "$OLLAMA/api/tags"
 
 echo "Model init completed."

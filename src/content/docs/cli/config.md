@@ -1,111 +1,211 @@
 ---
 title: "netclaw config"
-description: "Reentrant, menu-driven editor for everything that isn't part of first-run setup — channels, search, exposure, webhooks, skills, and more."
+description: "The settings dashboard for everything first-run setup skips: channels, search, webhooks, skill sources, browser automation, telemetry, security and exposure."
 ---
 
-`netclaw config` is the post-install configuration surface. Where [`netclaw init`](/cli/init/) handles first-run setup (provider, identity, security posture, features), `netclaw config` is where you configure everything else — and it's safe to re-run any time.
+`netclaw config` opens a menu-driven dashboard for every setting that [`netclaw init`](/cli/init/) doesn't ask about. Run it after `init`, and again whenever you add a channel, switch search backends or change who can reach the daemon. It's safe to re-run. Each area saves on its own, and the daemon reloads when `netclaw.json` changes.
+
+## Usage
 
 ```bash
 netclaw config
+netclaw config retention [--logs-days <days>]
 ```
 
-If netclaw hasn't been initialized yet, `netclaw config` exits non-zero and tells you to run `netclaw init` first — no TUI opens.
+`netclaw config` takes no options. `netclaw config --help` prints a short usage note, and any argument it doesn't know prints usage and exits `1`. With no `netclaw.json` both forms print "No configuration found. Run `netclaw init` first.", exit `1` and open nothing. [`netclaw config retention`](#netclaw-config-retention) is the scriptable form of the Data Retention screen.
 
-It opens a **Settings Areas** menu with a live status summary for each area, so you can see the state of every domain at a glance.
+## Keys
 
-![Settings Areas dashboard](/screenshots/output/config-dashboard.png)
+| Key | Action |
+|-----|--------|
+| `↑` / `↓` | Move through rows |
+| `Enter` | Open the selected area, or apply the selected row |
+| `Space` | Toggle a row or save a field, where the footer says so |
+| `←` / `→` | Change a choice row such as Backend or File scope |
+| `Delete` | Remove the selected list entry (skill sources, outbound webhooks) |
+| `Esc` | Back out of an area to the dashboard. Does nothing on the dashboard itself. |
+| `Ctrl+Q` | Quit from anywhere |
 
-## Dashboard areas
+The footer of each screen lists the keys that apply there.
 
-The Settings Areas screen lists each configuration domain with a live status summary. Rows appear in this order:
+## The dashboard
 
-| Area | Possible status values |
-| --- | --- |
-| Inference Providers | `2 configured` |
-| Models | `claude-sonnet-4-5` |
-| Channels | `Slack · 2 channels` |
-| Inbound Webhooks | `enabled` |
-| Skill Sources | `3 dirs · 2 feeds` |
-| Search | `✓ Brave` |
-| Browser Automation | `– disabled` |
-| Telemetry & Alerting | `OTLP on · 2 webhooks` |
-| Security & Access | `Team · 4/6 enabled` |
-| Workspaces Directory | `~/netclaw-workspaces` |
+Run `netclaw config` and you land on the dashboard.
 
-Selecting an area opens its editor. **Changes autosave on completion** — there is no separate save step. Press Esc or Ctrl+Q at the Settings Areas screen to quit without changes. Press Esc inside any area to back out and return to the Settings Areas screen.
+![Netclaw Config Settings Areas dashboard listing all thirteen rows from Inference Providers to Quit, each area with a status summary](/screenshots/output/config-dashboard.png)
 
-**Inference Providers** and **Models** route out to [`netclaw provider`](/cli/provider/) and [`netclaw model`](/cli/model/), which own those surfaces. Backing out of either returns you to the Settings Areas screen.
+It's the demo install the other status screenshots use. In a shorter terminal the list scrolls.
 
-## Validation and save behavior
+The dashboard lists thirteen rows, each with a live status summary:
 
-Structurally invalid input (wrong type, out-of-range value) **blocks save with no override**. Failed reachability or runtime probes — such as an unreachable SearXNG endpoint or a skill feed that doesn't respond — surface a warning dialog with a **Save anyway** option, so you can persist the config and fix connectivity later.
+| Row | Status shows | Edits |
+|-----|--------------|-------|
+| 1. Inference Providers | `1 configured` | Opens the [provider manager](/cli/provider/) |
+| 2. Models | The Main model ID, `– not set`, or `– config error` | Opens the [model manager](/cli/model/) |
+| 3. Channels | `Slack · 2 channels`, or `– none configured` | Slack, Discord and Mattermost adapters |
+| 4. Inbound Webhooks | `– disabled` or enabled | Global webhook switch and execution timeout |
+| 5. Skill Sources | `0 dirs · 0 feeds`, or `– config error` | Local skill folders and skill servers |
+| 6. Search | `✓ Brave`, `✓ SearXNG`, `✓ DuckDuckGo`, or `– disabled` when `Search.Enabled` is `false` | Search backend and credentials |
+| 7. Browser Automation | `– disabled` or enabled | The browser MCP profile |
+| 8. Telemetry & Alerting | `OTLP off · 0 webhooks` | OTLP export and outbound alert webhooks |
+| 9. Security & Access | `Personal · 6/6 enabled` | Posture, features, audience profiles, exposure mode |
+| 10. Workspaces Directory | The directory path | Project discovery root |
+| 11. Data Retention | `logs 14d` or `logs forever` | How long the daemon keeps [log files](/configuration/data-retention/) |
+| 12. Run Full Doctor | - | Exits the dashboard and runs [`netclaw doctor`](/cli/doctor/) |
+| 13. Quit | - | Exits |
+
+## Save behavior
+
+There's no save step for the whole dashboard. An area writes `netclaw.json` (and `secrets.json` for tokens and keys) when you finish editing it, and the screen says so. The Channels screen reads "completed changes are already saved." When `netclaw.json` changes, the running daemon drains its sessions and restarts itself. A change that only touches `secrets.json` or an environment variable needs a manual restart: `netclaw daemon stop` then `netclaw daemon start`, or `docker restart <container>`.
+
+Three outcomes can happen when you apply an area:
+
+- **It saves.** The status line goes green.
+- **A reachability or runtime probe fails.** Examples are a SearXNG endpoint that doesn't answer or a skill server that doesn't respond. A dialog offers **Retry validation**, **Back to edit** or **Save anyway**. Save anyway writes the config so you can fix connectivity later.
+- **The input is invalid.** A wrong type, an out-of-range value or an unresolved channel blocks the save, and there's no override. Fix the field or remove the entry.
 
 ## Channels
 
-Channels (Slack, Discord, Mattermost) are configured here, not in `netclaw init`. Each adapter is independently enabled, has its credentials entered, and has its channel allow-list managed from the Channels area.
+Channels are configured here, not in `init`. Each adapter is enabled on its own, takes its credentials, and keeps its own allow-list.
 
-Channel entry is **resolve-before-add**: you type a channel name or ID, and netclaw resolves it against the platform API to its **canonical channel ID before saving**. The stored allow-list holds IDs, not display names; display names are shown dynamically in the editor.
+![The netclaw config Channels area with Slack, Discord and Mattermost unchecked, and a Done adding channels row](/screenshots/output/config-channels-menu.png)
 
-When saving an adapter, any names or IDs that can't be resolved at save time are kept as inert allow-list entries and flagged with a non-blocking `Could not resolve: #name — flagged below; fix or remove them.` warning. The adapter itself saves successfully.
+Space toggles an adapter, `Enter` opens it, and **Done adding channels** returns to the dashboard.
+
+Inside an adapter, a Channels & Permissions screen sets each channel's audience and whether it needs an @mention.
+
+![netclaw config Mattermost, Channels & Permissions, with the Assistant and Ops Room channels on Team, Lunch on Public, direct messages on Personal and Require @mention off](/screenshots/output/config-channel-audiences.png)
+
+This one is Mattermost's. Left and right change the audience, Space toggles Require @mention, and `a` adds a channel.
+
+Channel entry resolves before it saves. You type a channel name or ID, and netclaw looks it up through the platform API and stores the canonical ID. The runtime matches incoming messages by ID.
+
+An unresolved channel blocks the save:
+
+```
+Could not resolve #deploys to a channel the bot can see — fix or remove before saving (an unmatchable channel grants nothing).
+```
+
+A failed lookup, such as a bad token or missing scope, blocks it the same way with `Slack channel lookup failed: <reason>`. Netclaw no longer saves unresolvable names as inert entries.
+
+Saving the Slack adapter writes these keys to `netclaw.json`: `Slack.Enabled`, `Slack.SocketMode`, `Slack.AllowDirectMessages`, `Slack.AllowedChannelIds`, `Slack.DefaultChannelId`, `Slack.AllowedUserIds`, `Slack.ChannelAudiences` and `Slack.MentionRequiredInThreadByChannel`. The bot and app tokens go to `secrets.json`. Discord and Mattermost write the same shape under their own keys.
 
 :::caution
-**Migrating from a hand-edited `netclaw.json`:** the runtime matches incoming messages by channel **ID**. If you previously placed display names in `AllowedChannelIds` by hand, re-enter those channels through `netclaw config → Channels` so they resolve to canonical IDs — otherwise those channels match nothing and their messages are denied. (`DefaultChannelName` is Slack-only and still resolved to an ID at runtime, so it's unaffected.)
+Saving Slack deletes `Slack.DefaultChannelName` and writes `Slack.DefaultChannelId` from the first allowed channel. If you hand-edited display names into `AllowedChannelIds`, re-enter those channels here so they resolve to IDs. A name left in the list matches nothing, and messages from that channel are denied.
 :::
 
-See the per-platform guides for token setup: [Slack](/channels/slack/), [Discord](/channels/discord/), [Mattermost](/channels/mattermost/).
-
-![The Channels area showing adapter selection — Slack is enabled with 2 channels and 1 user configured](/screenshots/output/config-channels-menu.png)
-
-The Channels adapter list — Slack is enabled and shows 2 channels, 1 user; Discord and Mattermost are available but not yet configured.
+Token setup is in the per-platform guides: [Slack](/channels/slack/), [Discord](/channels/discord/) and [Mattermost](/channels/mattermost/).
 
 ## Other areas
 
-- **Security & Access** — deployment posture, enabled features, audience profiles, and exposure mode.
-- **Search** — backend selection (Brave / SearXNG / DuckDuckGo) with progressive disclosure for the fields each backend needs; the SearXNG endpoint is validated by a reachability probe before saving (overridable).
-- **Telemetry & Alerting** — OTLP toggle and a multi-webhook list editor for outbound operational alerts; each webhook entry carries a name, URL, optional masked Authorization header, and an auto-detected format shown read-only.
-- **Inbound Webhooks** — enable inbound webhooks and set the execution timeout; route authoring is handled by [`netclaw webhooks`](/cli/webhooks/).
-- **Browser Automation** — toggle the Playwright MCP backend.
-- **Skill Sources** — local folders (added via an interactive directory picker with Ctrl+N to create inline) and remote skill feeds.
-- **Workspaces Directory** — the directory netclaw uses for project workspaces, set via an interactive directory picker.
+### Search
 
-![Search backend selection](/screenshots/output/config-search.png)
+Pick a backend: DuckDuckGo needs no setup but can hit bot detection, Brave needs an API key, and SearXNG needs your instance's endpoint. The SearXNG endpoint gets a reachability probe before the save, which you can override.
 
-Search — pick the backend; the active one is marked and SearXNG adds an endpoint field with the reachability probe.
 
-![Telemetry and Alerting editor](/screenshots/output/config-telemetry.png)
+The active backend is marked `[x]`, and a check mark shows a backend that has saved setup. [Search providers](/configuration/search-providers/) has the screen.
 
-Telemetry & Alerting — toggle OTLP export and manage the outbound alert-webhook list.
+### Inbound webhooks
 
-![Inbound Webhooks editor](/screenshots/output/config-inbound-webhooks.png)
+An **Enabled** toggle (`Webhooks.Enabled`) and an execution timeout in seconds (`Webhooks.ExecutionTimeoutSeconds`, 300 by default). The screen also shows route counts. Create routes with [`netclaw webhooks`](/cli/webhooks/).
 
-Inbound Webhooks — global enable plus execution timeout; route files stay owned by [`netclaw webhooks`](/cli/webhooks/).
 
-![Exposure Mode selection](/screenshots/output/config-exposure.png)
+The editor never creates routes, so a route list stays whatever `netclaw webhooks` made it. The screen is on [Webhooks](/configuration/webhooks/).
 
-Exposure Mode (under Security & Access) — Local, Reverse Proxy, Tailscale Serve/Funnel, or Cloudflare Tunnel.
+### Skill sources
 
-![Skill Sources editor](/screenshots/output/config-skills.png)
+Add a local folder (a directory picker, `Ctrl+N` creates a folder) or connect a skill server. **Rescan all** refreshes local status and remote skill counts.
 
-Skill Sources — add a local folder or connect a remote skill server; both are manual adds.
 
-![Browser Automation editor](/screenshots/output/config-browser.png)
+Both kinds of source are manual adds, and `Delete` removes one. See [Skills](/skills/overview/) for the screen.
 
-Browser Automation — toggle the Playwright MCP backend; it flags missing runtime prerequisites.
+### Browser automation
 
-![Workspaces Directory picker](/screenshots/output/config-workspaces.png)
+An **Enabled** row that adds or removes the canonical browser MCP profile, and a **Backend** row you change with `←` and `→`. The backends are Playwright and Chrome DevTools. An **MCP permissions** row opens the grant editor, because tool grants for the browser live in [`netclaw mcp permissions`](/cli/mcp-tools/).
 
-Workspaces Directory — an interactive directory picker for the project workspaces root.
+
+The screen lists missing prerequisites, such as Node.js with `npx` or the Playwright browser runtime, with the commands to install them.
+
+### Telemetry and alerting
+
+An OTLP toggle and endpoint (`http://127.0.0.1:4317` by default), plus a list of outbound alert webhooks. Each webhook has a name, URL, an optional masked Authorization header and a format that netclaw detects from the URL.
+
+
+With telemetry off, the endpoint field still shows the default and the webhook list is empty.
+
+### Security and access
+
+Four sub-screens: **Security Posture**, **Enabled Features**, **Audience Profiles** and **Exposure Mode**. Posture and features are the same choices as `init`. Audience Profiles edit one audience at a time: tool groups, file scope, attachment scope, and a shortcut to MCP grants.
+
+Exposure Mode picks how the daemon is reached.
+
+![The Exposure Mode screen with five options, Local checked and marked recommended, and a warning triangle on Tailscale Funnel and Cloudflare Tunnel](/screenshots/output/config-exposure.png)
+
+The choices are Local (loopback only, the safest), Reverse Proxy, Tailscale Serve, Tailscale Funnel and Cloudflare Tunnel. Funnel and Cloudflare expose the daemon to the internet, so configure authentication first. See [Exposure modes](/deployment/exposure-modes/).
+
+### Workspaces directory
+
+The root netclaw scans for projects, set through a directory picker.
+
+
+On this picker `Esc` cancels and `Ctrl+Q` quits.
+
+### Data retention
+
+How many days the daemon keeps its own log files, including the numbered segments a busy day rolls into (`daemon-<date>.1.log`, `.2.log`, and so on, after the daily file reaches 10 MiB). One row, **Daemon and crash logs**, showing `keep 14 days (default)`, `keep 30 days` or `keep forever`.
+
+Type digits to replace the number (the first digit starts a new value, letters are ignored), `Backspace` to edit, `Enter` to save and `Esc` to go back. `0` keeps the logs forever and the maximum is `36500`. An out-of-range number is rejected with the allowed range and nothing is written. If an environment variable overrides the file, a warning says so. The newest three daemon logs and the newest three crash logs are always kept. [Data retention](/configuration/data-retention/) covers what gets deleted.
+
+![The Data Retention screen with one row, Daemon and crash logs, set to keep 14 days (default)](/screenshots/output/config-retention.png)
+
+The one row at its default. The footer lists the keys: `Enter` saves and `Esc` goes back to the settings areas.
+
+## netclaw config retention
+
+Show or set the same value without the TUI. With no option it prints the current setting.
+
+```bash
+netclaw config retention
+netclaw config retention --logs-days 30
+```
+
+```text
+Daemon and crash logs: keep 30 days
+A running daemon applies the change automatically.
+```
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--logs-days <days>` | Days to keep daemon and crash logs. `0` keeps them forever. | `14` |
+
+Setting the value that's already in effect prints the line and no "applies" message, because nothing was written. A value that isn't a whole number from 0 to 36500, a missing value or an unknown option exits `1` and leaves the file alone:
+
+```text
+$ netclaw config retention --logs-days 36501
+--logs-days: Days must be a whole number from 0 to 36500 (0 keeps the data forever).
+```
+
+| Situation | Output | Exit |
+|-----------|--------|------|
+| No `netclaw.json` | `No configuration found. Run `netclaw init` first.` | `1` |
+| `--logs-days` with no number | `--logs-days needs a number of days.` | `1` |
+| Unknown option | `Unknown option '--foo'. Run `netclaw config retention --help`.` | `1` |
+| `NETCLAW_Retention__Logs__Days` is set | The write succeeds, then `warning: NETCLAW_Retention__Logs__Days is set and overrides netclaw.json for the daemon.` on stderr | `0` |
+| `Retention` written as `"Retention": { "Logs:Days": 5 }` | `Could not use netclaw.json: Retention:Logs:Days is set in a spelling this command cannot edit. Edit netclaw.json by hand.` | `1` |
+
+The command edits `Retention.Logs.Days`, and also reads the flat `"Retention:Logs:Days"` spelling if that's what the file already uses. A stored value that isn't an integer shows as the default with a warning, and the next write replaces it.
 
 ## Related pages
 
-- [`netclaw init`](/cli/init/) — first-run setup (provider, identity, posture, features)
-- [`netclaw provider`](/cli/provider/) — inference providers
-- [`netclaw model`](/cli/model/) — model selection
-- [`netclaw webhooks`](/cli/webhooks/) — inbound webhook routes
-- [`netclaw doctor`](/cli/doctor/) — configuration and connectivity diagnostics
+- [`netclaw init`](/cli/init/): first-run setup for provider, identity and posture
+- [`netclaw provider`](/cli/provider/): the provider manager behind row 1
+- [`netclaw model`](/cli/model/): the model manager behind row 2
+- [`netclaw webhooks`](/cli/webhooks/): create the routes that inbound webhooks serve
+- [`netclaw doctor`](/cli/doctor/): validate the config you just saved
+- [Data retention](/configuration/data-retention/): what the Data Retention area deletes
 
 ## Resources
 
-- [Brave Search API](https://brave.com/search/api/) — the managed backend offered in the Search area
-- [SearXNG documentation](https://docs.searxng.org/) — self-hosted search backend and its endpoint requirements
-- [Playwright MCP](https://github.com/microsoft/playwright-mcp) — the browser-automation backend toggled in Browser Automation
+- [Brave Search API](https://brave.com/search/api/): the managed backend in the Search area
+- [SearXNG documentation](https://docs.searxng.org/): the self-hosted backend and its endpoint requirements
+- [Playwright MCP](https://github.com/microsoft/playwright-mcp): one of the two browser-automation backends

@@ -1,0 +1,196 @@
+{
+  "_readme": [
+    "Hand-maintained inputs for scripts/gen-tools-reference.mjs.",
+    "The script discovers tool names, loading tier, audience availability, feature gates and shell coupling from the product source. This file adds what source can't say in user terms:",
+    "a one-line summary, the display group, the default approval behaviour and the config keys a reader would reach for.",
+    "Approval defaults come from Netclaw.Configuration/ToolAudienceProfiles.cs (CreateProfilesForPosture), Netclaw.Actors/Tools/FilePathApprovalMatcher.cs and docs/runbooks/tool-approval-gates.md. Re-read them at each release.",
+    "A tool that appears in source but not here fails the run, so a new tool can't ship undocumented."
+  ],
+  "version": "0.28.2",
+
+  "groups": [
+    { "id": "files", "title": "Files", "intro": "File tools respect the audience's `ReadFiles`, `WriteFiles` and `AttachFiles` roots. By default Public reaches only its own session directory, Team adds `GlobalReadRoots` for reads, and Personal reaches any path that isn't protected." },
+    { "id": "shell", "title": "Shell and background jobs" },
+    { "id": "web", "title": "Web" },
+    { "id": "memory", "title": "Memory" },
+    { "id": "skills", "title": "Skills and tool discovery" },
+    { "id": "reminders", "title": "Reminders" },
+    { "id": "webhooks", "title": "Webhooks" },
+    { "id": "agents", "title": "Subagents" },
+    { "id": "channels", "title": "Chat channels" }
+  ],
+
+  "tools": {
+    "file_read": {
+      "group": "files", "order": 1,
+      "summary": "Read a text file. Images load for models that accept them, and PDFs, media and archives return metadata.",
+      "approval": "Runs without a prompt. Protected files such as `secrets.json` and credential folders such as `~/.ssh` are denied."
+    },
+    "file_list": {
+      "group": "files", "order": 2,
+      "summary": "List one directory without recursing."
+    },
+    "file_search": {
+      "group": "files", "order": 3,
+      "summary": "Search authorized files by name or UTF-8 text, recursively, without a shell."
+    },
+    "tool_output_read": {
+      "group": "files", "order": 4,
+      "summary": "Read the rest of a truncated tool result by call ID. Large output is spilled to a session file and this tool pages through it."
+    },
+    "file_write": {
+      "group": "files", "order": 5,
+      "summary": "Create or replace a file, creating parent directories.",
+      "approval": "Runs without a prompt. Writes under the config directory are always denied."
+    },
+    "file_edit": {
+      "group": "files", "order": 6,
+      "summary": "Replace literal text in a file, or write the whole file.",
+      "approval": "Runs without a prompt. Edits under the config directory are always denied."
+    },
+    "attach_file": {
+      "group": "files", "order": 7,
+      "summary": "Send an existing file to the user in the chat."
+    },
+    "set_working_directory": {
+      "group": "files", "order": 8,
+      "summary": "Declare the project directory for the session. It scopes path checks and shell approvals and loads the project's `AGENTS.md`."
+    },
+
+    "shell_execute": {
+      "group": "shell", "order": 1,
+      "summary": "Run a shell command. Pass `_background: true` to run it as a background job.",
+      "approval": "Prompts on Personal unless a saved grant or the reviewed-safe command list covers it. Never available to Team or Public."
+    },
+    "check_background_job": {
+      "group": "shell", "order": 2,
+      "summary": "Check the status and output tail of a background job, or cancel it."
+    },
+
+    "web_search": {
+      "group": "web", "order": 1,
+      "summary": "Search the web and return titles, URLs and snippets.",
+      "config": ["Search.Backend"]
+    },
+    "web_fetch": {
+      "group": "web", "order": 2,
+      "summary": "Download a URL to a local file and return a preview.",
+      "config": ["Tools.WebFetch.RequireHttps", "Tools.WebFetch.HttpAllowList"]
+    },
+
+    "store_memory": {
+      "group": "memory", "order": 1,
+      "summary": "Save knowledge to cross-session memory."
+    },
+    "find_memories": {
+      "group": "memory", "order": 2,
+      "summary": "Search memory. Returns IDs, titles, scores and snippets."
+    },
+    "get_memories": {
+      "group": "memory", "order": 3,
+      "summary": "Load the full text of memories by ID."
+    },
+    "update_memory": {
+      "group": "memory", "order": 4,
+      "summary": "Edit or delete a memory by ID."
+    },
+
+    "skill_load": {
+      "publicBlocked": true,
+      "group": "skills", "order": 1,
+      "summary": "Load a skill's instructions and list its reference files."
+    },
+    "skill_read_resource": {
+      "publicBlocked": true,
+      "group": "skills", "order": 2,
+      "summary": "Read a resource file from a skill directory."
+    },
+    "skill_manage": {
+      "group": "skills", "order": 3,
+      "summary": "Create, edit, patch or delete skills and their resource files."
+    },
+    "search_tools": {
+      "group": "skills", "order": 4,
+      "summary": "Search deferred tools by keyword, or list MCP servers. Doesn't load anything."
+    },
+    "load_tool": {
+      "group": "skills", "order": 5,
+      "summary": "Load a deferred tool by exact name so the model can call it.",
+      "config": ["Session.DiscoveredToolRetentionTurns", "Session.DiscoveredToolMaxCount"]
+    },
+
+    "set_reminder": {
+      "group": "reminders", "order": 1,
+      "summary": "Create or update a reminder from a relative time, an `every 6h` interval or a cron expression."
+    },
+    "list_reminders": {
+      "group": "reminders", "order": 2,
+      "summary": "List reminders with schedules, status and next run."
+    },
+    "cancel_reminder": {
+      "group": "reminders", "order": 3,
+      "summary": "Cancel a reminder. A one-shot is deleted and its history stays readable for 12 days. A recurring reminder is disabled and kept."
+    },
+    "get_reminder_history": {
+      "group": "reminders", "order": 4,
+      "summary": "Show recent runs of a reminder with outcome, duration and session ID."
+    },
+    "run_reminder": {
+      "group": "reminders", "order": 5,
+      "summary": "Run a reminder's prompt in the current chat so you can answer approval prompts and save grants for the unattended run."
+    },
+
+    "set_webhook": {
+      "group": "webhooks", "order": 1,
+      "summary": "Create or update an inbound webhook route.",
+      "requires": ["`Webhooks.Enabled`"]
+    },
+    "list_webhooks": {
+      "group": "webhooks", "order": 2,
+      "summary": "List webhook routes and whether each one loads.",
+      "requires": ["`Webhooks.Enabled`"]
+    },
+    "delete_webhook": {
+      "group": "webhooks", "order": 3,
+      "summary": "Delete a webhook route by name.",
+      "requires": ["`Webhooks.Enabled`"]
+    },
+
+    "spawn_agent": {
+      "publicBlocked": true,
+      "group": "agents", "order": 1,
+      "summary": "Hand a task to a subagent. It returns a run ID at once, the child works in the background, and the result arrives in a later turn as a notice that names its `result.md`.",
+      "config": ["SubAgents.PrefillTimeoutSeconds", "SubAgents.NoProgressTimeoutSeconds"]
+    },
+    "check_agent_run": {
+      "group": "agents", "order": 2,
+      "summary": "Read the status of a child run you started, or ask it to cancel. Subagents can't call it."
+    },
+
+    "send_channel_message": {
+      "group": "channels", "order": 1,
+      "summary": "Post to a channel or send a direct message on Slack, Discord or Mattermost, using IDs from the lookup tools.",
+      "requires": ["a chat channel enabled"]
+    },
+    "lookup_channel_user": {
+      "group": "channels", "order": 2,
+      "summary": "Resolve a person to a stable user ID on an enabled channel.",
+      "requires": ["a chat channel enabled"]
+    },
+    "lookup_channel_destination": {
+      "group": "channels", "order": 3,
+      "summary": "Resolve a channel name to a stable ID, or list every destination the bot can reach.",
+      "requires": ["a chat channel enabled"]
+    },
+    "lookup_slack_user": {
+      "group": "channels", "order": 4,
+      "summary": "Find a Slack user by name, display name or email.",
+      "requires": ["`Slack.Enabled`"]
+    },
+    "lookup_mattermost_user": {
+      "group": "channels", "order": 5,
+      "summary": "Find a Mattermost user by username or email.",
+      "requires": ["`Mattermost.Enabled`"]
+    }
+  }
+}

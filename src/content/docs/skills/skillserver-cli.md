@@ -1,9 +1,9 @@
 ---
 title: "skillserver CLI"
-description: "Publish, validate, and manage skills and sub-agents on a skill server from the command line."
+description: "Publish, validate, and manage skills and subagents on a skill server from the command line."
 ---
 
-`skillserver` is the command-line tool for publishing and managing skills and sub-agents on a [skill server](/skills/skill-server/). It's what you run by hand during authoring and what your [CI pipeline](/skills/skill-server/) runs on merge. It speaks to the server's REST API, so anything the [gallery](/skills/skill-server/) shows, `skillserver` can do from a terminal.
+`skillserver` is the command-line tool for publishing and managing skills and subagents on a [skill server](/skills/skill-server/). It's what you run by hand during authoring and what your [CI pipeline](/skills/skill-server/#create-a-publishing-key) runs on merge. It speaks to the server's REST API, so anything the [gallery](/skills/skill-server/) shows, `skillserver` can do from a terminal.
 
 ## Install
 
@@ -11,11 +11,13 @@ description: "Publish, validate, and manage skills and sub-agents on a skill ser
 # .NET global tool
 dotnet tool install --global Netclaw.SkillServer.Cli
 
-# Or a self-contained binary (Linux/macOS), no .NET runtime needed
+# Or a self-contained binary (Linux x64 and arm64, macOS arm64), no .NET runtime needed
 curl -fsSL https://raw.githubusercontent.com/netclaw-dev/skill-server/dev/scripts/install-skillserver.sh | bash
 ```
 
-For CI, pin the version. The install script takes one as an argument (`bash -s -- 0.4.0`), or commit a `dotnet-tools.json` manifest and run `dotnet tool restore`.
+On Windows, run [`install-skillserver.ps1`](https://github.com/netclaw-dev/skill-server/blob/dev/scripts/install-skillserver.ps1), which installs the `win-x64` build. Releases don't include an Intel macOS binary, so use the .NET tool there.
+
+For CI, pin the version. The install script takes one as an argument (`bash -s -- 0.4.1`), or commit a `dotnet-tools.json` manifest and run `dotnet tool restore`.
 
 ## Configure
 
@@ -39,7 +41,7 @@ skillserver config show          # print current config (no secrets)
 
 Read-only commands (`list`, `list-subagents`, `versions`, `verify`, `download-subagent`) need only the URL. Everything that writes needs a key. All `api-key` commands also require authentication, including `api-key list`.
 
-Follow [API key management](/skills/skill-server/#api-key-management) to bootstrap the server, create a CI key, or rotate a key. `SKILLSERVER_API_KEY` must hold an actual key registered with that server. It is separate from the server bootstrap variable `SKILLSERVER__APIKEY`.
+Follow [API key management](/skills/skill-server/#manage-api-keys) to bootstrap the server, create a CI key, or rotate a key. `SKILLSERVER_API_KEY` must hold an actual key registered with that server. It is separate from the server bootstrap variable `SKILLSERVER__APIKEY`.
 
 ## Commands
 
@@ -50,10 +52,10 @@ skillserver publish ./my-skill                 # one skill; version from SKILL.m
 skillserver publish ./my-skill --version 2.0.0 # override the version
 skillserver publish-all ./skills               # every skill dir under ./skills
 skillserver publish-subagent ./agent.md --version 1.0.0
-skillserver publish-subagents ./subagents      # every .md under ./subagents
+skillserver publish-subagents ./subagents --version 1.0.0   # every .md under ./subagents
 ```
 
-`publish` points at a single skill directory (the one holding `SKILL.md`). `publish-all` points at the *parent* directory and publishes each subdirectory. Both skip versions already on the server unless you pass `--force`. Sub-agents take their version from `--version`, which is required. The markdown frontmatter's `metadata.version` is ignored.
+`publish` points at a single skill directory (the one holding `SKILL.md`). `publish-all` points at the *parent* directory and publishes each subdirectory. Both skip versions already on the server unless you pass `--force`. Subagents take their version from `--version`, which is required. The frontmatter's `metadata.version` is ignored, and a batch publish gives every file the same version.
 
 ```text
 $ skillserver publish-all ./skills
@@ -68,7 +70,7 @@ Results: 2 published, 0 skipped, 0 failed
 
 | Flag | Meaning |
 |------|---------|
-| `--version <v>` | Override the version (required for sub-agents) |
+| `--version <v>` | Override the version (required for subagents) |
 | `--force`, `-f` | Delete the existing version, then re-publish |
 | `--dry-run` | Show what would publish without uploading |
 
@@ -101,14 +103,14 @@ All files verified
 
 ```bash
 skillserver lint ./skills                 # every skill dir under ./skills
-skillserver lint subagent ./agent.md      # one sub-agent file
-skillserver lint subagents ./subagents    # every sub-agent .md in a dir
+skillserver lint subagent ./agent.md      # one subagent file
+skillserver lint subagents ./subagents    # every subagent .md in a dir
 ```
 
-It checks that frontmatter parses, required fields are present, names are lowercase-kebab, and versions are semver.
+It checks that frontmatter parses, required fields are present, names are lowercase kebab-case, and versions are semver. The CLI reads each key by line, so a `version:` nested under `metadata:` satisfies the version check too.
 
 :::caution
-`lint` only exits non-zero on hard errors: a missing `SKILL.md`, a missing required field, or unparseable frontmatter. Softer problems are warnings that still exit 0, including a `name` that doesn't match its directory and a version that isn't valid semver. A name/directory mismatch is the number one publishing mistake, and `lint` won't fail CI over it, so read the warning output instead of trusting the exit code alone.
+`lint` exits non-zero on hard errors: a missing `SKILL.md`, a missing `name` or `version`, an invalid name format, or unparseable frontmatter. Softer problems are warnings that still exit 0, including a missing `description`, a `name` that doesn't match its directory, and a version that isn't valid semver. A name and directory mismatch is the number one publishing mistake, and `lint` won't fail CI over it, so read the warning output instead of trusting the exit code alone.
 :::
 
 ### Manage
@@ -121,7 +123,7 @@ skillserver api-key list                         # ids + labels, never secrets
 skillserver api-key delete 2
 ```
 
-`--yes`/`-y` skips confirmation for skill and sub-agent deletion. API key deletion has no confirmation prompt. `api-key create` shows the `sk-…` secret a single time, so store it immediately. Every valid key can publish, delete, and manage other keys; choosing a CI label does not restrict its permissions.
+`--yes`/`-y` skips confirmation for skill and subagent deletion. API key deletion has no confirmation prompt. `api-key create` shows the `sk-…` secret a single time, so store it immediately. Every valid key can publish, delete and manage other keys. Choosing a CI label does not restrict its permissions.
 
 ## Global flags
 
@@ -151,13 +153,14 @@ There's no separate code for usage versus runtime errors. Both are `1`, so scrip
 
 ## Related pages
 
-- [Skill Server](/skills/skill-server/) - run the server this CLI talks to.
-- [Bundling Resources with Skills](/skills/bundled-resources/) - what `publish` packages when a skill has `references/`, `scripts/`, or `assets/`.
-- [Native Manifest](/skills/native-manifest/) - the sync feed a netclaw daemon reads from the server.
-- [Skill Feeds](/skills/skill-feeds/) - point a netclaw daemon at the published feed.
+- [Skill server](/skills/skill-server/): run the server this CLI talks to
+- [Bundling resources with skills](/skills/bundled-resources/): what `publish` packages when a skill has `references/`, `scripts/` or `assets/`
+- [Native manifest](/skills/native-manifest/): the feed that carries subagents to netclaw
+- [Distribute subagents](/skills/distributing-subagents/): publish a subagent end to end
+- [Skill feeds](/skills/skill-feeds/): point a netclaw daemon at the published feed
 
 ## Resources
 
-- [skillserver CLI README](https://github.com/netclaw-dev/skill-server/blob/dev/src/Netclaw.SkillServer.Cli/README.md) - upstream reference.
-- [AgentSkills.io](https://agentskills.io) - the `SKILL.md` format `lint` validates against.
-- [.NET local tools](https://learn.microsoft.com/en-us/dotnet/core/tools/local-tools-how-to-use) - pinning the CLI with `dotnet-tools.json`.
+- [skillserver CLI README](https://github.com/netclaw-dev/skill-server/blob/dev/src/Netclaw.SkillServer.Cli/README.md): upstream reference
+- [AgentSkills.io](https://agentskills.io): the `SKILL.md` format `lint` validates against
+- [.NET local tools](https://learn.microsoft.com/en-us/dotnet/core/tools/local-tools-how-to-use): pinning the CLI with `dotnet-tools.json`

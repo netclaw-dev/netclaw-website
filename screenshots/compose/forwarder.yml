@@ -1,0 +1,32 @@
+# Overlay: keeps a real inference endpoint out of every frame. Added by lib.sh when
+# INFERENCE_UPSTREAM is set (an https:// URL in screenshots/.env, together with
+# INFERENCE_UPSTREAM_MODEL, the model id the upstream really serves).
+#
+#   - `forwarder` joins the stack's network namespace and relays :8081 to the upstream, rewriting
+#     the upstream's model id to the neutral INFERENCE_MODEL_ID (default demo-model) in responses.
+#   - `extra_hosts` on the namespace owner maps llm.example.internal to loopback, and every
+#     container that shares the namespace (daemon, capture, helpers) inherits the entry.
+#
+# The configured endpoint is http://llm.example.internal:8081 and the model id is demo-model.
+# Port 8081 because the demo MCP server owns 8080 in the shared network namespace.
+services:
+  netns:
+    extra_hosts:
+      - "llm.example.internal:127.0.0.1"
+
+  forwarder:
+    image: nginx:1.27-alpine
+    network_mode: "service:netns"
+    depends_on:
+      - netns
+    environment:
+      INFERENCE_UPSTREAM: ${INFERENCE_UPSTREAM:?set in screenshots/.env}
+      INFERENCE_UPSTREAM_HOST: ${INFERENCE_UPSTREAM_HOST:?set in screenshots/.env}
+      INFERENCE_UPSTREAM_MODEL: ${INFERENCE_UPSTREAM_MODEL:?set in screenshots/.env}
+      INFERENCE_MODEL_ID: ${INFERENCE_MODEL_ID:?set in screenshots/.env}
+    volumes:
+      - ./screenshots/compose/forwarder.conf.template:/etc/nginx/templates/default.conf.template:ro
+
+  netclawd:
+    depends_on:
+      - forwarder

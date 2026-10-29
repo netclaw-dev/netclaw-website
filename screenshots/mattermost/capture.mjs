@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // Drives Playwright against the bootstrapped Mattermost to capture the
 // channels/mattermost.md screenshots: the System Console settings, the bot
-// account, and a live netclaw conversation. Reads .bootstrap.json.
+// account, and a live netclaw conversation. Runs in the Playwright container (run.sh).
 //
-// Each shot is independent (try/catch) so one failure doesn't lose the rest.
+// Each shot is independent (try/catch) so one failure doesn't lose the rest; the
+// process exits non-zero if any shot failed.
 // Usage: node capture.mjs
+// Env:   BOOTSTRAP_FILE (default ./.bootstrap.json), OUT_DIR (default ../output)
 
 import { chromium } from 'playwright';
 import { readFileSync, mkdirSync } from 'fs';
@@ -12,10 +14,11 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const boot = JSON.parse(readFileSync(join(__dirname, '.bootstrap.json'), 'utf8'));
-const OUT = join(__dirname, '..', 'output');
+const boot = JSON.parse(readFileSync(process.env.BOOTSTRAP_FILE || join(__dirname, '.bootstrap.json'), 'utf8'));
+const OUT = process.env.OUT_DIR || join(__dirname, '..', 'output');
 mkdirSync(OUT, { recursive: true });
 const BASE = boot.serverUrl;
+let failures = 0;
 
 const shot = (page, name) => page.screenshot({ path: join(OUT, name) }).then(() => console.log(`  ✓ ${name}`));
 
@@ -86,7 +89,7 @@ try {
   await dismissModals(page);
   await shot(page, 'mattermost-create-bot.png');
   await ctx.close();
-} catch (e) { console.error('  ✗ admin shots:', e.message); }
+} catch (e) { failures++; console.error('  ✗ admin shots:', e.message); }
 
 // 3: live conversation as the test user
 try {
@@ -118,7 +121,8 @@ try {
   await page.waitForTimeout(1000);
   await shot(page, 'mattermost-conversation.png');
   await ctx.close();
-} catch (e) { console.error('  ✗ conversation shot:', e.message); }
+} catch (e) { failures++; console.error('  ✗ conversation shot:', e.message); }
 
 await browser.close();
+if (failures) { console.error(`${failures} capture step(s) failed`); process.exit(1); }
 console.log('Done.');

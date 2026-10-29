@@ -1,0 +1,29 @@
+# Overlay: the "initialized" daemon. Adds the demo MCP server container. The daemon's
+# provider, model roles and MCP entry are NOT env vars: stack.sh writes them with the
+# real CLI (`netclaw provider add`, `netclaw model set`, `netclaw mcp add`) so
+# ~/.netclaw/config/netclaw.json looks exactly like a user's after `netclaw init`, and
+# the CLI's own config preflight and TUIs see it.
+# Relative paths resolve against the directory of docker-compose.screenshots.yml.
+services:
+  mcp-demo:
+    image: netclaw-docs-mcp-demo:1
+    build: ./screenshots/mcp-server
+    network_mode: "service:netns"
+    depends_on:
+      - netns
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',8080),2); s.close()"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 3s
+
+  netclawd:
+    depends_on:
+      mcp-demo:
+        condition: service_healthy
+    environment:
+      # Real inference endpoints can be slow to first token.
+      NETCLAW_Session__TurnLlmTimeoutSeconds: "600"
+      NETCLAW_Session__FirstTokenTimeoutSeconds: "600"
+      NETCLAW_Session__PrefillTimeoutSeconds: "600"

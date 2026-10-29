@@ -1,135 +1,124 @@
 ---
-title: "Security Architecture"
-description: "ACL evaluation, audience scoping, and trust context."
+title: "Security architecture"
+description: "Why netclaw's security model is shaped the way it is: default-deny, audiences as the trust primitive, one authorizer with four outcomes, and a human in the loop."
 ---
 
-Netclaw gives an LLM shell access, file access, and the ability to talk to external services. Without strong guardrails, that's a loaded weapon pointed at your infrastructure. The security architecture exists to make the agent useful without making it dangerous.
+Netclaw gives an LLM shell access, file access and the ability to talk to external services. Without guardrails, that's a loaded weapon pointed at your infrastructure. The security architecture exists to make the agent useful without making it dangerous, and it's enforced from daemon startup with no extra setup.
 
-All of this is enforced automatically from daemon startup — no additional setup required for the defaults to protect you.
+The core bet is that explicit grants are safer than implicit restrictions. Rather than enumerate everything dangerous and block it, netclaw starts from zero permissions and asks you to opt in to each capability. We build up from nothing instead of poking holes in a wall.
 
-The core bet: **explicit grants are safer than implicit restrictions.** Rather than trying to enumerate everything dangerous and blocking it, netclaw starts from zero permissions and requires you to opt in to each capability. This inverts the typical "sandbox" approach — instead of poking holes in a wall, you're building up from nothing.
+This page is the design rationale. For what netclaw enforces and the exact lists, see the [Security model](/security/security-model/). For how prompts work, see [How tool approvals work](/security/approvals/).
 
-## Design Decisions
+## Design decisions
 
 ### Default-deny over default-allow
 
-Most tools start permissive and add restrictions. Netclaw does the opposite. A freshly initialized daemon with no config file binds to loopback, disables shell access, and limits tools to basic file operations in a temporary session directory that's wiped on session end. You build up from there.
+Most tools start permissive and add restrictions. Netclaw does the opposite. A fresh daemon with no config file binds loopback, disables shell, and gives channel traffic only basic file tools inside a session directory. Even the local TUI gets only those Public tools until a config sets a deployment posture. You build up from there.
 
-Misconfiguration fails safe. Forget to add a tool grant? The tool is invisible. Typo in a channel ID? That channel gets nothing. Config file corrupted? Daemon won't start.
+Misconfiguration fails safe. Forget to add a tool grant and the tool is invisible. Mistype a channel ID and that channel gets nothing. Write a malformed tool list and the daemon refuses to start.
 
 ### Audience as the trust primitive
 
-Rather than per-user ACLs (which require identity infrastructure most self-hosted deployments don't have), netclaw classifies trust by **channel type**. A message from the TUI (terminal interface, launched by `netclaw chat`) is from the operator sitting at the machine — high trust. A message from Slack could be anyone in the workspace — lower trust. An unknown channel gets the lowest trust.
-
-Three audiences, ordered by trust:
+Per-user ACLs need identity infrastructure that most self-hosted deployments don't have. Netclaw classifies trust by where a message came from instead. A message from the TUI is from the operator at the machine. A message from Slack could be anyone in the workspace. An unknown source gets the least trust.
 
 ```
 Personal  >  Team  >  Public
 ```
 
-![Security posture selection during netclaw init](/screenshots/output/init-02-security-posture.png)
+This maps to how people deploy: you trust yourself on your own machine, partly trust coworkers in a channel, and don't trust unknown sources. Each channel or DM is assigned an audience individually, so one platform can span tiers, with DMs as Personal and a shared ops channel as Team. See [Audiences](/security/security-model/#trust-audiences) for how audiences are assigned.
 
-Posture selection during `netclaw init` — the choice that establishes the baseline trust tier for your deployment.
-
-This maps to how people actually deploy: you trust yourself on your own machine, partially trust your coworkers in Slack, and don't trust unknown sources at all. During setup, you assign each channel to an audience tier individually:
-
-![Per-channel audience configuration during netclaw init](/screenshots/output/init-04-channel-audiences.png)
-
-The same platform can span multiple audience tiers — Slack DMs as Personal, a shared ops channel as Team. The exact per-audience permission tables are in the [Security Model reference](/security/security-model/#trust-audiences).
+The deployment posture is a ceiling on top of that. The audience that every tool decision uses, for a turn and for any sub-agent or routed skill it starts, is the narrower of the posture's audience and the message's source audience. A Team posture therefore runs the TUI with Team tools, which is the point of choosing it: that choice sets the baseline for what the agent can do wherever the message came from.
 
 ### Four layers, not one
 
-No tool executes without passing four independent checks. Each layer can only deny — none can override a denial from another.
+Every tool call goes through one authorizer. It applies a single ordered list of rules, and the first rule with an answer wins. Conceptually the rules fall into four layers, and a call has to get through all of them.
 
-| Layer | Class | What it does |
-|-------|-------|-------------|
-| **Operation hard deny** | `ShellCommandPolicy` | Blocks unconditionally dangerous commands — `rm -rf /`, `sudo`, fork bombs, daemon self-kill. Structural matching on tokenized verb chains. Not approvable. |
-| **Resource hard deny** | `ToolPathPolicy` | Blocks access to protected paths — `secrets.json`, key material, control-plane files. Symlink-aware. Maintains separate deny surfaces for reads, writes, and shell path references. |
-| **Tool access grant** | `ToolAccessPolicy` | Audience-scoped allowlist. If a tool isn't granted to the current audience, the model never sees it. Binary — available or invisible. |
-| **Approval gate** | `IToolApprovalService` | Human-in-the-loop confirmation for operations that pass the first three checks but are operationally risky. Approvals can be scoped to once, session, or persistent. |
+```mermaid
+flowchart LR
+    C["Tool call"] --> A["Admission<br/>does this audience<br/>have the tool?"]
+    A --> P["Prohibition<br/>hard deny and<br/>protected paths"]
+    P --> F["Filesystem authority<br/>trusted roots"]
+    F --> K["Consent<br/>mode, grants,<br/>prompt"]
+    A -.-> D["Denied"]
+    P -.-> D
+    F -.-> D
+    K --> O["Allowed, requires approval,<br/>requires correction or denied"]
+```
 
-The execution order in code doesn't match this conceptual ordering — `ToolAccessPolicy` runs first (fail fast on unavailable tools before evaluating shell commands), then `ShellCommandPolicy`, then `ToolPathPolicy`, then the approval gate. The deny-only semantics are the same regardless of order. See the [reference page](/security/security-model/#four-layer-invocation-stack) for exact deny lists and configuration syntax.
+The details those layers cover include the rule that Personal file reads reach as far as writes do, a private temp folder for each session, checks on redirects in compound shell commands, and glob checks that follow symlinked folders. The first three layers can only deny, and nothing the operator answers at a prompt reaches back through them. Consent is the only layer that asks a person, and it has two outcomes beyond allow and deny: it can prompt, or it can hand the agent advice so the agent re-authors the call. Putting prohibition before consent is the point. A saved "Always" grant can never cover a hard-denied command or a protected path, because those rules run first.
+
+Having one authorizer rather than four independent checks matters for a second reason. Built-in tools, MCP tools, shell, subagents and unattended runs all take the same path, so a rule can't be bypassed by finding the tool that skipped a check. The exact order is in [Layers in order](/security/security-model/#layers-in-order).
 
 ### Policy before dispatch
 
-Inbound message ACL checks run in the gateway boundary, before messages reach the session layer. Tool execution policy (shell denies, path checks, approval gates) runs in the session's tool executor, synchronously before any tool fires. The [three-boundary design](/architecture/overview/#three-boundaries) (gateway → session → subscriber) enforces this structurally — the gateway is the only ingress point for messages, and the tool executor is the only execution path for tools.
+Inbound message ACL checks run at the gateway, before a message reaches the session layer. Tool policy runs in the session's tool executor, before any tool fires. The [three-boundary design](/architecture/overview/#three-boundaries) (gateway, session, subscriber) makes that structural: the gateway is the only way in for messages, and the tool executor is the only way to run a tool.
 
 ### Human-in-the-loop as a layer, not a crutch
 
-Approval gates sit at Layer 4 — after hard denies and access grants have already filtered. The human only sees requests that are structurally permitted but operationally risky. You're not approving every `ls` — you're approving `git push` to a remote.
+Approval is the last layer, after hard denies and access grants have already filtered. The human only sees requests that are permitted but risky. You're not approving every `ls`. Reviewed read-only commands never prompt, and an answer of "Always" turns a one-off decision into a saved grant on a phrase, so `git push` is approved once rather than every time.
 
-![Approval gate prompt in Slack — the human sees verb, tool, and directory before choosing](/assets/approval-prompt.png)
+Prompts are how you build a policy, not the policy itself. When they keep coming, change a mode or a grant. [Reduce or turn off approval prompts](/guides/reduce-approval-prompts/) says how.
 
-The approval system extracts verb-chain patterns from shell commands. A verb-chain is the leading command tokens (`git push`, `docker compose up`) without paths or flags — so approving `git push` covers `git push origin main` and `git push --force-with-lease`. Compound commands (`cmd1 && cmd2`) are split and each segment is checked independently.
+## Signals on every message
 
-Channels that don't support interactive prompts (scheduled reminders, webhooks, headless automation) auto-deny tools that require approval — unless those tools have been persistently pre-approved or appear on the safe-list for non-interactive execution.
+Every inbound message carries four signals:
 
-## Trust Context Model
+| Signal | Source | Describes |
+|--------|--------|-----------|
+| Principal classification | Channel adapter | Who is speaking, such as an operator, a trusted internal user, an untrusted external user or verified automation |
+| Transport authenticity | Connection type | Whether the sender can be verified: local process, verified, unverified |
+| Payload taint | Content origin | Where the data came from: trusted, community, public |
+| Audience | Channel type or configuration | What permission set applies |
 
-Every inbound message carries a trust context assembled from:
+The audience resolves the permission set. The other signals describe the turn and travel with it.
 
-| Signal | Source | Purpose |
-|--------|--------|---------|
-| **Principal classification** | Channel adapter | Who is speaking? (operator, team member, external, automation) |
-| **Transport authenticity** | Connection type | Can we verify the sender? (local process, verified, unverified) |
-| **Payload taint** | Content origin | Where did this data come from? (trusted, community, public) |
-| **Audience** | Channel type | What trust level does this channel get? |
+## MCP security: two-gate model
 
-The audience resolves the final permission set. The other signals flow through to audit logs for post-hoc review.
+External tool servers connecting over the [Model Context Protocol](https://modelcontextprotocol.io/) are gated twice.
 
-## MCP Security: Two-Gate Model
+1. **Server gate.** The server must be reachable for the audience: `AllowedMcpServers` for Team and Public, everything for Personal.
+2. **Tool gate.** If per-tool grants exist for the server (`McpServerToolGrants`), only the listed tools are visible. With no entry for the server, all its tools are.
 
-External tool servers connecting via the [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) are doubly gated:
+Approval modes add a third dimension: each server and tool can be `Auto`, `Approval` or `Deny` per audience. `netclaw mcp add` writes locked-down defaults for Team and Public and an open default for Personal. See [MCP tool permissions](/guides/mcp-tool-permissions/).
 
-1. **Server allowlist** — the MCP server must be explicitly permitted for the audience
-2. **Tool allowlist** — if per-tool grants are configured for that server, only listed tools are available
+Netclaw doesn't load MCP tools into the model's context until the model searches for them with `search_tools`. Granted but unused tools don't consume context or influence behavior.
 
-When no per-tool grants are configured for a server, all tools on that server are accessible (subject to the server-level gate). Configure `McpServerToolGrants` to restrict individual tools — see [`netclaw mcp permissions`](/cli/mcp-tools/) for the operational details.
+## Self-configuration boundaries
 
-Netclaw doesn't load MCP tools into the model's context until explicitly searched via `search_tools`. Granted-but-unused tools don't consume context window or influence behavior — the model doesn't know they exist until it asks.
+The agent can change its own personality, instructions, reminders and project registry. It can't change security policy. Writes to the config directory are blocked by the path policy for every tool and every command form, so ACL rules, exposure mode, tool grants and audience mappings are read-only from the agent's side. Reminder tools are scoped to the caller's audience, so a Team session can't manage a Personal reminder.
 
-## Self-Configuration Boundaries
+## Threat model scope
 
-The agent can modify its own personality, instructions, scheduled tasks, and project registry — but security policy is off-limits. ACL rules, exposure mode, tool grants, and audience mappings are read-only from the agent's perspective.
-
-This is enforced at two levels: the `config_write` tool category (one of seven grant categories in the [ACL policy](/security/security-model/#per-audience-permissions)) requires explicit grants, and the resource hard-deny layer blocks direct file access to config paths regardless of tool grants.
-
-## Threat Model Scope
-
-What the security model protects against:
+What the model protects against:
 
 - The LLM deciding to run destructive commands
-- Prompt injection via tool output or file contents attempting privilege escalation
+- Prompt injection through channel messages attempting privilege escalation
 - Overly broad tool access from misconfiguration
 - Credential leakage through command output
 - Unauthorized network exposure
 
-What it explicitly does **not** protect against:
+What it doesn't protect against:
 
-- A malicious operator with direct machine access (they can edit config files)
+- A malicious operator with direct machine access
+- Anything else the agent can read as the OS user. Agent tools are denied the common credential folders (`~/.ssh`, `~/.aws`, `~/.kube` and similar), but other files your user can read are open to it, and a command you approve still runs with your credentials
+- A granted command doing more than its name suggests. Approvals aren't a sandbox
 - Side-channel attacks against the LLM provider's API
-- Denial of service against the daemon process itself
-- Vulnerabilities in third-party MCP servers (netclaw gates access, not behavior)
+- Denial of service against the daemon
+- Vulnerabilities in third-party MCP servers. Netclaw gates access, not behavior
 
-## Limitations
+The second and third items are why the [Security model](/security/security-model/#what-netclaw-doesnt-protect-against) tells you to run netclaw as a separate OS user or in a container when the machine holds other credentials. A kernel sandbox for shell commands is planned and tracked in [netclaw-dev/netclaw#2343](https://github.com/netclaw-dev/netclaw/issues/2343).
 
-- Prompt injection detection is regex-based, not semantic — novel phrasings can evade it
-- Approval gates require an interactive channel — headless sessions (scheduled jobs, reminders, webhooks with no connected user) auto-deny gated tools unless persistently pre-approved
-- No per-user identity within a channel — all Slack users in an allowed channel get the same audience
-- Secret redaction catches known patterns only — custom formats need custom path deny rules
-- No formal sandboxing (seccomp, namespaces) for shell execution — defense is policy-based, not kernel-based
+## Related pages
 
-## Related
+- [Security model](/security/security-model/) - audiences, the order of checks, protected paths and the exact lists
+- [How tool approvals work](/security/approvals/) - modes, outcomes, grants and prompts
+- [Hardening](/security/hardening/) - production lockdown beyond the defaults
+- [Architecture overview](/architecture/overview/) - the three-boundary design behind policy-before-dispatch
+- [`netclaw doctor`](/cli/doctor/) - verify what's enforced at runtime
 
-- [Security Model reference](/security/security-model/) — operational details: exact deny lists, configuration syntax, per-audience permissions
-- [Hardening](/security/hardening/) — production lockdown beyond the defaults
-- [Architecture Overview](/architecture/overview/) — the three-boundary design that enforces policy-before-dispatch
-- [`netclaw init`](/cli/init/) — where you first choose your security posture
-- [`netclaw doctor`](/cli/doctor/) — verify what's actually being enforced at runtime
+## Resources
 
-## External Resources
-
-- [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) — the attack taxonomy netclaw's security model is designed against
-- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework) — federal guidance on AI system risk management
-- [Principle of Least Privilege (POLP)](https://csrc.nist.gov/glossary/term/least_privilege) — the access control philosophy behind default-deny
-- [Defense in Depth (NIST)](https://csrc.nist.gov/glossary/term/defense_in_depth) — the layered-security model behind the four-layer stack
+- [OWASP LLM Top 10](https://genai.owasp.org/llm-top-10/) - the attack taxonomy the model is designed against
+- [NIST AI Risk Management Framework](https://www.nist.gov/itl/ai-risk-management-framework) - federal guidance on AI risk management
+- [Principle of least privilege (NIST)](https://csrc.nist.gov/glossary/term/least_privilege) - the philosophy behind default-deny
+- [Defense in depth (NIST)](https://csrc.nist.gov/glossary/term/defense_in_depth) - the layered model behind the authorizer's rule order

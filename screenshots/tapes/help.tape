@@ -3,7 +3,7 @@ Output screenshots/output/help.png
 
 Set Shell "bash"
 Set Theme "Dracula"
-Set Width 1200
+Set Width 1000
 Set Height 600
 Set FontSize 16
 Set Padding 20

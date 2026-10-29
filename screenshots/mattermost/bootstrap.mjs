@@ -2,16 +2,19 @@
 // Bootstraps a fresh mattermost-preview the same way the netclaw repo's Aspire
 // demo does: first user (auto system-admin), team, bot + access token, channel,
 // and a non-admin test user. Writes the resulting IDs/token/credentials to
-// .bootstrap.json for run.sh (netclaw config) and capture.mjs (Playwright).
+// BOOTSTRAP_FILE for run.sh (netclaw config) and capture.mjs (Playwright).
 //
-// Usage: node bootstrap.mjs [serverUrl]   (default http://localhost:8065)
+// Runs inside the Playwright container (run.sh), on the same compose network as Mattermost.
+// Usage: node bootstrap.mjs [serverUrl]   (default http://mattermost:8065)
+// Env:   BOOTSTRAP_FILE  where to write the result (default ./.bootstrap.json)
 
 import { writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
-const SERVER = (process.argv[2] || 'http://localhost:8065').replace(/\/$/, '');
+const SERVER = (process.argv[2] || 'http://mattermost:8065').replace(/\/$/, '');
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const BOOTSTRAP_FILE = process.env.BOOTSTRAP_FILE || join(__dirname, '.bootstrap.json');
 
 const ADMIN = { email: 'admin@test.local', username: 'admin', password: 'Admin1234!' };
 const USER = { email: 'testuser@test.local', username: 'testuser', password: 'TestUser1234!' };
@@ -97,9 +100,9 @@ async function main() {
     channel: { id: channel.id, name: channel.name },
     bot: { userId: bot.user_id, username: bot.username, token: tok.token },
   };
-  writeFileSync(join(__dirname, '.bootstrap.json'), JSON.stringify(out, null, 2));
+  writeFileSync(BOOTSTRAP_FILE, JSON.stringify(out, null, 2));
   console.log(`\n✅ Bootstrap complete. channel=${channel.id} bot=${bot.user_id}`);
-  console.log(`   Wrote ${join(__dirname, '.bootstrap.json')}`);
+  console.log(`   Wrote ${BOOTSTRAP_FILE}`);
 }
 
 main().catch(err => { console.error('❌ Bootstrap failed:', err.message); process.exit(1); });

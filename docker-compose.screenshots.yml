@@ -1,74 +1,66 @@
+# Base of the docs capture / verification stack. Do not run this file directly:
+# use screenshots/stack.sh or screenshots/capture.sh, which assemble it with the
+# overlays under screenshots/compose/ and set the variables below.
+#
+#   base                          netns + netclawd (no model config: first-run state) + capture
+#   screenshots/compose/configured.yml   adds Models.Definitions/Roles, the demo MCP server
+#   screenshots/compose/ollama.yml       adds the hermetic Ollama inference backend
+#
+# Every service shares ONE network namespace (the `netns` container) so the daemon,
+# the CLI inside the capture container and any helper all reach each other on
+# 127.0.0.1, exactly like a real user's machine. Nothing is published to the host.
+# No container_name and no host ports: run as many projects side by side as you like
+# (COMPOSE_PROJECT_NAME=dr04 ...).
+
+x-netclaw-image: &netclaw-image ${NETCLAW_IMAGE:-ghcr.io/netclaw-dev/netclaw:${NETCLAW_VERSION:?set by screenshots/stack.sh}}
+
 services:
-  ollama:
-    image: ollama/ollama:latest
-    restart: unless-stopped
-    ports:
-      - "11434:11434"
-    volumes:
-      - screenshot-ollama-data:/root/.ollama
-
-  ollama-init:
+  netns:
+    # Holds the shared network namespace and nothing else.
     image: curlimages/curl:8.13.0
-    entrypoint: ["/bin/sh", "/usr/local/bin/ollama-init.sh"]
-    environment:
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2:0.5b}
-    depends_on:
-      - ollama
-    volumes:
-      - ./screenshots/scripts/ollama-init.sh:/usr/local/bin/ollama-init.sh:ro
-
-  mcp-demo:
-    build: ./screenshots/mcp-server
-    expose:
-      - "8080"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import socket; s=socket.create_connection(('127.0.0.1',8080),2); s.close()"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
+    entrypoint: ["sleep", "infinity"]
+    stop_grace_period: 1s
 
   netclawd:
-    # The published image is `netclaw` (not `netclawd`). Pinned to a release tag
-    # via NETCLAW_VERSION so screenshots track a known build; capture.sh sources
-    # NETCLAW_VERSION from src/version.json. Override NETCLAW_IMAGE to use :dev.
-    image: ${NETCLAW_IMAGE:-ghcr.io/netclaw-dev/netclaw:${NETCLAW_VERSION:-0.22.1}}
-    ports:
-      - "${NETCLAW_PORT:-5299}:5199"
-    depends_on:
-      ollama-init:
-        condition: service_completed_successfully
-      mcp-demo:
-        condition: service_healthy
+    image: *netclaw-image
+    network_mode: "service:netns"
     environment:
-      # NOTE (Phase 5): 0.22.1's `local` exposure mode binds loopback and aborts on a
-      # non-loopback Daemon.Host. The old host-reachability model here (Host=0.0.0.0 +
-      # published port + host-side `curl`/`netclaw` in capture.sh) crashes under 0.22.1.
-      # The Phase 5 re-shoot must drive the CLI via `docker exec` (loopback-local) or move
-      # to reverse-proxy mode + Daemon.TrustedProxies, and re-validate end to end.
       NETCLAW_Daemon__Port: "5199"
       NETCLAW_Daemon__DisableSelfUpdate: "true"
-      NETCLAW_Providers__local-ollama__Type: ollama
-      NETCLAW_Providers__local-ollama__Endpoint: http://ollama:11434
-      NETCLAW_Models__Main__Provider: local-ollama
-      NETCLAW_Models__Main__ModelId: ${OLLAMA_MODEL:-qwen2:0.5b}
-      NETCLAW_Models__Fallback__Provider: local-ollama
-      NETCLAW_Models__Fallback__ModelId: ${OLLAMA_MODEL:-qwen2:0.5b}
-      NETCLAW_Models__Compaction__Provider: local-ollama
-      NETCLAW_Models__Compaction__ModelId: ${OLLAMA_MODEL:-qwen2:0.5b}
-      NETCLAW_McpServers__demo-utilities__Transport: http
-      NETCLAW_McpServers__demo-utilities__Url: http://mcp-demo:8080/mcp
-      NETCLAW_McpServers__demo-utilities__Enabled: "true"
     volumes:
-      # 0.22.1 runs as the non-root `netclaw` user; its home is /home/netclaw, not /root.
-      - screenshot-netclaw-home:/home/netclaw/.netclaw
+      # The daemon runs as the non-root `netclaw` user; its home is /home/netclaw/.netclaw.
+      - netclaw-home:/home/netclaw/.netclaw
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://127.0.0.1:5199/api/health/ready"]
-      interval: 5s
+      interval: 3s
       timeout: 5s
-      retries: 30
-      start_period: 10s
+      retries: 40
+      start_period: 5s
+    stop_grace_period: 10s
+
+  # VHS + the netclaw CLI from the same release image as the daemon. Only started by
+  # `docker compose run` (profile `capture`); see screenshots/capture/Dockerfile.
+  capture:
+    profiles: ["capture"]
+    image: netclaw-docs-capture:${NETCLAW_IMAGE_TAG:?set by screenshots/stack.sh}
+    build:
+      context: ./screenshots/capture
+      args:
+        NETCLAW_IMAGE: *netclaw-image
+    network_mode: "service:netns"
+    depends_on:
+      netclawd:
+        condition: service_healthy
+    environment:
+      HOST_UID: ${HOST_UID:-1000}
+      HOST_GID: ${HOST_GID:-1000}
+      NETCLAW_Daemon__Port: "5199"
+      NETCLAW_CONTAINER_SUPERVISOR: entrypoint
+    volumes:
+      - netclaw-home:/home/netclaw/.netclaw
+      - ./screenshots/tapes:/tapes:ro
+      - ./screenshots/scripts:/work/screenshots/scripts:ro
+      - ${CAPTURE_OUT_DIR:-./screenshots/output}:/out
 
 volumes:
-  screenshot-ollama-data:
-  screenshot-netclaw-home:
+  netclaw-home:

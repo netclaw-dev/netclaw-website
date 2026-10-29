@@ -1,0 +1,23 @@
+# Relays plain HTTP on :8081 to the real inference endpoint, so netclaw is configured with
+# http://llm.example.internal:8081 and the real hostname never appears in netclaw.json,
+# the TUI or a recording. The upstream's model id is rewritten to a neutral one in every
+# response (so /v1/models lists the neutral id and `netclaw init` / `model discover` store it);
+# requests keep the neutral id, which llama.cpp style servers accept for any model name.
+# Rendered by the nginx image from INFERENCE_UPSTREAM, INFERENCE_UPSTREAM_HOST,
+# INFERENCE_UPSTREAM_MODEL and INFERENCE_MODEL_ID (screenshots/.env, gitignored).
+server {
+    listen 8081;
+    location / {
+        proxy_pass ${INFERENCE_UPSTREAM};
+        proxy_http_version 1.1;
+        proxy_ssl_server_name on;
+        proxy_set_header Host ${INFERENCE_UPSTREAM_HOST};
+        proxy_set_header Accept-Encoding "";
+        proxy_buffering off;
+        proxy_read_timeout 900s;
+        proxy_send_timeout 900s;
+        sub_filter_types application/json text/event-stream;
+        sub_filter_once off;
+        sub_filter '${INFERENCE_UPSTREAM_MODEL}' '${INFERENCE_MODEL_ID}';
+    }
+}

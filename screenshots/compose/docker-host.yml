@@ -1,0 +1,12 @@
+# Overlay: lets a tape drive the host's Docker (docker-health.tape), by mounting the Docker socket
+# and the host's docker client into the capture container. Added by lib.sh only for tapes marked
+# `# host-docker: true`. The tape must filter everything it prints to its own container, so nothing
+# else on the host shows up in the screenshot.
+services:
+  capture:
+    environment:
+      NETCLAW_IMAGE: ${NETCLAW_IMAGE}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${DOCKER_CLI_PATH:-/usr/bin/docker}:/usr/local/bin/docker:ro

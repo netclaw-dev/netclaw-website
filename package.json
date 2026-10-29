@@ -4,9 +4,11 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "npm run copy-screenshots && astro dev",
-    "build": "npm run copy-screenshots && node scripts/generate-social-images.mjs && astro build",
+    "build": "npm run copy-screenshots && node scripts/generate-social-images.mjs && astro build && node scripts/check-rendered-pages.mjs",
     "preview": "astro preview",
     "astro": "astro",
+    "check-links": "node scripts/check-links.mjs",
+    "check-rendered": "node scripts/check-rendered-pages.mjs --verbose",
     "check-version": "node scripts/check-docs-version.mjs",
     "copy-screenshots": "mkdir -p public/screenshots/output && rsync -a --delete screenshots/output/ public/screenshots/output/"
   },

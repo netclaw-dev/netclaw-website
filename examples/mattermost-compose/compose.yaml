@@ -1,0 +1,99 @@
+# netclaw + Mattermost (Team Edition) + Postgres on one private network.
+# Only Mattermost's web UI is published, and only on the host's loopback.
+
+services:
+  postgres:
+    image: postgres:17.11-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mattermost
+      POSTGRES_USER: mattermost
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mattermost -d mattermost"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    networks: [chat]
+
+  mattermost:
+    image: mattermost/mattermost-team-edition:11.11.1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mattermost:${POSTGRES_PASSWORD}@postgres:5432/mattermost?sslmode=disable&connect_timeout=10
+      MM_SERVICESETTINGS_SITEURL: ${MATTERMOST_SITE_URL:-http://localhost:8065}
+      # Bots and personal access tokens are off by default. netclaw needs both.
+      MM_SERVICESETTINGS_ENABLEBOTACCOUNTCREATION: "true"
+      MM_SERVICESETTINGS_ENABLEUSERACCESSTOKENS: "true"
+      # Nobody can self-register. Accounts come from provision.sh or an admin.
+      MM_TEAMSETTINGS_ENABLEOPENSERVER: "false"
+      # Local mode: lets the healthcheck use mmctl over a container-internal socket.
+      MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
+    ports:
+      - "127.0.0.1:8065:8065" # host loopback only
+    volumes:
+      - mattermost-config:/mattermost/config
+      - mattermost-data:/mattermost/data
+      - mattermost-plugins:/mattermost/plugins
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      # The image has no shell or curl, so use mmctl.
+      test: ["CMD", "/mattermost/bin/mmctl", "--local", "system", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    networks: [chat]
+
+  netclaw:
+    image: ghcr.io/netclaw-dev/netclaw:0.27.1
+    restart: unless-stopped
+    depends_on:
+      mattermost:
+        condition: service_healthy
+    # No ports: the daemon stays in the default `local` exposure mode (loopback).
+    # You drive it with `docker compose exec`, and Mattermost never calls it.
+    environment:
+      # The daemon is a single-file .NET binary that unpacks itself on start.
+      # The root filesystem is read-only, so unpack into a small exec tmpfs.
+      DOTNET_BUNDLE_EXTRACT_BASE_DIR: /var/netclaw-bundle
+      # Mattermost. The bot token is NOT here. It goes in netclaw's vault.
+      NETCLAW_Mattermost__Enabled: "true"
+      NETCLAW_Mattermost__ServerUrl: http://mattermost:8065
+      NETCLAW_Mattermost__MentionOnly: "true"
+      NETCLAW_Mattermost__AllowDirectMessages: "true"
+      # Allow-lists live here and only here. Env entries merge with netclaw.json
+      # lists by position, so never set the same list in both places.
+      # Blank until provision.sh writes the IDs to .env.
+      NETCLAW_Mattermost__AllowedChannelIds__0: ${MM_CHANNEL_ID:-}
+      NETCLAW_Mattermost__AllowedUserIds__0: ${MM_USER_ID:-}
+    volumes:
+      - netclaw-home:/home/netclaw/.netclaw
+    # Hardening
+    user: "1654:1654" # start as the netclaw user, so the entrypoint never needs root
+    read_only: true # root filesystem is immutable
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m # scratch space only
+      - /var/netclaw-bundle:rw,exec,nosuid,size=128m,uid=1654,gid=1654 # the unpacked daemon (43 MB), rebuilt on every start
+    cap_drop: [ALL] # no Linux capabilities
+    security_opt:
+      - no-new-privileges:true # no setuid escalation
+    pids_limit: 256 # fork-bomb ceiling
+    networks: [chat]
+
+volumes:
+  postgres-data:
+  mattermost-config:
+  mattermost-data:
+  mattermost-plugins:
+  netclaw-home:
+
+networks:
+  chat:

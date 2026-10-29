@@ -1393,7 +1393,7 @@ import SiteNav from '../components/SiteNav.astro';
         <p class="sub-tagline">Simple, secure, reliable agents.</p>
         <p class="descriptor">
           An AI agent that runs on your hardware, connects to the communications
-          tools you and your team use &mdash; Slack, Discord, and more. Built with .NET. Open source.
+          tools you and your team use &mdash; Slack, Discord, Mattermost, and more. Built with .NET. Open source.
         </p>
         <p style="font-size:0.85rem;color:var(--mute);margin-top:-20px;margin-bottom:28px;">Channels, web search, and network exposure are set up after install with <a href="/cli/config/" style="color:inherit;text-decoration:underline;text-underline-offset:3px;"><code style="font-family:'JetBrains Mono',monospace;background:rgba(255,255,255,0.06);padding:2px 6px;border-radius:4px;">netclaw config</code></a>.</p>
         <div class="hero-buttons">
@@ -1429,9 +1429,7 @@ import SiteNav from '../components/SiteNav.astro';
           </div>
           <div class="terminal-body">
             <div class="terminal-line typing"><span class="prompt">$ </span><span class="cmd">curl</span> <span class="flag">-sSL</span> <span class="url">https://releases.netclaw.dev/install.sh</span> <span class="pipe">|</span> <span class="cmd">bash</span></div>
-            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">init</span></div>
-            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">daemon start</span></div>
-            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">chat</span></div>
+            <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">init</span>  <span class="flag"># starts the daemon and opens chat</span></div>
             <div class="terminal-line"><span class="prompt">$ </span><span class="cmd">netclaw</span> <span class="arg">config</span>  <span class="flag"># connect Slack, Discord, web search &amp; more</span><span class="terminal-cursor"></span></div>
           </div>
         </div>
@@ -1488,7 +1486,7 @@ import SiteNav from '../components/SiteNav.astro';
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
               </button>
             </div>
-            <p class="tab-note">Persists config and state in a named volume (the image runs as non-root <code>netclaw</code>). Configure with <code>NETCLAW_</code> env vars.</p>
+            <p class="tab-note">Persists config and state in a named volume (the image runs as non-root <code>netclaw</code>). A bare container starts but stays unconfigured until you run <code>docker exec -it netclaw netclaw init</code> or set <code>NETCLAW_</code> env vars. The CLI also wants a <code>netclaw.json</code>, even an empty <code>{}</code>.</p>
           </div>
         </div>
       </div>
@@ -1523,7 +1521,7 @@ import SiteNav from '../components/SiteNav.astro';
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
           </div>
-          <p class="step-note">Re-entrant menu-driven TUI for everything <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;background:rgba(255,255,255,0.06);padding:2px 5px;border-radius:4px;">init</code> skips: Slack, Discord, and Mattermost channels; web search; network exposure; inbound webhooks; skill sources. Run it any time to change settings.</p>
+          <p class="step-note">Re-entrant menu-driven TUI for everything <code style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;background:rgba(255,255,255,0.06);padding:2px 5px;border-radius:4px;">init</code> skips: Slack, Discord, and Mattermost channels; web search; network exposure; inbound webhooks; skill sources; browser automation; telemetry and alerting; workspaces. Run it any time to change settings.</p>
         </div>
       </div>
     </div>
@@ -1546,7 +1544,7 @@ import SiteNav from '../components/SiteNav.astro';
         </p>
       </div>
       <div class="approval-showcase">
-        <img src="/assets/approval-prompt.png" alt="Netclaw tool approval prompt in a Slack thread, with approve and deny buttons" width="1000" height="400" loading="lazy" onclick="document.getElementById('lightbox').classList.add('open')">
+        <img src="/assets/approval-prompt.png" alt="A Netclaw MCP tool approval prompt in a Mattermost thread: the demo-utilities/http_fetch tool asking to POST to https://status.example.com/api/v1/incidents, with four buttons: Once, This chat, Always allow this tool and Deny" width="1678" height="646" loading="lazy" onclick="document.getElementById('lightbox').classList.add('open')">
         <span class="expand-hint">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
           Click to enlarge
@@ -1559,7 +1557,7 @@ import SiteNav from '../components/SiteNav.astro';
   <!-- Lightbox -->
   <div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
     <button class="lightbox-close" aria-label="Close lightbox">&times;</button>
-    <img src="/assets/approval-prompt.png" alt="Netclaw tool approval prompt in Slack — full size">
+    <img src="/assets/approval-prompt.png" alt="The same MCP tool approval prompt at full size: demo-utilities/http_fetch with a POST to status.example.com, and the buttons Once, This chat, Always allow this tool and Deny">
   </div>
 
   <!-- How It Works -->
@@ -1692,7 +1690,7 @@ import SiteNav from '../components/SiteNav.astro';
           </div>
           <h3>Secure by default</h3>
           <p>
-            Three permission levels &mdash; Private, Team, Public &mdash; control
+            Three permission levels &mdash; Personal, Team, Public &mdash; control
             what each agent can see and do. Default-deny. If a rule is missing, the answer is no.
           </p>
         </div>
@@ -1715,7 +1713,7 @@ import SiteNav from '../components/SiteNav.astro';
           <h3>Automatic memory</h3>
           <p>
             Ask it to book a flight once. Next time, it already knows your airline,
-            your home airport, your seat preference. Memory segregated by audience &mdash; private stays private.
+            your home airport, your seat preference. Recall is semantic search that runs on your own machine, with no cloud embeddings. Memory segregated by audience &mdash; private stays private.
           </p>
         </div>
 
@@ -1725,8 +1723,8 @@ import SiteNav from '../components/SiteNav.astro';
           </div>
           <h3>Small models welcome</h3>
           <p>
-            Works with models as small as 9B parameters. Netclaw only loads
-            10-20 tools per call, so small models don't choke even when you have dozens of MCP servers connected.
+            Works with models as small as 9B parameters. Netclaw starts each session with
+            a small core of tools and loads the rest on demand, so small models don't choke even when you have dozens of MCP servers connected.
           </p>
         </div>
 
@@ -1747,7 +1745,7 @@ import SiteNav from '../components/SiteNav.astro';
           </div>
           <h3>Deploy a fleet</h3>
           <p>
-            Each instance uses ~80MB of RAM. Run one per project, one per client, one per domain &mdash;
+            Each instance idles around 480MB of RAM with local semantic memory on, which is the default, and plan for up to 800MB. Turn it off and it's about 235MB. Run one per project, one per client, one per domain &mdash;
             each with its own permissions and memory.
           </p>
         </div>

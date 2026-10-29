@@ -1,0 +1,890 @@
+{
+  "_readme": [
+    "Hand-maintained inputs for scripts/gen-config-reference.mjs. The JSON schema in the product repo is the structural source of truth (keys, types, enums, min/max).",
+    "The schema omits many defaults and descriptions, so this file supplies them. Every value here was read from the C# options classes of the release named in _verifiedAgainst.",
+    "Each entry has a 'source' that names the file to re-read at the next release. When a default in C# changes, edit it here and re-run the script.",
+    "keys:    overrides for keys that exist in the schema (default, description, type, allowed). An override for a key that has left the schema fails the run.",
+    "shared:  overrides applied to each prefix in 'prefixes' (the three chat channels). An explicit entry in 'keys' wins.",
+    "extra:   keys the daemon reads that the schema does not list (chat channel secrets, MCP client secret). 'after' pins the row position.",
+    "sections: one-paragraph orientation per top-level key, rendered above each table. 'notes' renders below it.",
+    "skip:    schema paths that are not rendered as rows."
+  ],
+  "_verifiedAgainst": "netclaw 0.28.2 release source (version string 0.28.2)",
+  "mapKeyNames": {
+    "Models.Definitions": "name",
+    "McpServers": "server",
+    "Providers": "name"
+  },
+  "shared": {
+    "prefixes": [
+      "Slack",
+      "Discord",
+      "Mattermost"
+    ],
+    "keys": {
+      "Enabled": {
+        "default": "`false`",
+        "description": "Start this channel adapter. Needs the bot token in `secrets.json`.",
+        "source": "Netclaw.Channels.<Channel>/<Channel>ChannelOptions.cs"
+      },
+      "DefaultChannelId": {
+        "default": "unset",
+        "description": "Default channel for messages the bot starts itself, such as reminder deliveries. It also counts as an allowed channel.",
+        "source": "SlackChannelOptions.cs, SlackAclPolicy.IsAllowedChannel, ChannelIntegrationRegistrationExtensions.cs"
+      },
+      "MentionOnly": {
+        "default": "`true`",
+        "description": "Respond in channels only when the bot is mentioned.",
+        "source": "SlackChannelOptions.cs, DiscordChannelOptions.cs, MattermostChannelOptions.cs"
+      },
+      "AllowDirectMessages": {
+        "default": "`false`",
+        "description": "Accept direct messages. DMs use the audience mapped to the `dm` key in `ChannelAudiences`.",
+        "source": "SlackChannelOptions.cs, SlackAclPolicy.EvaluateInbound"
+      },
+      "MentionRequiredInDm": {
+        "default": "`false`",
+        "description": "Require a mention in DMs too. Applies only when `AllowDirectMessages` is `true`.",
+        "source": "SlackChannelOptions.cs"
+      },
+      "MentionRequiredInThreadByChannel": {
+        "default": "`{}`",
+        "description": "Per-channel switch, keyed by channel ID. `true` requires a mention in thread replies even when the thread already has an active session. A channel with no entry doesn't.",
+        "source": "SlackChannelOptions.MentionRequiredInThreadFor"
+      },
+      "AllowedChannelIds": {
+        "default": "`[]`",
+        "description": "Channel IDs the bot responds in, in addition to `DefaultChannelId`. Messages from any other channel are denied.",
+        "source": "SlackAclPolicy.IsAllowedChannel"
+      },
+      "AllowedUserIds": {
+        "default": "`[]`",
+        "description": "User IDs allowed to talk to the bot. An empty list allows every user in an allowed channel. A listed user is treated as a trusted internal principal.",
+        "source": "SlackAclPolicy.IsAllowedUser (empty list allows all)"
+      },
+      "ChannelAudiences": {
+        "default": "`{}`",
+        "description": "Audience per channel, keyed by channel ID or `dm`. Unmapped channels fall back to the ACL heuristic. The audience picks the `Tools.AudienceProfiles` entry that applies.",
+        "source": "SlackChannelOptions.cs"
+      }
+    }
+  },
+  "keys": {
+    "Slack.SocketMode": {
+      "default": "`true`",
+      "description": "Connect over Slack Socket Mode. Needs the app-level token (`Slack.AppToken`).",
+      "source": "SlackChannelOptions.cs"
+    },
+    "Slack.DefaultChannelName": {
+      "default": "unset",
+      "description": "A channel name the daemon resolves to an ID at startup when `DefaultChannelId` is unset. An unresolved name logs a warning. The `netclaw config` Slack editor deletes it and writes the ID.",
+      "source": "SlackChannelOptions.cs"
+    },
+    "Logging.LogLevel.Default": {
+      "default": "`\"Information\"`",
+      "description": "Minimum level written to `daemon-<date>.log`. An unset or unrecognized value gives `Information`. Other keys under `Logging.LogLevel` (for example `Microsoft`) set per-category levels.",
+      "source": "Netclaw.Daemon/Configuration/LoggingRegistrationExtensions.ResolveLogLevel"
+    },
+    "Logging.Console.Enabled": {
+      "default": "`false`",
+      "description": "Also write single-line log output to the console. Docker and systemd capture it.",
+      "source": "LoggingRegistrationExtensions.ConfigureNetclawLogging"
+    },
+    "Telemetry.Enabled": {
+      "default": "`false`",
+      "description": "Export metrics and logs over OTLP. netclaw has no tracing exporter.",
+      "source": "Netclaw.Daemon/Configuration/TelemetryOptions.cs"
+    },
+    "Telemetry.Otlp.Endpoint": {
+      "default": "`\"http://127.0.0.1:4317\"`",
+      "description": "OTLP collector base URL. Must be an absolute URI. Over HTTP/protobuf netclaw posts to `v1/logs` and `v1/metrics` under it, and reduces a full signal URL to its base. gRPC uses the URL unchanged.",
+      "source": "TelemetryOptions.cs, TelemetryOptionsValidator.cs"
+    },
+    "Session.MemoryObserverIdleSeconds": {
+      "default": "`90`",
+      "description": "Seconds of quiet before the memory observer distills the conversation into memories.",
+      "source": "SessionConfig.cs"
+    },
+    "Session.IdleTimeout": {
+      "description": "How long a session sits idle before it saves a snapshot and passivates. Format `HH:mm:ss`. `00:00:00` disables passivation. Background jobs owned by the session are killed when it passivates.",
+      "source": "SessionConfig.cs",
+      "default": "`\"01:00:00\"`"
+    },
+    "Session.TurnLlmTimeoutSeconds": {
+      "default": "`180`",
+      "description": "Timeout for the main per-turn model call. Also feeds the `FirstTokenTimeoutSeconds` fallback.",
+      "source": "SessionConfig.RawSessionConfig"
+    },
+    "Session.ToolExecutionTimeoutSeconds": {
+      "default": "`90`",
+      "description": "Inactivity budget per tool call. The call must produce its first result within this time and each later streamed item resets it. A stuck tool fails alone without affecting the others in the batch. Background shell jobs aren't bound by it.",
+      "source": "SessionConfig.RawSessionConfig, docs/runbooks/background-jobs.md"
+    },
+    "Session.SidecarLlmTimeoutSeconds": {
+      "default": "`90`",
+      "description": "Timeout for background model calls: title generation, memory distillation and compaction notes. Raise it for slow models.",
+      "source": "SessionConfig.cs"
+    },
+    "Memory.Curation.NominatorSimilarityThreshold": {
+      "default": "`0.86`",
+      "description": "Embedding cosine similarity threshold above which an existing memory is nominated for the curation call to adjudicate.",
+      "source": "Netclaw.Configuration/Schemas/netclaw-config.v1.schema.json"
+    },
+    "Session.FirstTokenTimeoutSeconds": {
+      "default": "`600`",
+      "description": "Maximum silence between streamed deltas once the first one arrives. Subagent runs use it too, since agent definitions no longer carry `timeoutSeconds`. If unset, it uses `TurnLlmTimeoutSeconds` when you changed that, otherwise 600.",
+      "source": "SessionConfig.BindFromConfiguration"
+    },
+    "Session.PrefillTimeoutSeconds": {
+      "default": "`1800`",
+      "description": "Maximum wait for the first streamed delta. Covers queue wait and prompt prefill, which can take minutes on self-hosted backends.",
+      "source": "SessionConfig.BindFromConfiguration"
+    },
+    "Session.NoProgressTimeoutSeconds": {
+      "default": "`1200`",
+      "description": "Hard ceiling on time without a real output token. Keepalive heartbeats don't reset it, so a backend that heartbeats forever without producing a token is killed when it elapses. The value also sets the thinking cap: one model call that streams only thinking, with no answer text and no tool call, stops at three times this value.",
+      "source": "SessionConfig.BindFromConfiguration"
+    },
+    "Session.MaxToolIterationsPerTurn": {
+      "default": "`60`",
+      "description": "Legacy key kept so existing files still load. It is validated (1 to 500) but no longer limits a turn. netclaw refuses a call that repeats the same work, and the watchdog timeouts bound the rest.",
+      "source": "SessionConfig.cs"
+    },
+    "Session.CompactionThreshold": {
+      "default": "`0.75`",
+      "description": "Fraction of the context window that triggers compaction. Same as `Session.Tuning.CompactionThreshold`. The `Tuning` value wins when both are set.",
+      "source": "SessionTuning.cs, SessionConfig.BindTuning"
+    },
+    "Session.SnapshotInterval": {
+      "default": "`20`",
+      "description": "Turns between persistence snapshots. Same as `Session.Tuning.SnapshotInterval`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.KeepRecentToolResults": {
+      "default": "`3`",
+      "description": "Recent tool call and result pairs kept in full when compaction clears older results. Same as `Session.Tuning.KeepRecentToolResults`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.MaxInlineToolResultChars": {
+      "default": "`12000`",
+      "description": "Largest tool result placed inline in the conversation. For longer output the last this-many characters stay inline, the rest is dropped from the inline text, and the full output goes to a session file the model reads with `tool_output_read`. `shell_execute` has its own smaller budget of 2,000. Same as `Session.Tuning.MaxInlineToolResultChars`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.DiscoveredToolRetentionTurns": {
+      "default": "`3`",
+      "description": "User turns a tool loaded with `load_tool` stays available. `0` makes the model load it again every turn. Same as `Session.Tuning.DiscoveredToolRetentionTurns`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.DiscoveredToolMaxCount": {
+      "default": "`12`",
+      "description": "Most loaded deferred or MCP tools kept across turns. The oldest are evicted first. Same as `Session.Tuning.DiscoveredToolMaxCount`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.KeepRecentMessages": {
+      "default": "`6`",
+      "description": "Recent messages kept verbatim after compaction summarizes the rest. Counts raw messages, not turn pairs. Same as `Session.Tuning.KeepRecentMessages`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.TitleGenerationInterval": {
+      "default": "`10`",
+      "description": "Turns between session title refreshes. The title is always generated on turn 1. `0` disables refreshes. Same as `Session.Tuning.TitleGenerationInterval`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.DeterministicRetrievalEnabled": {
+      "default": "`true`",
+      "description": "Plan automatic memory recall deterministically on each turn. Scheduled for removal, leave it on. Same as `Session.Tuning.DeterministicRetrievalEnabled`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning": {
+      "default": "-",
+      "description": "Internal tuning. Every key here has a same-named key directly under `Session`, and the `Tuning` value wins.",
+      "source": "SessionConfig.BindTuning"
+    },
+    "Session.Tuning.CompactionThreshold": {
+      "default": "`0.75`",
+      "description": "See `Session.CompactionThreshold`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.SnapshotInterval": {
+      "default": "`20`",
+      "description": "See `Session.SnapshotInterval`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.KeepRecentToolResults": {
+      "default": "`3`",
+      "description": "See `Session.KeepRecentToolResults`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.MaxInlineToolResultChars": {
+      "default": "`12000`",
+      "description": "See `Session.MaxInlineToolResultChars`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.DiscoveredToolRetentionTurns": {
+      "default": "`3`",
+      "description": "See `Session.DiscoveredToolRetentionTurns`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.DiscoveredToolMaxCount": {
+      "default": "`12`",
+      "description": "See `Session.DiscoveredToolMaxCount`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.KeepRecentMessages": {
+      "default": "`6`",
+      "description": "See `Session.KeepRecentMessages`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.TitleGenerationInterval": {
+      "default": "`10`",
+      "description": "See `Session.TitleGenerationInterval`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.DeterministicRetrievalEnabled": {
+      "default": "`true`",
+      "description": "See `Session.DeterministicRetrievalEnabled`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.MemoryDistillationTurnInterval": {
+      "default": "`5`",
+      "description": "Completed turns between memory distillation passes, regardless of idle state, so memories form during long active sessions. `0` leaves distillation to `MemoryObserverIdleSeconds`.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.MinimumRecallCompositeScore": {
+      "default": "unset",
+      "description": "Minimum composite score for a memory to be injected by automatic recall. Unset uses the coordinator's built-in floor. Lower values let weaker matches through, `0` removes the floor.",
+      "source": "SessionTuning.cs"
+    },
+    "Session.Tuning.MaxRecallInjectedChars": {
+      "default": "`2000`",
+      "description": "Character budget for memory text injected by automatic recall in one turn. Whole items are dropped rather than truncated. `0` removes the budget.",
+      "source": "SessionTuning.cs"
+    },
+    "Security.DeploymentPosture": {
+      "default": "unset",
+      "description": "Who talks to this install: `Personal` (you), `Team` or `Public`. `netclaw init` writes it. When it's unset and `StrictDefaults` is `true`, netclaw behaves as `Public` and denies `shell_execute`. It selects the default tool profiles and shell mode, and it narrows the audience of every turn: a channel mapped to `Personal` under a `Team` posture runs as `Team`.",
+      "source": "TrustContextPolicy.cs SecurityPolicyDefaults.ResolveDeploymentPosture"
+    },
+    "Security.ShellExecutionMode": {
+      "default": "unset",
+      "description": "Whether `shell_execute` can run. Unset gives `HostAllowed` for a `Personal` posture and `Off` for the others. `Tools.ShellMode` overrides it. `SandboxOnly` denies every shell call with `shell_requires_sandbox_backend`.",
+      "source": "SecurityPolicyDefaults.ResolveShellExecutionMode, ToolAccessPolicy.ResolveShellMode"
+    },
+    "Security.StrictDefaults": {
+      "default": "`true`",
+      "description": "Fail closed when posture or shell mode is unset. Set `false` only to get `Personal` and `HostAllowed` as the implicit defaults.",
+      "source": "SecurityPolicyConfig"
+    },
+    "Tools.ShellMode": {
+      "default": "unset",
+      "description": "Overrides `Security.ShellExecutionMode` for the shell tools. Unset follows the security setting.",
+      "source": "ToolConfig.ShellMode, ToolAccessPolicy.ResolveShellMode"
+    },
+    "Tools.MaxOutputChars": {
+      "default": "`256000`",
+      "description": "Most output a tool call captures in memory for the spill file. It isn't what the model sees inline, which is `Session.MaxInlineToolResultChars`. Output past the ceiling is discarded.",
+      "source": "ToolConfig.cs"
+    },
+    "Tools.AudienceProfiles": {
+      "default": "-",
+      "description": "Per-audience tool, file and MCP grants. Public, Team and Personal share one shape. A list you set replaces the default list and doesn't merge with it.",
+      "source": "ToolAudienceProfiles.cs"
+    },
+    "Tools.AudienceProfiles.<audience>": {
+      "default": "-",
+      "description": "One entry each for `Public`, `Team` and `Personal`.",
+      "source": "ToolAudienceProfiles.cs"
+    },
+    "Tools.AudienceProfiles.<audience>.ToolsMode": {
+      "default": "`Allowlist` (Personal: `All`)",
+      "description": "`Allowlist` grants only the tools in `AllowedTools`. `All` grants every profile-managed tool.",
+      "source": "ToolAudienceProfileDefaults.CreatePublic/CreateTeam/CreatePersonal"
+    },
+    "Tools.AudienceProfiles.<audience>.AllowedTools": {
+      "default": "Public and Team defaults, see [Built-in tools](/reference/tools/#default-allow-lists)",
+      "description": "Profile-managed tools this audience can call. Tools outside the profile-managed set are always available. Setting the key replaces the default list, and a value that isn't a list stops startup.",
+      "source": "ToolAudienceProfileToolCatalog, ToolConfig.BindFromConfiguration"
+    },
+    "Tools.AudienceProfiles.<audience>.McpServersMode": {
+      "default": "`Allowlist` (Personal: `All`)",
+      "description": "`Allowlist` exposes only the servers in `AllowedMcpServers`. `All` exposes every configured server.",
+      "source": "ToolAudienceProfileDefaults"
+    },
+    "Tools.AudienceProfiles.<audience>.AllowedMcpServers": {
+      "default": "`[]`",
+      "description": "MCP server names this audience can use when `McpServersMode` is `Allowlist`. MCP stays off for Public and Team until you add a server.",
+      "source": "ToolAudienceProfile"
+    },
+    "Tools.AudienceProfiles.<audience>.McpServerToolGrants": {
+      "default": "unset",
+      "description": "Per-server tool allowlists. A server listed here exposes only the named tools. A server not listed exposes all of its tools. Ignored when `McpServersMode` is `All`.",
+      "source": "ToolAudienceProfileResolver.IsMcpToolAllowed"
+    },
+    "Tools.AudienceProfiles.<audience>.ReadFiles.Mode": {
+      "default": "`Roots` (Personal: `All`)",
+      "description": "`None` blocks it, `Roots` limits it to `Roots`, `All` allows any path that isn't protected. For the `Personal` audience, `file_read`, `file_list`, `file_search` and `attach_file` reach at least as far as `WriteFiles` does.",
+      "source": "ToolAudienceProfileDefaults.CreateSessionScopedFilesystemAccess"
+    },
+    "Tools.AudienceProfiles.<audience>.ReadFiles.Roots": {
+      "default": "`[\"{session_dir}\"]`",
+      "description": "Directories used when `Mode` is `Roots`. Tokens: `{session_dir}`, `{skills_dir}`, `{identity_dir}`, `{workspaces_dir}`.",
+      "source": "ToolAudienceProfileDefaults, ToolAudienceProfileResolver.ResolveToken"
+    },
+    "Tools.AudienceProfiles.<audience>.WriteFiles.Mode": {
+      "default": "`Roots` (Personal: `All`)",
+      "description": "Same values as `ReadFiles.Mode`, for `file_write` and `file_edit`.",
+      "source": "ToolAudienceProfileDefaults"
+    },
+    "Tools.AudienceProfiles.<audience>.WriteFiles.Roots": {
+      "default": "`[\"{session_dir}\"]`",
+      "description": "Directories used when `Mode` is `Roots`. Same tokens as `ReadFiles.Roots`.",
+      "source": "ToolAudienceProfileDefaults"
+    },
+    "Tools.AudienceProfiles.<audience>.AttachFiles.Mode": {
+      "default": "`Roots` (Personal: `All`)",
+      "description": "Same values as `ReadFiles.Mode`, for `attach_file`.",
+      "source": "ToolAudienceProfileDefaults"
+    },
+    "Tools.AudienceProfiles.<audience>.AttachFiles.Roots": {
+      "default": "`[\"{session_dir}\"]`",
+      "description": "Directories used when `Mode` is `Roots`. Same tokens as `ReadFiles.Roots`.",
+      "source": "ToolAudienceProfileDefaults"
+    },
+    "Tools.AudienceProfiles.<audience>.ApprovalPolicy": {
+      "default": "unset (Personal posture: `shell_execute` is `Approval`)",
+      "description": "Which tools need a human to approve each call. See [How tool approvals work](/security/approvals/).",
+      "source": "ToolAudienceProfileDefaults.CreateProfilesForPosture"
+    },
+    "Tools.AudienceProfiles.<audience>.ApprovalPolicy.DefaultMode": {
+      "default": "`\"Auto\"`",
+      "description": "Mode for tools with no override.",
+      "source": "ToolApprovalConfig.cs"
+    },
+    "Tools.AudienceProfiles.<audience>.ApprovalPolicy.ToolOverrides": {
+      "default": "`{}`",
+      "description": "Mode per tool. Keys are tool names (`shell_execute`) or MCP tools as `server/tool` (or `server__tool`), matched without regard to case. If two keys differ only by case, the more restrictive mode wins. A key that contains `:` or has no value is ignored, so the tool keeps the audience default, and `netclaw doctor` reports it. Writes to the config directory are denied before any approval mode is read.",
+      "source": "ToolApprovalConfig.cs"
+    },
+    "Tools.AudienceProfiles.<audience>.ApprovalPolicy.McpServerDefaults": {
+      "default": "`{}`",
+      "description": "Mode for every tool of one MCP server, keyed by server name and matched without regard to case. An exact `ToolOverrides` entry wins. A key that contains `:` is ignored and `netclaw doctor` reports it.",
+      "source": "ToolApprovalConfig.TryGetExplicitMode"
+    },
+    "Tools.AudienceProfiles.<audience>.ChannelAttachments": {
+      "default": "-",
+      "description": "Which files from chat messages this audience can send in.",
+      "source": "ChannelAttachmentPolicy.cs"
+    },
+    "Tools.AudienceProfiles.<audience>.ChannelAttachments.AllowedCategories": {
+      "default": "Public: `Image`. Team: `Image`, `Pdf`, `Document`, `Archive`, `Media`. Personal: those plus `Other`.",
+      "description": "Attachment categories accepted. An empty list rejects every attachment.",
+      "source": "ToolAudienceProfileDefaults.CreatePublic/Team/PersonalChannelAttachments"
+    },
+    "Tools.AudienceProfiles.<audience>.ChannelAttachments.MaxFileBytes": {
+      "default": "`26214400`",
+      "description": "Largest file accepted, in bytes (25 MiB). Must be above 0 when any category is allowed.",
+      "source": "ChannelAttachmentPolicy.DefaultMaxFileBytes, ToolAudienceProfiles.ValidateChannelAttachments"
+    },
+    "Tools.AudienceProfiles.<audience>.ChannelAttachments.MaxFilesPerMessage": {
+      "default": "`10`",
+      "description": "Most files accepted on one message. A message over the limit loses all its attachments. Must be above 0 when any category is allowed.",
+      "source": "ChannelAttachmentPolicy.DefaultMaxFilesPerMessage"
+    },
+    "Tools.AudienceProfiles.GlobalReadRoots": {
+      "default": "`[\"{skills_dir}\", \"{identity_dir}\", \"{workspaces_dir}\"]`",
+      "description": "Directories every audience can read, so skill loading, identity files and project discovery work under Team and Public. Setting the key replaces the list.",
+      "source": "ToolAudienceProfiles.GlobalReadRoots"
+    },
+    "Tools.WebFetch.RequireHttps": {
+      "default": "`true`",
+      "description": "Reject plain `http://` URLs in `web_fetch` unless the host is in `HttpAllowList`.",
+      "source": "WebFetchConfig.cs"
+    },
+    "Tools.WebFetch.HttpAllowList": {
+      "default": "`[\"localhost\", \"127.0.0.1\", \"::1\", \"[::1]\"]`",
+      "description": "Hosts that may use plain HTTP when `RequireHttps` is `true`. Setting the key replaces the list, so keep the loopback entries if you still need them.",
+      "source": "WebFetchConfig.cs, ToolConfig.DefaultedLists"
+    },
+    "Tools.HardDenyPatterns": {
+      "default": "`[]`",
+      "description": "Extra shell verb-chain prefixes that are always blocked and can't be approved. They add to the built-in hard-deny list, they don't replace it.",
+      "source": "ToolConfig.HardDenyPatterns"
+    },
+    "Providers": {
+      "type": "map of object",
+      "default": "`{}`",
+      "description": "LLM provider connections keyed by a name you choose. `Models.Definitions` entries refer to these names.",
+      "source": "ProviderEntry.cs"
+    },
+    "Models.Definitions": {
+      "default": "-",
+      "description": "Model definitions keyed by a name you choose, at least one. Names are case-insensitive and must be unique.",
+      "source": "NamedModelConfiguration.cs"
+    },
+    "Models.Definitions.<name>": {
+      "default": "-",
+      "description": "One model: which provider serves it and how it behaves.",
+      "source": "ModelReference.cs"
+    },
+    "Models.Definitions.<name>.Provider": {
+      "default": "required",
+      "description": "Key into `Providers`.",
+      "source": "ModelReference.cs"
+    },
+    "Models.Definitions.<name>.ModelId": {
+      "default": "required",
+      "description": "Model identifier sent to the provider.",
+      "source": "ModelReference.cs"
+    },
+    "Models.Definitions.<name>.ContextWindow": {
+      "default": "detected",
+      "description": "Context window in tokens. When set, it caps the value the provider reports.",
+      "source": "ModelReference.cs"
+    },
+    "Models.Definitions.<name>.Provenance": {
+      "default": "unset",
+      "description": "Where the model data came from: `Live`, `Defaults` or `Manual`. netclaw sets it. You don't need to.",
+      "source": "ModelReference.cs"
+    },
+    "Models.Definitions.<name>.InputModalities": {
+      "default": "detected",
+      "description": "Manual override for what the model accepts, comma-separated from `Text`, `Image`, `Audio`, `Video`. Turns off automatic detection.",
+      "source": "ModelReference.cs",
+      "allowed": "comma-separated `Text`, `Image`, `Audio`, `Video`"
+    },
+    "Models.Definitions.<name>.OutputModalities": {
+      "default": "detected",
+      "description": "Manual override for what the model produces. Same format as `InputModalities`.",
+      "source": "ModelReference.cs",
+      "allowed": "comma-separated `Text`, `Image`, `Audio`, `Video`"
+    },
+    "Models.Definitions.<name>.MaxOutputTokens": {
+      "default": "unset",
+      "description": "Output limit in tokens for every call of this model. Thinking tokens count inside it. Must be below `ContextWindow` when that is set. Unset sends 32000, clamped per call to the model maximum and to the context window minus the estimated prompt.",
+      "source": "ModelReference.cs"
+    },
+    "Models.Definitions.<name>.Thinking": {
+      "default": "unset",
+      "description": "Provider-neutral thinking level for every call of this model. `Max` is the highest level the provider offers. A level the provider dialect can't send fails startup. Unset uses the model's default.",
+      "source": "ModelReference.cs"
+    },
+    "Models.Roles": {
+      "default": "-",
+      "description": "Which definition plays each role. Values are names from `Definitions`.",
+      "source": "NamedModelConfiguration.cs"
+    },
+    "Models.Roles.Main": {
+      "default": "required",
+      "description": "Model for all interactions.",
+      "source": "ModelSelection.cs"
+    },
+    "Models.Roles.Fallback": {
+      "default": "unset",
+      "description": "Failover model. Falls back to `Main` when unset.",
+      "source": "ModelSelection.cs"
+    },
+    "Models.Roles.Compaction": {
+      "default": "unset",
+      "description": "Cheaper or faster model for compaction. Falls back to `Main` when unset.",
+      "source": "ModelSelection.cs"
+    },
+    "Memory.Recall.MinCosineSimilarity": {
+      "default": "unset (follows the model, 0.24 for the default)",
+      "description": "Cosine floor for automatic recall. Candidates below it are dropped before ranking. The meaning is specific to the active embedding model, so recalibrate before you set it.",
+      "source": "MemoryConfig.cs MemoryRecallConfig, doctor 'Memory Embeddings' check"
+    },
+    "Memory.Recall.RelevanceGate.Enabled": {
+      "default": "unset (follows `Memory.Embeddings.Enabled`)",
+      "description": "Run the cross-encoder relevance gate on recall candidates. Set it explicitly to turn the gate on or off independently of embeddings.",
+      "source": "MemoryConfig.cs MemoryRelevanceGateConfig"
+    },
+    "Memory.Recall.RelevanceGate.Threshold": {
+      "default": "unset (model default, 0.02)",
+      "description": "Score below which the gate drops a candidate. Unset uses the calibrated value for the provisioned relevance model.",
+      "source": "MemoryConfig.cs, doctor 'Memory Relevance Gate' check"
+    },
+    "ExternalSkills.Sources": {
+      "default": "`[]`",
+      "description": "Ordered list of external skill sources. Earlier entries win name collisions and native netclaw skills always win.",
+      "source": "ExternalSkillsConfig.cs"
+    },
+    "ExternalSkills.Sources[].Name": {
+      "default": "required",
+      "description": "Unique name for the source, for example `claude-code`.",
+      "source": "ExternalSkillsConfig.cs"
+    },
+    "SkillFeeds.Feeds": {
+      "default": "`[]`",
+      "description": "Ordered list of skill server feeds. Earlier feeds win name collisions.",
+      "source": "SkillFeedsConfig.cs"
+    },
+    "SkillFeeds.Feeds[].Name": {
+      "default": "required",
+      "description": "Unique feed name, lowercase letters, digits and hyphens. Used as the directory name.",
+      "source": "SkillFeedsConfig.cs"
+    },
+    "SkillFeeds.Feeds[].Url": {
+      "default": "required",
+      "description": "Skill server base URL.",
+      "source": "SkillFeedsConfig.cs"
+    },
+    "Notifications.Webhooks": {
+      "default": "`[]`",
+      "description": "Targets that receive operational alerts by HTTP POST. Empty means alerts only go to the log.",
+      "source": "NotificationsConfig.cs"
+    },
+    "Notifications.Webhooks[].Url": {
+      "default": "required",
+      "description": "HTTP or HTTPS endpoint to POST alerts to.",
+      "source": "NotificationsConfig.cs WebhookTarget"
+    },
+    "Notifications.Webhooks[].Name": {
+      "default": "unset",
+      "description": "Display name used in logs.",
+      "source": "NotificationsConfig.cs WebhookTarget"
+    },
+    "Notifications.Webhooks[].Headers": {
+      "default": "unset",
+      "description": "Static headers sent with every POST, for example `Authorization`.",
+      "source": "NotificationsConfig.cs WebhookTarget"
+    },
+    "Webhooks.Enabled": {
+      "default": "`false`",
+      "description": "Register the inbound webhook endpoint and the `set_webhook`, `list_webhooks` and `delete_webhook` tools.",
+      "source": "WebhooksConfig.cs, Netclaw.Daemon/Program.cs"
+    },
+    "Webhooks.ExecutionTimeoutSeconds": {
+      "default": "`300`",
+      "description": "Longest a webhook-triggered run can take before the daemon marks it failed.",
+      "source": "WebhooksConfig.cs, WebhookExecutionActor.cs"
+    },
+    "Workspaces.Directory": {
+      "default": "`~/.netclaw/workspaces`",
+      "description": "Root for project workspaces. Projects are Git repositories with an `AGENTS.md`, at any depth. A leading `~` expands to your home directory.",
+      "source": "NetclawPaths.cs"
+    },
+    "McpServers.<server>.Transport": {
+      "default": "`\"stdio\"`",
+      "description": "How netclaw connects: `stdio` runs `Command`, `sse` and `http` connect to `Url`.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.Command": {
+      "default": "unset",
+      "description": "Executable to run for `stdio`.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.Arguments": {
+      "default": "unset",
+      "description": "Arguments for `Command`.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.Url": {
+      "default": "unset",
+      "description": "Endpoint for `sse` and `http`.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.EnvironmentVariables": {
+      "default": "unset",
+      "description": "Environment variables passed to the `stdio` process. Values stored in `secrets.json` are decrypted first.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.Headers": {
+      "default": "unset",
+      "description": "HTTP headers for `sse` and `http`. Values stored in `secrets.json` are decrypted first.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.Enabled": {
+      "default": "`true`",
+      "description": "Disabled servers are skipped at startup.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.GrantCategory": {
+      "default": "`mcp:<server>`",
+      "description": "Tool metadata category for the server's tools. Authorization doesn't read it: use the audience's `AllowedMcpServers` and `McpServerToolGrants`.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.OAuthClientId": {
+      "default": "unset",
+      "description": "Static OAuth client ID for servers without dynamic client registration.",
+      "source": "McpServerEntry.cs"
+    },
+    "McpServers.<server>.OAuthScope": {
+      "default": "unset",
+      "description": "Space-separated OAuth scopes to request, overriding the server's defaults.",
+      "source": "McpServerEntry.cs"
+    },
+    "Search.BraveApiKey": {
+      "default": "unset",
+      "description": "Brave Search API token. Required when `Backend` is `brave`. Lives in `secrets.json`: `netclaw secrets set Search.BraveApiKey <token>`.",
+      "source": "SearchConfig.cs ([ConfigValue] PersistTo SecretsJson)"
+    },
+    "Search.SearXngEndpoint": {
+      "default": "unset",
+      "description": "SearXNG instance base URL, for example `http://searxng.local:8080`. Required when `Backend` is `searxng`.",
+      "source": "SearchConfig.cs"
+    },
+    "Memory.Embeddings": {
+      "default": "-",
+      "description": "Local ONNX embedding model for semantic memory.",
+      "source": "MemoryConfig.cs MemoryEmbeddingsConfig"
+    },
+    "Memory.Curation": {
+      "default": "-",
+      "description": "How new memories are checked against existing ones before they're saved.",
+      "source": "MemoryConfig.cs MemoryCurationConfig"
+    },
+    "Memory.Recall": {
+      "default": "-",
+      "description": "How automatic recall ranks and filters memories, mixing keyword and vector scores.",
+      "source": "MemoryConfig.cs MemoryRecallConfig"
+    },
+    "Memory.Embeddings.ModelId": {
+      "default": "`\"snowflake-arctic-embed-m-int8\"`",
+      "description": "Embedding model to use. Allowed ids are `snowflake-arctic-embed-m-int8`, `snowflake-arctic-embed-m` and `mxbai-embed-large-v1`. An id outside the allowlist is a configuration error. Changing it re-embeds existing memories under the new id.",
+      "source": "MemoryConfig.cs MemoryEmbeddingsConfig.ModelId"
+    },
+    "SubAgents.PrefillTimeoutSeconds": {
+      "default": "`1800`",
+      "description": "Longest wait for a subagent's first streamed token, which covers queue wait and prompt prefill. Same idea as `Session.PrefillTimeoutSeconds`. After the first token the `Session.FirstTokenTimeoutSeconds` budget applies. An agent definition can override it with `prefillTimeoutSeconds` in its frontmatter.",
+      "source": "SubAgentConfig.cs"
+    },
+    "SubAgents.NoProgressTimeoutSeconds": {
+      "default": "`1200`",
+      "description": "Hard ceiling on a subagent run with no real output token. Keepalives don't reset it. Like `Session.NoProgressTimeoutSeconds`, it also sets the thinking cap at three times the value.",
+      "source": "SubAgentConfig.cs"
+    },
+    "Daemon.UpdateChannel": {
+      "default": "`\"stable\"`",
+      "description": "Release channel the update check follows. `stable` only sees stable releases. `beta` also sees prereleases and moves to a stable release once one supersedes the beta.",
+      "source": "DaemonConfig.cs"
+    },
+    "Notifications.Webhooks[].Format": {
+      "default": "`\"Generic\"`",
+      "description": "Payload format: `Generic` is a JSON envelope, `Slack` is Slack Block Kit.",
+      "source": "NotificationsConfig.cs WebhookFormatDetection"
+    },
+    "Mattermost.ServerUrl": {
+      "default": "unset",
+      "description": "Base URL of the Mattermost server, for example `https://mm.example.com`.",
+      "source": "MattermostChannelOptions.cs"
+    },
+    "Mattermost.CallbackUrl": {
+      "default": "unset",
+      "description": "URL Mattermost can reach for interactive button callbacks, for example `http://netclaw-host:5199/api/mattermost/actions`. When unset, approvals fall back to text replies, except for a subagent's approval request, which needs buttons: the binding refuses it and the session withdraws it.",
+      "source": "MattermostChannelOptions.cs"
+    },
+    "Providers.<name>.Type": {
+      "type": "string",
+      "default": "`\"ollama\"`",
+      "description": "Provider type: `anthropic`, `deepseek`, `github-copilot`, `ollama`, `openai`, `openai-compatible`, `openrouter` or `veniceai`.",
+      "source": "ProviderEntry.cs, IProviderDescriptor.TypeKey implementations"
+    },
+    "Providers.<name>.Endpoint": {
+      "type": "string",
+      "default": "`\"\"` (the provider type supplies its own default URL)",
+      "description": "Base URL of the provider API.",
+      "source": "ProviderEntry.cs"
+    },
+    "Providers.<name>.AuthMethod": {
+      "type": "string",
+      "default": "`\"None\"`",
+      "allowed": "`None`, `ApiKey`, `OAuthDevice`, `OAuthPkce`",
+      "description": "How netclaw authenticates to the provider.",
+      "source": "ProviderEntry.cs, AuthMethod.cs"
+    },
+    "Providers.<name>.ApiKey": {
+      "type": "string (secret)",
+      "default": "unset",
+      "description": "API key. Lives in `secrets.json`: `netclaw secrets set Providers.<name>.ApiKey <key>`.",
+      "source": "ProviderEntry.cs"
+    },
+    "Providers.<name>.VendorOptions": {
+      "type": "object",
+      "default": "unset",
+      "description": "Provider-specific non-secret options, for example `GitHubHost` and `GitHubApiBase` for `github-copilot`, `ThinkingDialect` for `openai-compatible`, `DisableThinking` for `ollama`, `ExcludeReasoning` for `openrouter` and `IncludeVeniceSystemPrompt` for `veniceai`. Each provider type defines its own keys.",
+      "source": "ProviderEntry.VendorOptions"
+    },
+    "Providers.<name>": {
+      "description": "One provider connection. The name is yours to choose and `Models.Definitions` entries refer to it.",
+      "source": "ProviderEntry.cs"
+    },
+    "Providers.<name>.OAuthAccessToken": {
+      "type": "string (secret)",
+      "description": "OAuth access token. netclaw writes it to `secrets.json` when you sign in with an OAuth auth method.",
+      "source": "ProviderEntry.cs"
+    },
+    "Providers.<name>.OAuthRefreshToken": {
+      "type": "string (secret)",
+      "description": "OAuth refresh token. netclaw writes it to `secrets.json` when you sign in with an OAuth auth method.",
+      "source": "ProviderEntry.cs"
+    },
+    "Providers.<name>.OAuthAccountId": {
+      "type": "string (secret)",
+      "description": "OAuth account identifier. netclaw writes it to `secrets.json` when you sign in with an OAuth auth method.",
+      "source": "ProviderEntry.cs"
+    },
+    "Providers.<name>.OAuthTokenExpiry": {
+      "type": "string (secrets.json, unencrypted)",
+      "description": "Expiry time of the OAuth access token, ISO 8601. netclaw writes it to `secrets.json` beside the tokens when you sign in with an OAuth auth method. It is the one value there that isn't encrypted. A key left in `netclaw.json` is retired: `netclaw doctor` reports it and `netclaw doctor --fix` moves it, after a backup.",
+      "source": "ProviderEntry.cs"
+    },
+    "Session.MemoryDistillationTurnInterval": {
+      "description": "Same as `Session.Tuning.MemoryDistillationTurnInterval`.",
+      "source": "SessionTuning.cs, SessionConfig.BindTuning"
+    },
+    "Session.MinimumRecallCompositeScore": {
+      "description": "Same as `Session.Tuning.MinimumRecallCompositeScore`.",
+      "source": "SessionTuning.cs, SessionConfig.BindTuning"
+    },
+    "Session.MaxToolDescriptionChars": {
+      "description": "Same as `Session.Tuning.MaxToolDescriptionChars`.",
+      "source": "SessionTuning.cs, SessionConfig.BindTuning"
+    },
+    "Session.MaxToolSchemaWarnChars": {
+      "description": "Same as `Session.Tuning.MaxToolSchemaWarnChars`.",
+      "source": "SessionTuning.cs, SessionConfig.BindTuning"
+    },
+    "Session.Tuning.MaxToolDescriptionChars": {
+      "description": "Longest MCP tool description kept at registration. Longer ones are truncated to protect the context window. `0` turns truncation off.",
+      "source": "schema"
+    },
+    "Session.Tuning.MaxToolSchemaWarnChars": {
+      "description": "Size of an MCP tool's JSON schema that triggers a warning in the log. The schema itself is never truncated, so this only reports bloated tool definitions. `0` turns the warning off.",
+      "source": "schema"
+    },
+    "Retention.Logs.Days": {
+      "default": "`14`",
+      "description": "Days to keep `daemon-yyyy-MM-dd.log`, its numbered segments `daemon-yyyy-MM-dd.N.log` (the daemon starts a new segment at 10 MiB) and `crash-*.log` files in the logs directory. The daemon deletes older files 30 seconds after it starts and every 12 hours after that. The newest 3 daemon logs, segments counted as files, and the newest 3 crash logs are always kept. `0` keeps them forever. Per-session logs are never touched. See [Data retention](/configuration/data-retention/).",
+      "source": "RetentionSettings.cs, RetentionPolicy.cs, DaemonLogRetention"
+    },
+    "Session.Tuning.StreamingRetryPolicy.BaseDelay": {
+      "allowed": "`HH:mm:ss`",
+      "source": "schema"
+    },
+    "Session.Tuning.StreamingRetryPolicy.MaxDelay": {
+      "allowed": "`HH:mm:ss`",
+      "source": "schema"
+    }
+  },
+  "extra": {
+    "McpServers.<server>.OAuthClientSecret": {
+      "type": "string (secret)",
+      "default": "unset",
+      "description": "Client secret for a pre-registered confidential OAuth client. Vault only: the schema rejects it in `netclaw.json`, so doctor fails the Config Schema check. Set it with `netclaw mcp add --client-id <id> --client-secret <secret>` or `netclaw secrets set`, which store it in `secrets.json`. Needs `OAuthClientId`.",
+      "after": "McpServers.<server>.OAuthClientId",
+      "source": "McpServerEntry.cs, McpCommand.cs"
+    },
+    "Slack.BotToken": {
+      "type": "string (secret)",
+      "default": "unset",
+      "description": "Bot token, `xoxb-`. Lives in `secrets.json`: `netclaw secrets set Slack.BotToken <token>`.",
+      "after": "Slack.Enabled",
+      "source": "SlackChannelOptions.cs, ChannelsEditorModel.cs"
+    },
+    "Slack.AppToken": {
+      "type": "string (secret)",
+      "default": "unset",
+      "description": "App-level token, `xapp-`, for Socket Mode. Lives in `secrets.json`.",
+      "after": "Slack.BotToken",
+      "source": "SlackChannelOptions.cs"
+    },
+    "Discord.BotToken": {
+      "type": "string (secret)",
+      "default": "unset",
+      "description": "Bot token. Lives in `secrets.json`: `netclaw secrets set Discord.BotToken <token>`.",
+      "after": "Discord.Enabled",
+      "source": "DiscordChannelOptions.cs"
+    },
+    "Mattermost.BotToken": {
+      "type": "string (secret)",
+      "default": "unset",
+      "description": "Bot access token. Lives in `secrets.json`: `netclaw secrets set Mattermost.BotToken <token>`.",
+      "after": "Mattermost.Enabled",
+      "source": "MattermostChannelOptions.cs"
+    },
+    "Providers.<name>.VendorOptions.ThinkingDialect": {
+      "type": "string",
+      "default": "unset",
+      "allowed": "`ChatTemplateKwargs`, `ReasoningEffort`, `DeepSeek`, `None`",
+      "description": "`openai-compatible` only. How netclaw sends a thinking level to the server. Without it only the output limit works. `netclaw model set` saves `ReasoningEffort` when it detects llama.cpp. Set it by hand for vLLM, SGLang or a proxy.",
+      "after": "Providers.<name>.VendorOptions",
+      "source": "OpenAiCompatibleDescriptor.cs, ThinkingDialectMap.cs"
+    }
+  },
+  "sections": {
+    "Slack": {
+      "summary": "The Slack adapter. [Set up Slack](/channels/slack/) walks through the app manifest and tokens."
+    },
+    "Discord": {
+      "summary": "The Discord adapter. [Set up Discord](/channels/discord/) covers the bot, intents and tokens."
+    },
+    "Mattermost": {
+      "summary": "The Mattermost adapter. [Set up Mattermost](/channels/mattermost/) covers the bot account and callback URL."
+    },
+    "Logging": {
+      "summary": "Daemon log level and console output. Logs go to `daemon-<date>.log` under the data directory regardless of these keys, rolling into numbered segments at 10 MiB."
+    },
+    "Telemetry": {
+      "summary": "OpenTelemetry export. [OpenTelemetry](/observability/opentelemetry/) shows how to wire a collector."
+    },
+    "Session": {
+      "summary": "Per-conversation timeouts, compaction and memory-capture timing. The timeout keys take whole seconds, `IdleTimeout` takes `HH:mm:ss`. [Sessions](/architecture/sessions/) explains the lifecycle these keys tune.",
+      "notes": "A value below a key's minimum fails `netclaw doctor` schema validation. The daemon itself enforces a 1 second minimum on `TurnLlmTimeoutSeconds`, `ToolExecutionTimeoutSeconds` and `SidecarLlmTimeoutSeconds`."
+    },
+    "Security": {
+      "summary": "Deployment posture and shell mode, which choose the default tool profiles. [Security model](/security/security-model/) explains the three postures."
+    },
+    "Tools": {
+      "summary": "Tool grants per audience, file roots, approval policy and `web_fetch` limits. A configured list replaces the default list, so a list with one tool grants one tool. [Built-in tools](/reference/tools/) lists the tools and defaults, and [How tool approvals work](/security/approvals/) covers `ApprovalPolicy`."
+    },
+    "Providers": {
+      "summary": "Where each model is served. [Managed providers](/configuration/managed-providers/) and [self-hosted providers](/configuration/self-hosted-providers/) have one example per provider type."
+    },
+    "Models": {
+      "summary": "Which model plays Main, Fallback and Compaction, and each definition's context window, modalities, output limit and thinking level. [Model configuration](/configuration/models/) has examples. The older inline shape (`Models.Main`, `Models.Fallback`, `Models.Compaction` as objects) still loads. Mixing it with `Definitions` and `Roles` stops startup."
+    },
+    "Memory": {
+      "summary": "Cross-session memory, embeddings and recall. [Memory and embeddings](/configuration/memory/) explains how the pieces fit together. The embedding model downloads on first start unless `Embeddings.AutoDownload` is `false`.",
+      "notes": "Set `Memory.Enabled` to `false` and the memory tools and automatic recall disappear for every audience."
+    },
+    "Search": {
+      "summary": "The `web_search` backend. [Search providers](/configuration/search-providers/) covers Brave and SearXNG setup."
+    },
+    "SkillSync": {
+      "summary": "Switch for the skill index tools. [Skills overview](/skills/overview/) explains where skills come from."
+    },
+    "ExternalSkills": {
+      "summary": "Skill directories from other tools, such as Claude Code. [External skills](/skills/external-skills/) has the setup."
+    },
+    "SkillFeeds": {
+      "summary": "Private skill servers that netclaw syncs from at startup and on a timer. [Skill feeds](/skills/skill-feeds/) has the setup."
+    },
+    "SubAgents": {
+      "summary": "Switches and watchdogs for `spawn_agent`. [Custom subagents](/skills/custom-subagents/) shows how to define agents."
+    },
+    "Notifications": {
+      "summary": "Where operational alerts go. [Operational alerts](/observability/operational-alerts/) lists the alert types."
+    },
+    "Webhooks": {
+      "summary": "The inbound webhook endpoint. The routes themselves aren't in `netclaw.json`: each one is a file under `config/webhooks/`, managed with `netclaw webhooks` or the webhook tools. [Webhooks](/configuration/webhooks/) covers routes and verification."
+    },
+    "Scheduling": {
+      "summary": "Switch for reminders and scheduled tasks. [Reminders](/configuration/reminders/) covers creating and running them.",
+      "notes": "Set `Scheduling.Enabled` to `false` and the five reminder tools aren't registered."
+    },
+    "Daemon": {
+      "summary": "Bind address, port and how the daemon is exposed to the network. Changing any of these in `netclaw.json` restarts the daemon. [Exposure modes](/deployment/exposure-modes/) explains each mode and [Docker](/deployment/docker/) covers the container settings.",
+      "notes": "The Docker image's health check probes port 5199. A container with a different `Daemon.Port` reports `unhealthy` even though the daemon is up, so override the health check when you change the port.\n\nIn `Local` exposure mode the daemon answers 401 to a request whose `Host` isn't `localhost` or a loopback IP literal (`127.0.0.1`, `[::1]`), or whose `Origin`, when present, isn't `http://` plus the same host. A client that reaches the daemon by another host name, or a browser app on another port, is refused. `Daemon.Host` as a bind value still accepts spellings such as `127.1`."
+    },
+    "Workspaces": {
+      "summary": "Where netclaw looks for your project repositories. [Context structure](/architecture/context-structure/) explains how projects feed the prompt."
+    },
+    "McpServers": {
+      "summary": "MCP server profiles keyed by name. Add them with `netclaw mcp add` or edit the file. [MCP servers](/configuration/mcp-servers/) has the walkthrough and [MCP tool permissions](/guides/mcp-tool-permissions/) covers per-audience access."
+    },
+    "Retention": {
+      "summary": "How long the daemon keeps log files before a scheduled clean-up deletes them. [Data retention](/configuration/data-retention/) explains what is and isn't deleted."
+    }
+  },
+  "skip": []
+}

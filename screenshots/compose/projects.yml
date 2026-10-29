@@ -1,0 +1,25 @@
+# Overlay: a neutral projects directory shared by the daemon and the capture container,
+# so a tape can create a small Git repository at /home/netclaw/projects/website that the
+# daemon's shell tool can also see (approval prompts offer "This repository" only inside
+# a Git repository). Created and owned by the netclaw uid (1654) by a one-shot init.
+services:
+  projects-init:
+    image: alpine:3.20
+    network_mode: "none"
+    command: ["sh", "-c", "mkdir -p /projects && chown 1654:1654 /projects"]
+    volumes:
+      - projects:/projects
+
+  netclawd:
+    depends_on:
+      projects-init:
+        condition: service_completed_successfully
+    volumes:
+      - projects:/home/netclaw/projects
+
+  capture:
+    volumes:
+      - projects:/home/netclaw/projects
+
+volumes:
+  projects:

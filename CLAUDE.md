@@ -26,9 +26,9 @@ Read the target markdown stub in `src/content/docs/` to get the title and descri
 
 Before asking the user anything, collect available information:
 
-1. **Netclaw source repo** — Clone `https://github.com/netclaw-dev/netclaw` (or locate a local clone). Key paths relative to that repo root:
+1. **Netclaw source repo** — The local clone is at `~/repositories/netclaw-dev/netclaw` (or clone `https://github.com/netclaw-dev/netclaw`). Check out the release tag the docs target (`src/version.json`). Key paths relative to that repo root:
    - `src/Netclaw.Cli/` — CLI commands, flags, help text
-   - `src/Netclaw.Configuration/` — Config schemas, defaults, validation
+   - `src/Netclaw.Configuration/` — Config schemas, defaults, validation. The JSON schema is `src/Netclaw.Configuration/Schemas/netclaw-config.v1.schema.json` (webhook routes: `webhook-route.v1.schema.json` in the same folder)
    - `src/Netclaw.Daemon/` — Daemon architecture, startup, health checks
    - `src/Netclaw.Channels.Slack/` and `Netclaw.Channels.Discord/` — Channel integrations
    - `src/Netclaw.Security/` — Security model, ACLs, approval gates
@@ -37,6 +37,7 @@ Before asking the user anything, collect available information:
    - `docs/adr/` — Architecture decision records (tool schemas, context discovery, progressive tool disclosure)
    - `docs/runbooks/` — Operational runbooks (background jobs, behavior debugging, daemon upgrades, memory health, subagents, tool approval gates)
    - `docs/spec/configuration.md` — Configuration specification
+   - **Warning:** `docs/spec/SPEC-004-cli-contract.md` and `docs/spec/configuration.md` are stale in places. They list commands and keys that were never implemented. When they disagree with the C# source, the JSON schema, or real `--help` output from the release container, the source, schema and `--help` win.
    - `CLAUDE.md`, `PROJECT_CONTEXT.md`, `CONTRIBUTING.md` — Project context and conventions
 2. **Screenshots** — Check `screenshots/output/` for assets matching the page topic. Map them to the page. Screenshots are served at `/screenshots/output/<filename>`.
 3. **Landing page** — `src/pages/index.astro` contains feature descriptions, architecture overview, and product positioning that inform doc content.
@@ -144,9 +145,13 @@ netclaw <command> <args>
 
 <explain what the screenshot shows>
 
-## Related Commands
+## Related pages
 
-- [`netclaw <other>`](/cli/<other>/) — <why it's related>
+- [`netclaw <other>`](/cli/<other>/) - <why it's related>
+
+## Resources
+
+- [<external doc>](<url>) - <why it helps>
 ```
 
 #### Tutorial Template
@@ -180,13 +185,21 @@ description: "<what the user will accomplish>"
 
 ...
 
-## Verify It Works
+## Verify it works
 
 <how to confirm success>
 
-## Next Steps
+## What's next
 
-- [<next logical page>](</path/>) — <why>
+- [<next logical page>](</path/>) - <why>
+
+## Related pages
+
+- [<related page>](</path/>) - <why>
+
+## Resources
+
+- [<external doc>](<url>) - <why it helps>
 ```
 
 #### Guide Template
@@ -199,7 +212,7 @@ description: "<when you'd need this guide>"
 
 <one paragraph: the problem this solves>
 
-## Before You Begin
+## Before you begin
 
 - <prerequisite or assumption>
 
@@ -211,7 +224,15 @@ description: "<when you'd need this guide>"
 
 ### <Common problem>
 
-<symptoms, cause, fix>
+**Symptom:** ... **Cause:** ... **Fix:** ...
+
+## Related pages
+
+- [<related page>](</path/>) - <why>
+
+## Resources
+
+- [<external doc>](<url>) - <why it helps>
 ```
 
 #### Concept Template
@@ -231,6 +252,14 @@ description: "<one-line summary>"
 ## Limitations
 
 - <what this doesn't do or cover>
+
+## Related pages
+
+- [<related page>](</path/>) - <why>
+
+## Resources
+
+- [<external doc>](<url>) - <why it helps>
 ```
 
 ### Step 5: Screenshot Integration
@@ -239,19 +268,20 @@ When including screenshots:
 
 - Use `![alt text](/screenshots/output/<filename>.png)` for static screenshots
 - Prefer `.png` over `.gif` unless the animation is essential to understanding
-- Write a caption sentence below each screenshot explaining what it shows
+- Put the instruction before the screenshot and a one-sentence caption after it that says something the alt text doesn't
+- **Captures come from the release container** (`ghcr.io/netclaw-dev/netclaw:<version>`), never a host-installed binary. A host build can be an unreleased prototype. No private hostnames in samples or screenshots.
 - If a screenshot shows a multi-step flow (like `init`), break it into individual step screenshots: `init-01-provider-list.png`, `init-02-security-posture.png`, etc.
 
-Available screenshot sets:
-- `init-*` — Full `netclaw init` wizard flow (10+ steps)
-- `status.*` — System status display
-- `doctor.*` — Health check diagnostics
-- `stats.*` — Usage statistics
-- `provider.*` / `provider-manager.png` — Provider management
-- `model.*` / `model-manager.png` — Model management
-- `mcp-tools.*` / `mcp-tools-*.png` — MCP tool server management
-- `webhooks.*` / `webhooks-list.png` — Webhook configuration
-- `reminder.*` / `reminder-list.png` — Reminder management
+Available screenshot sets (in `screenshots/output/`):
+- `init-*` — `netclaw init` wizard steps (provider, identity, security posture, health check, start-over)
+- `config-*` — `netclaw config` dashboard and areas (channels, search, exposure, browser, telemetry, webhooks, skills, workspaces)
+- `status.*`, `doctor.*`, `stats.*` — system status, health checks, usage statistics
+- `provider.*` / `provider-manager.png`, `model.*` / `model-manager.png` — provider and model management
+- `mcp-tools.*` / `mcp-tools-*.png` — MCP server management
+- `approvals.*` / `approvals-*.png` — tool approvals list and TUI
+- `webhooks.*` / `webhooks-list.png`, `reminder.*` / `reminder-list.png`
+- `chat-*`, `single-shot-*` — interactive chat and single-shot CLI runs
+- `slack-*`, `discord-*`, `mattermost-*` — third-party channel setup and conversations (kept as is)
 
 ### Step 6: Critique (3 parallel agents)
 
@@ -280,7 +310,7 @@ After writing the draft, spawn three review agents in parallel. Pass each the fu
 
 ### Step 7: Humanizer Pass
 
-Run `/humanizer` on the drafted page. This is mandatory — no page ships without it. The humanizer catches AI writing patterns that slip through manual review: over-explaining, passive voice, hedge words, repetitive structure, and generic filler that makes documentation feel soulless.
+Run `humanizer:humanizer` (the newer, rewrite-oriented plugin skill, not the older `humanizer`) on the drafted page. It runs on prose paragraphs only, never on tables, code blocks or frontmatter. Where it disagrees with the `netclaw-docs` skill, the skill wins (for example, ignore suggestions to add first person or tangents on reference pages). This is mandatory — no page ships without it. The humanizer catches AI writing patterns that slip through manual review: over-explaining, passive voice, hedge words, repetitive structure, and generic filler that makes documentation feel soulless.
 
 ### Step 8: Revise
 
@@ -304,6 +334,8 @@ Before declaring the page done:
 - [ ] At least 2 external links to relevant resources
 - [ ] No robotic phrasing or unnecessary hedging
 - [ ] `npm run build` passes with no errors
+- [ ] Screenshots and command output come from the release container, not a host binary
+- [ ] No private hostnames in samples or screenshots
 - [ ] **Every runnable example actually runs.** Any `docker run`, `docker compose`, or shell snippet a reader is told to execute MUST be run locally against the current release first and verified crash-free — the container reaches `healthy` and `docker logs` shows no fatal error / `Aborted (core dumped)`. Never ship a command you haven't executed. (This is how the stale `Daemon.Host=0.0.0.0` Docker example shipped a guaranteed startup crash.)
 
 ## Autonomous Doc Writing Mode
@@ -316,13 +348,13 @@ When invoked with a page slug (e.g., `cli/status`), run the full pipeline withou
 4. Run `npm run build` to verify
 5. Stage and commit the single page with message: `docs: write <section>/<page>`
 
-The netclaw source repo is expected at `~/repositories/stannardlabs/netclaw/`. If not found, check common locations or skip source-dependent content.
+The netclaw source repo is expected at `~/repositories/netclaw-dev/netclaw`. If not found, check common locations or skip source-dependent content.
 
 ## Build & Preview
 
 ```bash
 npm run dev -- --host 0.0.0.0   # Dev server with Tailscale access
-npm run build                    # Production build (43 pages)
+npm run build                    # Production build (165 pages built)
 ```
 
 ## Project Structure

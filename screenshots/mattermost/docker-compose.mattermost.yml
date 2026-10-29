@@ -1,24 +1,106 @@
-# Mattermost server for capturing the channels/mattermost.md screenshots.
-# Brought up by run.sh, which then bootstraps it (bootstrap.mjs), starts the
-# pinned netclaw image against it, and drives Playwright (capture.mjs).
+# Mattermost capture topology. Everything runs in containers on one compose network;
+# nothing is published to the host and there are no fixed container names, so projects
+# do not collide. Driven by run.sh (do not run directly).
 #
-# mattermost-preview is an all-in-one testing image (bundled Postgres). amd64-only.
+#   mattermost  all-in-one testing image (bundled Postgres, amd64 only)
+#   netclawd    the released daemon; reaches Mattermost at http://mattermost:8065
+#   playwright  bootstrap + browser captures, reaching Mattermost by the same name
+#
+# Models use the 0.25+ Models.Definitions / Models.Roles env shape. The bot token is
+# NOT an env var: run.sh stores it with `netclaw secrets set Mattermost.BotToken`.
+# run.sh sets Mattermost.CallbackUrl to http://netclawd:5299/api/mattermost/actions (a forwarder
+# sidecar, because the daemon listens on loopback only) so approvals
+# render as buttons. Mattermost refuses integration callbacks to private addresses, so it
+# allow-lists the netclawd host below.
 services:
   mattermost:
-    image: mattermost/mattermost-preview:latest
-    ports:
-      - "8065:8065"
+    image: ${MATTERMOST_IMAGE:-mattermost/mattermost-preview:11.7.7}
     environment:
-      MM_SERVICESETTINGS_SITEURL: http://localhost:8065
+      MM_SERVICESETTINGS_SITEURL: http://mattermost:8065
       MM_TEAMSETTINGS_ENABLEOPENSERVER: "true"
       MM_SERVICESETTINGS_ENABLETESTING: "true"
-      # NOTE: EnableBotAccountCreation / EnableUserAccessTokens are intentionally
-      # NOT set here. bootstrap.mjs flips them via the System Console config API so
-      # the captured screenshot shows them as editable toggles (an env var would
-      # render them locked: "set through an environment variable").
+      # Button callbacks go to the daemon on the private compose network; Mattermost blocks that
+      # unless the host is listed.
+      MM_SERVICESETTINGS_ALLOWEDUNTRUSTEDINTERNALCONNECTIONS: netclawd
+      # EnableBotAccountCreation / EnableUserAccessTokens are intentionally NOT set here.
+      # bootstrap.mjs flips them through the config API so the captured System Console
+      # page shows editable toggles (an env var would render them locked).
+    # No healthcheck: the 11.x preview image ships neither curl nor wget. bootstrap.mjs
+    # polls /api/v4/system/ping until the server is ready.
+
+  netclawd:
+    image: ${NETCLAW_IMAGE:?set by run.sh}
+    depends_on:
+      - mattermost
+    environment:
+      NETCLAW_Daemon__DisableSelfUpdate: "true"
+      NETCLAW_Providers__inference__Type: ${NC_INFERENCE_TYPE:?set by run.sh}
+      NETCLAW_Providers__inference__Endpoint: ${NC_INFERENCE_ENDPOINT:?set by run.sh}
+      NETCLAW_Models__Definitions__main__Provider: inference
+      NETCLAW_Models__Definitions__main__ModelId: ${NC_INFERENCE_MODEL:?set by run.sh}
+      NETCLAW_Models__Roles__Main: main
+      NETCLAW_Models__Roles__Fallback: main
+      NETCLAW_Models__Roles__Compaction: main
+      # Real inference endpoints can be slow to first token.
+      NETCLAW_Session__TurnLlmTimeoutSeconds: "600"
+      NETCLAW_Session__FirstTokenTimeoutSeconds: "600"
+      NETCLAW_Session__PrefillTimeoutSeconds: "600"
+    volumes:
+      - netclaw-home:/home/netclaw/.netclaw
     healthcheck:
-      test: ["CMD", "curl", "-sf", "http://localhost:8065/api/v4/system/ping"]
-      interval: 5s
+      test: ["CMD", "curl", "-sf", "http://127.0.0.1:5199/api/health/ready"]
+      interval: 3s
       timeout: 5s
-      retries: 48
-      start_period: 20s
+      retries: 40
+      start_period: 5s
+
+  # Shares netclawd's network namespace so it can reach the loopback-only daemon listener and
+  # re-expose it on :5299 for Mattermost's button callbacks.
+  callbackfwd:
+    image: netclaw-docs-playwright:${PLAYWRIGHT_VERSION:?set by run.sh}
+    network_mode: service:netclawd
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: ["node", "/work/tcp-forward.mjs"]
+    depends_on:
+      - netclawd
+    volumes:
+      - .:/work:ro
+
+  # Only started by run.sh with SCRIPTED_APPROVAL=1: answers with one scripted shell_execute call (no real model).
+  scriptedllm:
+    profiles: ["scripted"]
+    image: netclaw-docs-playwright:${PLAYWRIGHT_VERSION:?set by run.sh}
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    command: ["node", "/work/scripted-llm.mjs"]
+    environment:
+      SCRIPTED_TOOL: ${SCRIPTED_TOOL:-mcp}
+      SCRIPTED_COMMAND: ${SCRIPTED_COMMAND:-git push origin main}
+    volumes:
+      - .:/work:ro
+
+  # The stack's demo MCP server (screenshots/mcp-server); approval.sh-style runs register it
+  # with netclawd and gate http_fetch behind approval.
+  mcp-demo:
+    profiles: ["scripted"]
+    image: netclaw-docs-mcp-demo:1
+    build:
+      context: ../mcp-server
+
+  playwright:
+    profiles: ["tools"]
+    image: netclaw-docs-playwright:${PLAYWRIGHT_VERSION:?set by run.sh}
+    build:
+      context: ../playwright
+      args:
+        PLAYWRIGHT_VERSION: ${PLAYWRIGHT_VERSION}
+    # Run as the invoking user so files written to the mounts are yours, not root's.
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+    environment:
+      BOOTSTRAP_FILE: /work/.bootstrap.${COMPOSE_PROJECT_NAME}.json
+      OUT_DIR: /out
+    volumes:
+      - .:/work
+      - ${CAPTURE_OUT_DIR:?set by run.sh}:/out
+
+volumes:
+  netclaw-home:

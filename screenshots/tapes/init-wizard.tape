@@ -1,227 +1,83 @@
-# Netclaw Init Wizard - Full walkthrough (Personal + Ollama + DuckDuckGo)
-# Requires: Ollama running on localhost:11434 with qwen2:0.5b
-# Captures every wizard screen for documentation.
-Output screenshots/output/init-full.gif
+# netclaw init: the Personal walkthrough on 0.27.1 (provider, identity, security posture, health check)
+# stack: fresh
+# Runs against the first-run daemon (empty ~/.netclaw) with the stack's local Ollama on
+# localhost:11434 (qwen2:0.5b, the stack's default). Nothing private is involved.
+#
+# The header reads "Step N of 5" until a posture is chosen, then "Step 4 of 4" for Personal.
+# That is what 0.27.1 prints, so the provider, identity and posture images say "of 5" and the
+# health check says "of 4".
+#
+# Produces: init-01-provider-list, init-01-endpoint, init-01-provider-ollama, init-01-model-select,
+# init-02-identity, init-02-security-posture, init-05-health-check.
+Output screenshots/output/init-wizard.gif
 
 Set Shell "bash"
 Set Theme "Dracula"
-Set Width 1200
-Set Height 700
 Set FontSize 16
+Set Width 1000
+Set Height 520
 Set Padding 20
-Set TypingSpeed 50ms
-
-# Clean netclaw home for fresh wizard
-Hide
-Type "export NETCLAW_HOME=/tmp/netclaw-screenshot-home"
-Enter
-Sleep 300ms
-Type "rm -rf /tmp/netclaw-screenshot-home && mkdir -p /tmp/netclaw-screenshot-home"
-Enter
-Sleep 300ms
-Type "clear"
-Enter
-Sleep 500ms
-Show
-
-# ═══════════════════════════════════════════════
-# STEP 1: LLM Provider
-# ═══════════════════════════════════════════════
+Set TypingSpeed 40ms
 
 Type "netclaw init"
 Enter
 Sleep 3s
 
-# Sub-step 0: Provider list (Anthropic highlighted by default)
+# Provider list: eight entries
 Screenshot screenshots/output/init-01-provider-list.png
-Sleep 300ms
+Sleep 500ms
 
-# Move to Ollama and capture (0.22 provider list: Anthropic, GitHub Copilot, Ollama)
-Down
-Sleep 300ms
-Down
-Sleep 300ms
+# 4 = Ollama: its endpoint step
+Type "4"
+Sleep 1500ms
 Screenshot screenshots/output/init-01-provider-ollama.png
-Sleep 300ms
+Sleep 500ms
+Escape
+Sleep 800ms
+Escape
+Sleep 1s
 
-# Select Ollama
-Enter
-Sleep 2s
-
-# Sub-step 2: Endpoint input (default http://localhost:11434)
+# 6 = OpenAI-compatible: the endpoint field arrives pre-filled with http://localhost:11434, which
+# is the stack's Ollama (it serves the OpenAI-compatible API too), so the wizard carries on with it.
+Type "6"
+Sleep 1500ms
 Screenshot screenshots/output/init-01-endpoint.png
-Sleep 300ms
+Sleep 500ms
 
-# Accept default endpoint
+# Accept the endpoint, skip the optional API key, wait for the connectivity check and model discovery
+Enter
+Sleep 1500ms
 Enter
 Sleep 5s
-
-# Sub-step 3/4: Model discovery + selection (qwen2:0.5b found)
 Screenshot screenshots/output/init-01-model-select.png
-Sleep 300ms
-
-# Select qwen2:0.5b
+Sleep 500ms
 Enter
 Sleep 2s
 
-# ═══════════════════════════════════════════════
-# STEP 2: Security Posture
-# ═══════════════════════════════════════════════
+# Identity: name, style, your name, timezone
+Enter
+Sleep 1500ms
+Screenshot screenshots/output/init-02-identity.png
+Sleep 500ms
+Enter
+Sleep 1s
+Type "alice"
+Enter
+Sleep 1s
+Enter
+Sleep 2s
+
+# Security posture: Personal is highlighted
 Screenshot screenshots/output/init-02-security-posture.png
-Sleep 300ms
-
-# Select Personal (already highlighted)
+Sleep 500ms
 Enter
-Sleep 2s
 
-# (Feature Selection is SKIPPED for Personal posture)
-
-# ═══════════════════════════════════════════════
-# STEP 3: Communication Channels (Channel Picker)
-# ═══════════════════════════════════════════════
-Screenshot screenshots/output/init-03-channels.png
-Sleep 300ms
-
-# Press 'd' to skip channels (done without selecting any)
-Type "d"
-Sleep 2s
-
-# ═══════════════════════════════════════════════
-# STEP 4: Web Search
-# ═══════════════════════════════════════════════
-Screenshot screenshots/output/init-04-search.png
-Sleep 300ms
-
-# Select DuckDuckGo (default, first item)
-Enter
-Sleep 2s
-
-# ═══════════════════════════════════════════════
-# STEP 5: Browser Automation
-# ═══════════════════════════════════════════════
-Screenshot screenshots/output/init-05-browser.png
-Sleep 300ms
-
-# Select "No" (skip browser automation, first item)
-Enter
-Sleep 2s
-
-# ═══════════════════════════════════════════════
-# STEP 6: Identity
-# ═══════════════════════════════════════════════
-
-# Sub-step 0: Agent name
-Screenshot screenshots/output/init-06-identity-name.png
-Sleep 300ms
-
-# Accept default name "Netclaw"
-Enter
-Sleep 2s
-
-# Sub-step 1: Communication style
-Screenshot screenshots/output/init-06-identity-style.png
-Sleep 300ms
-
-# Select "Concise & casual" (first item)
-Enter
-Sleep 2s
-
-# Sub-step 2: User name
-Screenshot screenshots/output/init-06-identity-user.png
-Sleep 300ms
-
-# Type a name
-Type "Aaron"
-Sleep 300ms
-Enter
-Sleep 2s
-
-# Sub-step 3: Timezone
-Screenshot screenshots/output/init-06-identity-timezone.png
-Sleep 300ms
-
-# Accept default timezone
-Enter
-Sleep 2s
-
-# Sub-step 4: Workspaces directory
-Screenshot screenshots/output/init-06-identity-workspaces.png
-Sleep 300ms
-
-# Accept default
-Enter
-Sleep 2s
-
-# Sub-step 5: Webhook URL (optional)
-Screenshot screenshots/output/init-06-identity-webhook.png
-Sleep 300ms
-
-# Skip (leave blank)
-Enter
-Sleep 2s
-
-# ═══════════════════════════════════════════════
-# STEP 7: External Skills (conditional - Claude Code detected)
-# ═══════════════════════════════════════════════
-Screenshot screenshots/output/init-07-external-skills.png
-Sleep 300ms
-
-# Accept detected skills and continue
-Enter
-Sleep 2s
-
-# Sub-step 1: Custom skill directory path (optional)
-Screenshot screenshots/output/init-07-custom-skills-path.png
-Sleep 300ms
-
-# Skip (leave blank)
-Enter
-Sleep 2s
-
-# ═══════════════════════════════════════════════
-# STEP 8: Skill Feeds
-# ═══════════════════════════════════════════════
-Screenshot screenshots/output/init-08-skill-feeds.png
-Sleep 300ms
-
-# Select "No — skip" (second item)
-Down
-Sleep 300ms
-Enter
-Sleep 2s
-
-# ═══════════════════════════════════════════════
-# STEP 9: Network Exposure
-# ═══════════════════════════════════════════════
-Screenshot screenshots/output/init-09-exposure.png
-Sleep 300ms
-
-# Select "Local" (first item, recommended)
-Enter
-Sleep 2s
-
-# Sub-step: Inbound Webhooks toggle
-Screenshot screenshots/output/init-09-webhooks.png
-Sleep 300ms
-
-# Select "No" (second item)
-Down
-Sleep 300ms
-Enter
-Sleep 2s
-
-# ═══════════════════════════════════════════════
-# STEP 10: Health Check
-# ═══════════════════════════════════════════════
-Screenshot screenshots/output/init-10-health-check.png
-Sleep 300ms
-
-# Press Enter to start health check
-Enter
+# Health check starts on its own and hands over to chat within a couple of seconds
+# The finished checklist is on screen for about a second and a half before chat takes over,
+# so wait for its last line instead of sleeping a fixed time.
+Wait+Screen@60s /Configuration written/
+Sleep 200ms
+Screenshot screenshots/output/init-05-health-check.png
 Sleep 8s
-
-# Capture final health check results
-Screenshot screenshots/output/init-10-health-check-complete.png
-
-Sleep 2s
-Ctrl+C
+Ctrl+Q
+Sleep 1s

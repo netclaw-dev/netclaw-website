@@ -24,6 +24,9 @@ const SECTION_MAP = {
   'deployment': 'Deployment',
   'architecture': 'Architecture',
   'guides': 'Guides',
+  'reference': 'Reference',
+  'troubleshooting': 'Troubleshooting',
+  'comparisons': 'Comparisons',
 };
 
 function loadManifest() {

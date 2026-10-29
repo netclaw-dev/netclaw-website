@@ -4,7 +4,7 @@ netclaw.dev documentation site — Astro 6.2 + Starlight, dark-mode only, deploy
 
 Two guides govern work here. Read both before writing or editing any doc page:
 
-- **[CLAUDE.md](./CLAUDE.md)** — the authoring *process*: page types, per-type templates, the screenshot pipeline, the critique + `/humanizer` review steps, and build/preview commands.
+- **[CLAUDE.md](./CLAUDE.md)** — the authoring *process*: page types, per-type templates, the screenshot pipeline, the critique + `humanizer:humanizer` review steps, and build/preview commands.
 - **[`.claude/skills/netclaw-docs/SKILL.md`](./.claude/skills/netclaw-docs/SKILL.md)** — the *voice and style* contract: the "less is more" house voice, punctuation policy, per-page-type quick reference, terminology, and the pre-ship checklist.
 
 CLAUDE.md owns *what* to write and *how to ship it*; the `netclaw-docs` skill owns *how it reads*. Use both.

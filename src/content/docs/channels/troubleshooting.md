@@ -1,271 +1,291 @@
 ---
-title: "Channel Troubleshooting"
-description: "Diagnose and fix common Slack, Discord, and Mattermost channel issues."
+title: "Channel troubleshooting"
+description: "Fix a Slack, Discord or Mattermost bot that won't connect, won't answer, or stopped answering, organized by symptom."
 ---
 
-Netclaw not responding in Slack, Discord, or Mattermost? Two commands will tell you what's wrong most of the time:
+When the bot is silent, two commands and one log tell you most of what you need:
 
 ```bash
-netclaw status    # live connector health (requires running daemon)
+netclaw status    # live connector health and message counters (needs a running daemon)
 netclaw doctor    # offline config and credential checks
 ```
 
-Daemon logs live at `~/.netclaw/logs/`, or `journalctl -u netclaw` if you're running it as a systemd service.
+`netclaw status` reports each connector as `healthy`, `degraded`, `disconnected` or `disabled`, with counters such as `recv=2 routed=2 dropped=0 replied=2`. Doctor checks Slack only (auth and ACL). For Discord and Mattermost, use status and the daemon log.
 
-## Symptom Triage
+## Where the logs are
+
+The daemon writes `~/.netclaw/logs/daemon-YYYY-MM-DD.log`. After 10 MiB it continues in `daemon-YYYY-MM-DD.1.log`, `.2.log` and so on, and the active file is the highest-numbered segment of the newest date. Crashes go to `crash-*.log` in the same directory.
+
+| Where it runs | Read the log |
+|---------------|--------------|
+| Native | `tail -f ~/.netclaw/logs/daemon-*.log` |
+| systemd user unit | `journalctl --user -u netclaw -f`, or the file above |
+| Docker | `docker exec <container> sh -c 'tail -f ~/.netclaw/logs/daemon-*.log'`. `docker logs` shows only the entrypoint and a few startup warnings. |
+
+Restart, when a section below tells you to:
+
+| Where it runs | Restart |
+|---------------|---------|
+| Native | `netclaw daemon stop`, then `netclaw daemon start` |
+| systemd user unit | `systemctl --user restart netclaw` |
+| Docker | `docker restart <container>` (`netclaw daemon start` does nothing under the image's entrypoint) |
+
+An edit to `netclaw.json` restarts the daemon on its own. Tokens in the vault and environment variables don't, so restart after changing those.
+
+## Find your symptom
 
 | What you're seeing | Jump to |
-|---|---|
-| Bot shows "disconnected" in `netclaw status` | [Authentication Errors](#authentication-errors) |
-| Bot connected but never replies | [ACL and Permissions](#acl-and-permissions) |
-| Bot replies to some messages but not others | [Bot Not Responding to Messages (MentionOnly)](#bot-not-responding-to-messages-mentiononly) |
-| Bot was working, then stopped | [Connectivity](#connectivity) |
-| Bot processes messages but replies never appear | [Message Delivery](#message-delivery) |
+|--------------------|---------|
+| `disconnected` or `degraded` in `netclaw status` | [The bot won't connect](#the-bot-wont-connect) |
+| It connects, then drops again and again | [The connection keeps dropping](#the-connection-keeps-dropping) |
+| Connected, messages arrive, no reply | [The bot is connected but silent](#the-bot-is-connected-but-silent) |
+| It answers some messages and not others | [The bot answers only some messages](#the-bot-answers-only-some-messages) |
+| It stopped answering in a thread | [The bot stopped answering in a thread](#the-bot-stopped-answering-in-a-thread) |
+| It works, then the reply never shows up | [The reply never appears](#the-reply-never-appears) |
+| Approval buttons or letters do nothing | [Approvals don't work](#approvals-dont-work) |
+| It answers its own messages | [The bot talks to itself](#the-bot-talks-to-itself) |
 
-![netclaw doctor running diagnostic checks including Slack Auth and Slack ACL](/screenshots/output/doctor.png)
+![netclaw doctor output: 24 checks, all PASS, ending with doctor exit code: 0](/screenshots/output/doctor.png)
 
-Doctor only checks Slack right now (Auth and ACL). For Discord and Mattermost, use `netclaw status` for connector health and the daemon logs for details.
+The Slack ACL and Slack Auth lines are the channel checks. Slack isn't configured in this capture, so both pass trivially.
 
-## Authentication Errors
+## The bot won't connect
 
-### Slack: Invalid or Expired Bot Token
+A bad token or a missing setting is a fatal connect error. The channel stays offline until you fix the config and restart the daemon. The daemon and your other channels keep running. Network failures are different: those retry on their own.
 
-`netclaw status` shows Slack as `disconnected`. Doctor's Slack Auth check fails with one of these:
+### Slack: invalid or expired bot token
+
+**Symptom:** `netclaw status` shows Slack as `disconnected`, and doctor's Slack Auth check fails with one of these:
 
 | Error | Meaning |
 |-------|---------|
-| `invalid_auth` | Bot token is invalid. Check your Slack app's Bot User OAuth Token. |
-| `token_revoked` | Token has been revoked. Generate a new one. |
-| `token_expired` | Token has expired. Generate a new one. |
-| `account_inactive` | Bot account is deactivated. |
-| `not_authed` | No authentication token provided. |
-| `missing_scope` | Bot token lacks `channels:read` scope. |
+| `invalid_auth` | The bot token is invalid. Check your app's Bot User OAuth Token. |
+| `token_revoked` | The token was revoked. Generate a new one. |
+| `token_expired` | The token expired. Generate a new one. |
+| `account_inactive` | The bot account is deactivated. |
+| `not_authed` | No token was provided. |
+| `missing_scope` | The token lacks `channels:read`, which the startup check needs. Other missing scopes show up when a call needs them, as in [The reply never appears](#the-reply-never-appears). |
 
-If you're not sure which token is bad, regenerate both from the [Slack App Management page](https://api.slack.com/apps):
+**Fix:** If you're not sure which token is bad, replace both from the [Slack app page](https://api.slack.com/apps), then restart:
 
 ```bash
 netclaw secrets set Slack.BotToken xoxb-your-new-token
 netclaw secrets set Slack.AppToken xapp-your-new-token
-netclaw daemon stop && netclaw daemon start
 ```
 
-### Slack: No Bot Token Found
+If doctor says "Slack is enabled but no bot token found", run `netclaw config` → Channels → Slack, or `netclaw secrets set Slack.BotToken xoxb-...`.
 
-Doctor reports "Slack is enabled but no bot token found."
+### Slack: Socket Mode is off
 
-Run `netclaw config` → Channels → Slack, or set the token directly:
+**Symptom:** the log says `Slack channel currently supports Socket Mode only. Set Slack:SocketMode to true.`
 
-```bash
-netclaw secrets set Slack.BotToken xoxb-your-token
-```
+**Cause:** `Slack.SocketMode` is `false`. Only Socket Mode is supported.
 
-### Discord: Invalid Bot Token
+**Fix:** remove the key or set it to `true`, and make sure the app has Socket Mode on and a valid `xapp-...` token with `connections:write`.
 
-`netclaw status` shows Discord as `disconnected`. Daemon logs show an authentication error at startup.
+### Discord: invalid token or no access
 
-| HTTP Code | Meaning |
-|-----------|---------|
-| 401 | Bot token is invalid. Check your Discord application's bot token. |
-| 403 (code 50001) | Bot lacks access. Ensure it has been invited to the server. |
-| 403 | Access denied. Check bot permissions. |
-| 404 | Resource not found. Check the ID is correct. |
+**Symptom:** `netclaw status` shows Discord as `disconnected` and the log shows an authentication error at startup. Discord's API returns HTTP 401 for a wrong or reset token. When the bot can't see a resource, the log shows the Discord error as received.
 
-Discord uses a single bot token (not a `xoxb-`/`xapp-` pair like Slack). Regenerate it from the [Discord Developer Portal](https://discord.com/developers/applications):
+**Fix:** reset the token in the [Developer Portal](https://discord.com/developers/applications), then:
 
 ```bash
 netclaw secrets set Discord.BotToken your-new-token
-netclaw daemon stop && netclaw daemon start
 ```
 
-### Discord: Connection Timeout at Startup
+Restart. If the log shows a Discord access error instead of a 401, check that the bot was invited to the server.
 
-Daemon start hangs, then Discord shows `disconnected`. Logs show a 30-second timeout waiting for the gateway READY event.
+### Discord: startup waits, then disconnects
 
-The bot token may be valid but the bot hasn't been invited to any server, so Discord has nothing to initialize. Verify the bot has been added to your server. Use Discord's [URL Generator](https://discord.com/developers/docs/topics/oauth2#bot-authorization-flow) to create an invite link with the `bot` scope.
+**Symptom:** the daemon starts slowly, and the log shows a 30-second timeout waiting for the gateway READY event.
 
-### Mattermost: Invalid Bot Token
+**Cause:** the token is valid, but the bot isn't in any server, so Discord has nothing to initialize.
 
-`netclaw status` shows Mattermost as `disconnected`. The daemon logs show `Mattermost rejected the bot token (HTTP 401)` with more detail.
+**Fix:** invite the bot with an OAuth2 URL that has the `bot` scope. See [Discord setup](/channels/discord/#5-install-the-bot-to-your-server).
 
-The bot's personal access token is wrong or was revoked. Re-issue it from the System Console (**Integrations > Bot Accounts**) and update the secret:
+### Mattermost: token or URL problems
 
-```bash
-netclaw secrets set Mattermost.BotToken your-new-token
-netclaw daemon stop && netclaw daemon start
+**Symptom:** `netclaw status` shows Mattermost as `disconnected` with one of these reasons:
+
+| Reason | Fix |
+|--------|-----|
+| `Mattermost is enabled but Mattermost:ServerUrl is not configured` | Set `Mattermost.ServerUrl`. |
+| `Mattermost is enabled but no bot token is configured` | Run `netclaw secrets set Mattermost.BotToken <token>`. |
+| `Mattermost rejected the bot token (HTTP 401)` or `Mattermost rejected the request as unauthorized` | Issue a new token under **Integrations > Bot Accounts** and store it. |
+
+Restart after storing a token. The daemon doesn't watch the vault.
+
+If you can't create the bot or its token in the first place, two System Console settings are off by default: **Enable bot account creation** and **Enable personal access tokens**. See [Mattermost setup](/channels/mattermost/#create-a-bot-account).
+
+## The connection keeps dropping
+
+### Slack Socket Mode drops
+
+**Symptom:** Slack goes `disconnected`, then recovers.
+
+**Cause and fix:** since 0.27.0 a supervisor checks the connection every 5 seconds and reconnects with backoff up to 5 minutes, so a restart is no longer the first step. If it never recovers, check the [Slack status page](https://status.slack.com/), your network, and that the `xapp-...` token is still valid.
+
+### Discord gateway drops
+
+**Symptom:** Discord goes `disconnected`.
+
+**Fix:** check [Discord's status page](https://discordstatus.com/) and your network, then confirm the token. Restart if it doesn't come back.
+
+### Mattermost reconnect loop
+
+**Symptom:** the log repeats this, with the delay growing each time ([netclaw#1517](https://github.com/netclaw-dev/netclaw/issues/1517)):
+
+```text
+Connected to Mattermost WebSocket at ws://mattermost:8065/api/v4/websocket
+Gateway requested clean reconnect: Mattermost gateway reconnected outside a clean startup cycle; forcing a clean reconnect.
+Disconnected from Mattermost WebSocket: Closed by client
 ```
 
-If startup logs say `Mattermost is enabled but Mattermost:ServerUrl is not configured` or `...no bot token is configured`, the corresponding field is missing from `netclaw.json`/`secrets.json`. See the [Mattermost setup guide](/channels/mattermost/).
+**Cause:** a startup race in older releases, reported on 0.24.2 and 0.26.0-beta.4. Startup now waits for the WebSocket `OnConnected` event, which shipped in 0.26.0-beta.5.
 
-## ACL and Permissions
+**Fix:** upgrade to 0.27.1 or newer. If it still loops, check that `ServerUrl` is an address netclaw can reach, and that any proxy between netclaw and Mattermost forwards WebSocket upgrades to `/api/v4/websocket`.
 
-### All Channel Traffic Denied
+## The bot is connected but silent
 
-Netclaw receives messages but never responds. `netclaw status` counters show `recv > 0`, `dropped > 0`, `routed = 0`. Logs show `channel_not_allowed`.
+**Symptom:** `netclaw status` shows `recv` rising and `routed` at 0. The log has one of these lines:
 
-This is the number one gotcha. When `AllowedChannelIds` is empty and no `DefaultChannelId`/`DefaultChannelName` is set, netclaw denies all channel traffic.
+```text
+event_dropped event=... reason=channel_not_allowed
+event_dropped event=... reason=user_not_allowed
+event_filtered event=... reason=routing_policy_ignore ignoreReason=DmNotAllowed
+```
 
-Set a default channel or list specific channels in `~/.netclaw/config/netclaw.json`:
+| Reason | Cause | Fix |
+|--------|-------|-----|
+| `channel_not_allowed` | The channel isn't in `AllowedChannelIds` and isn't the default channel. This is the number one setup mistake. | Add the channel ID, or set `DefaultChannelId`. |
+| `user_not_allowed` | `AllowedUserIds` is set and the sender isn't in it. | Add the user's ID, or clear the list. |
+| `DmNotAllowed` | `AllowDirectMessages` is `false`, the default. | Set it to `true`. |
 
 ```json
 {
   "Slack": {
-    "DefaultChannelId": "C0123456789"
-  }
-}
-```
-
-Or allow specific channels:
-
-```json
-{
-  "Slack": {
-    "AllowedChannelIds": ["C0123456789", "C9876543210"]
-  }
-}
-```
-
-After editing config, restart the daemon: `netclaw daemon stop && netclaw daemon start`
-
-To find Slack channel IDs, right-click the channel name, select "View channel details," and scroll to the bottom. For Discord, enable Developer Mode in Settings > App Settings > Advanced, then right-click any channel and select "Copy Channel ID." See [Slack: Finding IDs](https://slack.com/help/articles/221769328) and [Discord: Finding IDs](https://support.discord.com/hc/en-us/articles/206346498).
-
-[`netclaw doctor`](/cli/doctor/) catches this one automatically.
-
-### User Not Allowed
-
-Specific users get no response. Logs show `user_not_allowed`.
-
-Add the user's ID to `AllowedUserIds`, or clear the list to allow all users:
-
-```json
-{
-  "Slack": {
-    "AllowedUserIds": ["U0123456789", "U9876543210"]
-  }
-}
-```
-
-### DMs Not Working
-
-Direct messages to the bot get no response, but channel messages work fine. Logs show `event_filtered ... reason=routing_policy_ignore ignoreReason=DmNotAllowed`.
-
-`AllowDirectMessages` defaults to `false`. Turn it on:
-
-```json
-{
-  "Slack": {
+    "AllowedChannelIds": ["C0123456789"],
+    "AllowedUserIds": ["U0123456789"],
     "AllowDirectMessages": true
   }
 }
 ```
 
-Doctor warns if you enable DMs with an empty `AllowedUserIds` list, since any workspace member can then DM the bot.
+[`netclaw doctor`](/cli/doctor/) catches an empty allow-list for Slack. To find IDs, see [Slack](/channels/slack/#channels), [Discord](/channels/discord/#channels) or [Mattermost](/channels/mattermost/#how-channel-ids-are-stored).
 
-### Channel Messages Silently Dropped After Upgrading from Pre-0.24.0
+If no `event_dropped` line appears at all, the event never reached netclaw. On Slack and Mattermost, invite the bot to the channel. On Discord, check the Message Content intent.
 
-Bot is connected and the channel is in `AllowedChannelIds`, but every message is dropped. Logs show `channel_not_allowed`. Started after upgrading to 0.24.0 or later.
+### Everything stopped after upgrading from before 0.24.0
 
-**Cause:** Before 0.24.0, `AllowedChannelIds` accepted display names (e.g. `"general"`) or manually entered values that were never resolved to canonical IDs. As of 0.24.0, incoming message channel IDs are matched against stored IDs only — display names no longer match.
+**Symptom:** the channel is in `AllowedChannelIds`, but every message logs `channel_not_allowed`. It began after upgrading to 0.24.0 or later.
 
-**Fix:** Re-enter the channels via `netclaw config` → Channels so they resolve to canonical IDs and are saved correctly. This is the easiest path — the config UI does the resolution automatically.
+**Cause:** before 0.24.0, `AllowedChannelIds` accepted display names such as `"general"`. Since 0.24.0, incoming channel IDs match stored IDs only.
 
-If you prefer to fix it manually in `~/.netclaw/config/netclaw.json`, replace any display names in `AllowedChannelIds` with the canonical channel ID for each platform:
+**Fix:** re-enter the channels in `netclaw config` → Channels so they resolve to IDs. Or edit `netclaw.json` and swap each name for its canonical ID.
 
-- **Slack:** right-click a channel name → "View channel details" → scroll to the bottom for the `C...` ID. See [Slack: Finding IDs](https://slack.com/help/articles/221769328).
-- **Discord:** enable Developer Mode in Settings > App Settings > Advanced, then right-click any channel → "Copy Channel ID."
-- **Mattermost:** find IDs in the System Console or via the [REST API](https://api.mattermost.com/).
+### The allow-list is right but the bot is still silent in Docker or Compose
 
-After editing, restart the daemon: `netclaw daemon stop && netclaw daemon start`
+**Cause:** an environment variable and `netclaw.json` both set the same list. .NET merges them by position, so a blank `NETCLAW_Mattermost__AllowedChannelIds__0` overwrites the first channel in the file.
 
-### Bot Not Responding to Messages (MentionOnly)
+**Fix:** keep each list in one place, then check the value the container sees, for example `docker exec <container> printenv NETCLAW_Mattermost__AllowedChannelIds__0`.
 
-Bot is connected and healthy but only responds to some messages. Logs show `event_filtered ... reason=routing_policy_ignore ignoreReason=ChannelMentionRequired`.
+## The bot answers only some messages
 
-`MentionOnly` defaults to `true`, so the bot ignores messages that don't @-mention it. Either @-mention the bot every time, or turn it off:
+**Symptom:** the bot is healthy but ignores messages that don't mention it. The log has:
 
-**Slack:**
+```text
+event_filtered event=... reason=routing_policy_ignore ignoreReason=ChannelMentionRequired
+```
+
+**Cause:** `MentionOnly` defaults to `true`, so in channels the bot answers only messages that @-mention it.
+
+**Fix:** mention the bot, or turn the rule off for the channel type:
 
 ```json
 {
-  "Slack": {
-    "MentionOnly": false
-  }
+  "Slack": { "MentionOnly": false },
+  "Discord": { "MentionOnly": false },
+  "Mattermost": { "MentionOnly": false }
 }
 ```
 
-**Discord:**
+`MentionRequiredInDm` separately controls whether DMs need a mention (default `false`). On Slack, a file upload follows the same rule, so an un-mentioned attachment in a channel is ignored.
 
-```json
-{
-  "Discord": {
-    "MentionOnly": false,
-    "MentionRequiredInDm": false
-  }
-}
+## The bot stopped answering in a thread
+
+**Symptom:** the bot was answering in a thread, then went quiet. The log has:
+
+```text
+event_filtered event=... reason=routing_policy_ignore ignoreReason=ThreadMentionRequired
 ```
 
-`MentionRequiredInDm` controls whether DMs also need a mention (defaults to `false`).
+**Cause:** `MentionRequiredInThreadByChannel` is `true` for that channel, so thread replies need a mention. A channel you added through `netclaw config` as `team` or `public` starts with the rule on.
 
-## Connectivity
+**Fix:** mention the bot in the reply. It then re-reads what it missed and answers with full context. To turn the rule off, press **Space** on the channel in `netclaw config` → Channels, or set the channel's entry to `false` in `netclaw.json`.
 
-### Slack Socket Mode Disconnected
+If the thread is old, check the idle limit too. A thread is freed from memory when its session goes idle, after `Session.IdleTimeout` (one hour by default), and a later reply wakes it again. A restart backfills history.
 
-`netclaw status` shows Slack as `disconnected`. Was working, then stopped.
+## The reply never appears
 
-Restart the daemon:
+### Slack: the post fails
 
-```bash
-netclaw daemon stop && netclaw daemon start
-```
-
-If it keeps disconnecting, check the [Slack Status page](https://status.slack.com/) and your network. Make sure the App Token (`xapp-...`) is still valid; Socket Mode requires it.
-
-Only Socket Mode is supported. Setting `SocketMode: false` leaves Slack unable to connect, so it shows as degraded in `netclaw status` and the daemon logs a connection error.
-
-### Discord Gateway Disconnected
-
-`netclaw status` shows Discord as `disconnected`.
-
-Restart the daemon: `netclaw daemon stop && netclaw daemon start`. If it keeps dropping, check the [Discord Status page](https://discordstatus.com/) and verify the bot token.
-
-### Rate Limiting
-
-Replies are delayed or fail intermittently. Logs show `rate_limited` (Slack) or HTTP 429 (Discord).
-
-Netclaw retries on its own. If rate limiting is sustained, check whether another integration shares the same bot token's rate limit budget.
-
-## Message Delivery
-
-### Slack: Reply Not Posted
-
-Bot processes the message (logs show session activity) but the reply never appears in Slack.
+**Symptom:** the log shows the message was processed, but nothing shows up in Slack, with one of these errors:
 
 | Error | Meaning |
 |-------|---------|
-| `not_in_channel` | Bot hasn't been invited to the channel. Invite it with `/invite @botname`. |
-| `channel_not_found` | Channel ID is wrong or the channel was deleted. |
-| `missing_scope` | Bot token lacks the required OAuth scope for posting. |
-| `no_permission` | Bot doesn't have permission to post in this channel. |
-| `msg_too_long` | Response exceeded Slack's message size limit. |
-| `invalid_blocks` | Malformed Block Kit payload. Usually a formatting edge case in the response. |
-| `too_many_attachments` | Response has too many attachments. |
+| `not_in_channel` | The bot isn't in the channel. Invite it with `/invite @botname`. |
+| `channel_not_found` | The channel ID is wrong or the channel was deleted. |
+| `missing_scope` | The token lacks a scope needed to post. |
+| `no_permission` | The bot can't post in this channel. |
+| `msg_too_long` | The reply exceeded Slack's size limit. |
+| `invalid_blocks` | Slack rejected the formatted payload. |
+| `too_many_attachments` | The reply has too many attachments. |
+| `rate_limited` | Slack throttled the call. netclaw retries. |
 
-For permission errors: add the bot to the channel and make sure it has `chat:write` scope. Check your app's OAuth scopes in the [Slack API dashboard](https://api.slack.com/apps).
+For permission errors, invite the bot and check the scopes under **OAuth & Permissions** in the [Slack API dashboard](https://api.slack.com/apps). Reinstall the app after you change scopes.
 
-### Discord: Reply Not Posted
+### Discord: the post fails
 
-Bot processes the message but no reply appears in Discord.
+**Symptom:** the bot processes the message but no reply shows up.
 
-Check daemon logs for HTTP error codes. Usually the bot is missing `Send Messages` permission in the target channel. Fix it in your Discord server's channel permission settings.
+**Cause:** usually the bot lacks **Send Messages**, **Send Messages in Threads** or **Create Public Threads** in that channel. The log has the HTTP status. A 429 is Discord rate limiting, and netclaw retries.
 
-### Bot Reply Loop
+**Fix:** grant the permission in the channel's settings.
 
-Bot responds to its own messages, creating an infinite loop. High `events.filtered{reason="bot_message"}` counter alongside high `events.received`.
+### Mattermost: the post fails
 
-Netclaw filters its own messages to prevent loops, so this is rare. Restart the daemon. If the loop comes back, bot user ID detection probably failed at startup. Look for errors around the `slack.Auth.Test()` call in the logs.
+**Symptom:** the log shows a reply error after the message was processed.
 
-## Debug Logging
+**Cause:** the bot isn't a member of the channel, or it lost access to it.
 
-Still stuck? Turn on debug logging in `~/.netclaw/config/netclaw.json`:
+**Fix:** add the bot to the channel with `/invite @netclaw`. The channel's `reply_failed` counter in `netclaw status` rises while this is broken.
+
+## Approvals don't work
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Lettered prompt, and your reply is ignored | You aren't the user who triggered the request. The bot posts "Only the requesting user can approve this tool action." | Have the original user reply, or ask again yourself. |
+| Mattermost buttons never respond | `CallbackUrl` is set but the Mattermost server can't reach the daemon. | Fix the route, or leave `CallbackUrl` unset if you don't use sub-agents. See [Mattermost](/channels/mattermost/#buttons-need-a-reachable-callback). |
+| Mattermost button says "no longer valid" | The daemon restarted. Button tokens live in memory. | Ask the agent to re-issue the prompt. |
+| A sub-agent's call is denied with `approval_prompt_unavailable`, and its prompt shows "withdrawn ... could not show it in this channel" | Mattermost has no `CallbackUrl`, and sub-agent prompts need buttons. | Set `CallbackUrl`. See [Mattermost](/channels/mattermost/#buttons-need-a-reachable-callback). |
+| A typed letter is ignored and the bot says "N approval prompts are open. Use the buttons on the prompt you mean." | Two or more prompts are open for you and one is from a sub-agent. A letter can't pick one. | Click the buttons on the prompt you mean. |
+| "That approval prompt already has an answer" or "Approval response ignored: that approval prompt already has an answer." | A second click or reply on a prompt that was already answered. | Nothing to fix. The first answer stands. |
+| A prompt lost its buttons and shows a withdrawal reason | The task that asked was cancelled, ended or stopped, the daemon restarted, or the channel couldn't show the prompt. Nothing ran. | Ask the agent to try again. |
+| No prompt appears and the call doesn't run | The channel couldn't post the prompt. netclaw tells the model nobody saw it. | Fix the post error above, then ask again. |
+
+The choices on each prompt are explained in [How tool approvals work](/security/approvals/).
+
+## The bot talks to itself
+
+**Symptom:** the bot answers its own messages in a loop. `events.filtered{reason="bot_message"}` and `events.received` are both high.
+
+**Cause:** netclaw filters its own messages, so this is rare. It points to a failed bot-identity lookup at startup.
+
+**Fix:** restart the daemon. If it comes back, look in the log around startup for an authentication error on the channel.
+
+## Turn on debug logging
+
+Still stuck? Set the log level in `~/.netclaw/config/netclaw.json`:
 
 ```json
 {
@@ -280,60 +300,48 @@ Still stuck? Turn on debug logging in `~/.netclaw/config/netclaw.json`:
 }
 ```
 
-Restart the daemon, trigger the failing interaction, and look for these patterns:
+The daemon restarts on the edit. Reproduce the problem and read the daemon log. A healthy Slack message flow looks like this:
 
-**Healthy message flow (Slack):**
-1. `Routing Slack event {id} to conversation {channelId}` — [SlackGatewayActor, Debug]
-2. `turn_routed event={EventId} hasFiles=... textChars=...` — [SlackConversationActor]
-3. `turn_received textChars=... fileCount=...` — [SlackThreadBindingActor]
-4. `turn_enqueued contentItems=...` — [SlackThreadBindingActor]
-5. `Posted Slack reply message` — [SlackThreadBindingActor]
+1. `Routing Slack event {id} to conversation {channelId}` (Debug)
+2. `turn_routed event=... hasFiles=... textChars=...`
+3. `turn_received textChars=... fileCount=...`
+4. `turn_enqueued contentItems=...`
+5. `Posted Slack reply message`
 
-If step 1 never appears, the message was dropped before routing — check ACL config (`channel_not_allowed`, `user_not_allowed`). If step 1 appears but step 2 does not, the routing policy filtered it (look for `event_filtered reason=routing_policy_ignore`). If step 4 appears but step 5 does not, the reply couldn't be posted — check the error tables above.
+If step 1 never appears, the event was dropped before routing, so check the ACL reasons above. If step 1 appears but not step 2, the routing policy filtered it. If step 4 appears but not step 5, the reply couldn't be posted, so check [The reply never appears](#the-reply-never-appears).
 
-**Quick triage commands:**
+To see whether sessions are being written at all:
 
 ```bash
-# Daemon process status
-netclaw daemon status
-
-# Recent crash logs
-ls -lt ~/.netclaw/logs/crash-*.log
-
-# Recent session activity (SQLite)
 sqlite3 ~/.netclaw/netclaw.db \
   "SELECT persistence_id, MAX(created), MAX(sequence_number) \
    FROM journal GROUP BY persistence_id \
    ORDER BY MAX(created) DESC LIMIT 10;"
 ```
 
-## OTLP Diagnostic Patterns
+## Read the metrics
 
-If [OpenTelemetry](/observability/opentelemetry/) is enabled, channel metrics tell the story faster than logs:
+If [OpenTelemetry](/observability/opentelemetry/) is on, channel metrics are faster than logs. They use the namespaces `netclaw.channel.slack.*`, `netclaw.channel.discord.*` and `netclaw.channel.mattermost.*`.
 
-| Pattern | Metrics | Likely Cause |
+| Pattern | Metrics | Likely cause |
 |---------|---------|--------------|
-| Messages received, none routed | `events.received > 0`, `events.routed = 0` | ACL blocking all traffic |
-| Messages routed, no replies | `messages.enqueued > 0`, `replies.posted = 0` | Outbound delivery failure |
-| High drop rate | `events.dropped` spiking with `reason=channel_not_allowed` | Channel not in allow list |
-| Suspected loop | High `events.filtered{reason="bot_message"}` + high `events.received` | Bot message filter working, but volume suggests upstream issue |
+| Messages received, none routed | `events.received > 0`, `events.routed = 0` | ACL is blocking everything |
+| Messages routed, no replies | `messages.enqueued > 0`, `replies.posted = 0` | Outbound delivery is failing |
+| Many drops with one reason | `events.dropped` rising with `reason=channel_not_allowed` | Channel isn't in the allow-list |
+| Suspected loop | High `events.filtered{reason="bot_message"}` and high `events.received` | The bot-message filter is working, so look upstream |
 
-Channel metrics use the namespace `netclaw.channel.slack.*`, `netclaw.channel.discord.*`, and `netclaw.channel.mattermost.*`.
+## Related pages
 
-## Related Pages
+- [Slack](/channels/slack/), [Discord](/channels/discord/) and [Mattermost](/channels/mattermost/) - setup and behavior for each channel
+- [`netclaw status`](/cli/status/) - live connector health and counters
+- [`netclaw doctor`](/cli/doctor/) - offline diagnostics
+- [`netclaw secrets`](/cli/secrets/) - replace a stored token
+- [OpenTelemetry](/observability/opentelemetry/) - the metrics reference
 
-- [`netclaw doctor`](/cli/doctor/) — offline diagnostics
-- [`netclaw status`](/cli/status/) — live connector health and message counters
-- [`netclaw secrets`](/cli/secrets/) — manage encrypted tokens
-- [`netclaw config`](/cli/config/) — Channels
-- [OpenTelemetry](/observability/opentelemetry/) — OTLP metrics reference
+## Resources
 
-## External Resources
-
-- [Slack API: Bot tokens and permissions](https://api.slack.com/authentication/token-types#bot) — token types and required scopes
-- [Slack API: Socket Mode](https://api.slack.com/apis/socket-mode) — how Socket Mode connections work
-- [Slack: Finding Channel and User IDs](https://slack.com/help/articles/221769328) — locate IDs for ACL config
-- [Discord Developer Docs: Getting Started](https://discord.com/developers/docs/getting-started) — bot setup and permissions
-- [Discord: Finding IDs](https://support.discord.com/hc/en-us/articles/206346498) — enable Developer Mode to copy IDs
-- [Slack Status](https://status.slack.com/) — check for Slack API outages
-- [Discord Status](https://discordstatus.com/) — check for Discord API outages
+- [Slack API: token types](https://api.slack.com/authentication/token-types#bot) - bot tokens and required scopes
+- [Slack: Socket Mode](https://docs.slack.dev/apis/events-api/using-socket-mode) - how Socket Mode connections work
+- [Discord: getting started](https://discord.com/developers/docs/getting-started) - bot setup and permissions
+- [Mattermost: bot accounts](https://developers.mattermost.com/integrate/reference/bot-accounts/) - tokens and permissions
+- [Slack Status](https://status.slack.com/) and [Discord Status](https://discordstatus.com/) - check for outages

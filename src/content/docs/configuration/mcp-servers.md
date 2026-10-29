@@ -213,6 +213,49 @@ To see the exact value netclaw sends, check the `redirect_uri` parameter in the 
 
 When netclaw runs on a server or in a container, the browser redirect goes to `127.0.0.1` on *your* machine, so the page fails to load. That's expected. Copy the full URL from the address bar (it contains `code=` and `state=`) and paste it at the `netclaw mcp auth` prompt before the 5-minute timeout.
 
+### GitHub MCP server
+
+GitHub's official remote MCP server (`https://api.githubcopilot.com/mcp/`) uses OAuth, but it [doesn't support dynamic client registration](https://github.com/github/github-mcp-server/blob/main/docs/host-integration.md). You have two options.
+
+**Option 1: register your own GitHub App or OAuth App.** GitHub recommends a GitHub App: you pick its exact permissions, and its tokens expire. Both app types need a client ID *and* a client secret.
+
+1. On GitHub, go to **Settings → Developer settings**, then **GitHub Apps → New GitHub App** or **OAuth Apps → New OAuth App**.
+2. Set the callback URL to the [redirect URI](#redirect-uri): `http://127.0.0.1:5199/api/mcp/oauth/callback` with the default port. The homepage URL can be anything.
+3. For a GitHub App, clear **Webhook → Active** (otherwise GitHub requires a webhook URL), choose the repository and organization permissions the agent needs, and install the app on the accounts or repositories it should reach. You don't need a private key.
+4. Register the app, then generate a client secret.
+5. Save the client ID and secret with `netclaw mcp add`. They go on `add`, not on `auth`:
+
+   ```bash
+   netclaw mcp add github https://api.githubcopilot.com/mcp/ --transport http \
+     --client-id <client-id> --client-secret <client-secret>
+   ```
+
+   If `github` already exists, this updates its connection settings and keeps its tool grants. The daemon restarts itself when the config changes, so give it a few seconds.
+6. Authorize in the browser:
+
+   ```bash
+   netclaw mcp auth github
+   ```
+
+With an OAuth App, add `--scope` to request fewer GitHub scopes than the server default (for example, `--scope "repo read:org"`). A GitHub App ignores scopes; its permissions come from the app settings.
+
+:::caution
+Netclaw 0.28.2 and earlier can't find GitHub's OAuth metadata, and `netclaw mcp auth github` fails with `HTTP 404 NotFound`. On those versions, use option 2.
+:::
+
+**Option 2: a personal access token.** Skip OAuth and send the token as a header:
+
+```bash
+netclaw mcp add github https://api.githubcopilot.com/mcp/ --transport http \
+  --header "Authorization: Bearer <token>"
+```
+
+The header goes to `secrets.json`. A fine-grained token lets you limit the server to specific repositories. Unlike OAuth, the token doesn't refresh, so replace it before it expires.
+
+:::caution
+The GitHub server exposes write tools such as `merge_pull_request`, `delete_file`, and `push_files`. When you add it as a new server, the Personal audience gets every tool with auto-approval. Run `netclaw mcp permissions` to trim the grants or require approval before an agent uses them. See [per-audience access control](#per-audience-access-control).
+:::
+
 ## Per-audience access control
 
 Netclaw gates MCP server access per [audience](/security/security-model/#trust-audiences) (Personal, Team, Public) in the `Tools.AudienceProfiles` section of `netclaw.json`:
